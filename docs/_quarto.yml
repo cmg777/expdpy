@@ -10,7 +10,7 @@ website:
   repo-actions: [issue, edit]
   navbar:
     background: primary
-    logo: images/logo.svg
+    logo: images/logo-navbar.svg
     logo-alt: "expdpy logo"
     left:
       - text: "Home"

@@ -29,6 +29,7 @@ ASSETS = REPO / "src" / "expdpy" / "_assets"
 DOCS_IMAGES = REPO / "docs" / "images"
 
 LOGO_SVG = ASSETS / "logo.svg"
+NAVBAR_LOGO_SVG = ASSETS / "logo-navbar.svg"
 FAVICON_SVG = ASSETS / "favicon.svg"
 
 
@@ -67,7 +68,10 @@ def build() -> None:
     render(FAVICON_SVG, ASSETS / "favicon.png", 256)  # Streamlit page icon (tab tile)
 
     print("Docs site copies (docs/images):")
-    copy(LOGO_SVG, DOCS_IMAGES / "logo.svg")  # Quarto navbar logo
+    copy(LOGO_SVG, DOCS_IMAGES / "logo.svg")  # blue mark, for light backgrounds
+    copy(
+        NAVBAR_LOGO_SVG, DOCS_IMAGES / "logo-navbar.svg"
+    )  # Quarto navbar (white, on blue)
     copy(
         ASSETS / "logo.png", DOCS_IMAGES / "logo.png"
     )  # README raw.githubusercontent URL

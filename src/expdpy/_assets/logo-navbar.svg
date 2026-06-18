@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="expdpy logo">
+  <title>expdpy</title>
+  <!-- Faint axis (baseline + left axis) — translucent white for chart context on a blue navbar -->
+  <path d="M12 8 V54 H56" fill="none" stroke="#ffffff" stroke-opacity="0.5" stroke-width="2.5"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- N-shaped Kuznets curve: rise, fall, rise -->
+  <path d="M14 48 C19 36 23 18 27 15 C32 12 37 41 41 43 C45 45 50 22 54 13"
+        fill="none" stroke="#ffffff" stroke-width="4"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Data points on the turning peaks/trough -->
+  <circle cx="27" cy="15" r="2.6" fill="#ffffff"/>
+  <circle cx="41" cy="43" r="2.6" fill="#ffffff"/>
+  <circle cx="54" cy="13" r="2.6" fill="#ffffff"/>
+</svg>
