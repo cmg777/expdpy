@@ -167,6 +167,10 @@ hypothesis = ">=6"
 ruff = ">=0.6"
 mypy = ">=1.10"
 pre-commit = ">=3.7"
+# Matches the dev group and the pre-commit mypy hook's additional_dependencies, so
+# `pixi run -e lint mypy src` resolves pandas types the same way (without the stubs, mypy
+# flags a spurious overload-cannot-match in outliers.py).
+pandas-stubs = "*"
 
 [tool.pixi.feature.r.dependencies]
 rpy2 = ">=3.6,<4"
