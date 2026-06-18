@@ -28,6 +28,8 @@ def test_fwl_slope_equals_full_coef_with_controls_and_fe(sample_df):
     assert isinstance(res, FWLPlotResult)
     assert res.slope == pytest.approx(coef, rel=1e-8)  # point estimates match exactly
     assert res.se == pytest.approx(se, rel=1e-8)  # clustered SE matches the table
+    # residualized x and y are mean-zero, so the residual-OLS intercept is ~0
+    assert res.intercept == pytest.approx(0.0, abs=1e-7)
 
 
 def test_fwl_is_conditional_on_fixed_effects(sample_df):
@@ -93,3 +95,26 @@ def test_fwl_focal_var_in_controls_raises(sample_df):
 def test_fwl_missing_column_raises(sample_df):
     with pytest.raises(KeyError, match="nope"):
         prepare_fwl_plot(sample_df, dv="x2", var="nope")
+
+
+def test_fwl_export_emitter_resolves_default_focal():
+    """The notebook emitter falls back to the first regressor when fwl_focal is unset."""
+    from expdpy.app._export_nb import build_blocks
+
+    cfg = {"reg_y": "x2", "reg_x": ["x1", "x3"], "fwl_focal": "None"}
+    code = "\n".join(c for _, c in build_blocks(cfg, ["fwl_plot"]))
+    assert "prepare_fwl_plot" in code
+    assert (
+        "var='x1'" in code
+    )  # auto-selected first regressor, never the 'None' sentinel
+    assert "var='None'" not in code
+    assert "controls=['x3']" in code
+
+
+def test_fwl_export_emitter_skips_without_regressors():
+    """No regressors -> no FWL block emitted (mirrors the live no-op)."""
+    from expdpy.app._export_nb import build_blocks
+
+    cfg = {"reg_y": "x2", "reg_x": [], "fwl_focal": "None"}
+    code = "\n".join(c for _, c in build_blocks(cfg, ["fwl_plot"]))
+    assert "prepare_fwl_plot" not in code

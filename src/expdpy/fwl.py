@@ -142,7 +142,7 @@ def prepare_fwl_plot(
 
     if len(x_resid) != len(y_resid):  # pragma: no cover - aligned by construction
         raise RuntimeError("residual vectors misaligned; cannot build FWL plot")
-    if np.allclose(x_resid, x_resid[0]):
+    if np.ptp(x_resid) <= 1e-10 * (1.0 + float(np.abs(x_resid).max())):
         raise ValueError(
             f"residualized '{var}' has (near) zero variance; the controls/fixed effects "
             "absorb all of its variation, so an FWL slope is not identified"

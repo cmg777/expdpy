@@ -116,11 +116,15 @@ def _emit_regression(cfg: dict) -> str:
     )
 
 
-def _emit_fwl_plot(cfg: dict) -> str:
+def _emit_fwl_plot(cfg: dict) -> str | None:
     reg_x = cfg.get("reg_x")
     xs = reg_x if isinstance(reg_x, list) else [reg_x]
     xs = [x for x in xs if x not in (None, "None")]
+    if not xs:
+        return None  # mirrors the live no-op when no regressors are chosen
     focal = cfg.get("fwl_focal")
+    if focal not in xs:  # mirror the UI auto-selecting the first regressor as focal
+        focal = xs[0]
     controls = [x for x in xs if x != focal]
     fes = [
         cfg.get(k) for k in ("reg_fe1", "reg_fe2") if cfg.get(k) not in (None, "None")
@@ -179,7 +183,9 @@ def build_blocks(
     for name in components:
         if name in _SKIP or name not in _EMITTERS:
             continue
-        blocks.append((_HEADINGS.get(name, name), _EMITTERS[name](config, ts_id)))
+        code = _EMITTERS[name](config, ts_id)
+        if code:  # emitters may return None when their selection is incomplete
+            blocks.append((_HEADINGS.get(name, name), code))
     return blocks
 
 
