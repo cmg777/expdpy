@@ -1,7 +1,7 @@
 ---
-title: "expdpy"
-subtitle: "Explore your panel data interactively"
 ---
+
+![expdpy — A Python library to explore panel data interactively](images/hero.webp){fig-align="center" fig-alt="expdpy — A Python library to explore panel data interactively"}
 
 **expdpy** is a Python port of the [ExPanDaR](https://github.com/trr266/ExPanDaR) R package
 (Joachim Gassen, TRR 266). It gives you a set of composable analytical functions and an

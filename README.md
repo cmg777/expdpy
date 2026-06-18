@@ -1,4 +1,6 @@
-# expdpy
+<p align="center">
+  <img src="https://raw.githubusercontent.com/cmg777/expdpy/main/docs/images/hero.webp" alt="expdpy — A Python library to explore panel data interactively" width="100%">
+</p>
 
 <!-- badges: start -->
 [![CI](https://github.com/cmg777/expdpy/actions/workflows/ci.yml/badge.svg)](https://github.com/cmg777/expdpy/actions/workflows/ci.yml)
