@@ -15,10 +15,34 @@ modern Python stack:
 
 ## Installation
 
+The package is not on PyPI yet — install the latest version straight from GitHub:
+
 ```bash
-pip install expdpy          # core analytical functions
-pip install "expdpy[app]"   # + the interactive ExPanD app
+# Core analytical functions:
+pip install "git+https://github.com/cmg777/expdpy.git"
+
+# ...with the interactive ExPanD app:
+pip install "expdpy[app] @ git+https://github.com/cmg777/expdpy.git"
 ```
+
+Using [uv](https://docs.astral.sh/uv/):
+
+```bash
+uv pip install "git+https://github.com/cmg777/expdpy.git"
+uv pip install "expdpy[app] @ git+https://github.com/cmg777/expdpy.git"
+```
+
+Pin to a branch, tag, or commit for reproducible installs:
+
+```bash
+pip install "git+https://github.com/cmg777/expdpy.git@main"
+# pip install "git+https://github.com/cmg777/expdpy.git@v0.1.0"   # once a release is tagged
+```
+
+::: {.callout-note}
+**Coming soon (PyPI):** once published, `pip install expdpy` /
+`pip install "expdpy[app]"` will work directly.
+:::
 
 ## At a glance
 

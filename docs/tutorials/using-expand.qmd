@@ -3,11 +3,16 @@ title: "Using the ExPanD app"
 ---
 
 The `ExPanD` app wraps the analytical functions in an interactive, no-code interface (built
-with [Shiny for Python](https://shiny.posit.co/py/)). It is provided by the `app` extra:
+with [Shiny for Python](https://shiny.posit.co/py/)). It is provided by the `app` extra. The
+package is not on PyPI yet, so install it from GitHub:
 
 ```bash
-pip install "expdpy[app]"
+pip install "expdpy[app] @ git+https://github.com/cmg777/expdpy.git"
+# or, with uv:
+uv pip install "expdpy[app] @ git+https://github.com/cmg777/expdpy.git"
 ```
+
+Once published to PyPI, `pip install "expdpy[app]"` will work directly.
 
 ## Launching on a DataFrame
 

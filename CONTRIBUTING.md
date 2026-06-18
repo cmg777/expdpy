@@ -5,6 +5,9 @@ Thanks for your interest in improving **expdpy**! This project is a Python port 
 
 ## Development setup
 
+> Just want to **use** expdpy? Install it from GitHub instead — see
+> [Installation](README.md#installation). The steps below are for **developing** the package.
+
 The project is managed with [pixi](https://pixi.sh):
 
 ```bash

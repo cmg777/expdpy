@@ -4,8 +4,8 @@
 [![CI](https://github.com/cmg777/expdpy/actions/workflows/ci.yml/badge.svg)](https://github.com/cmg777/expdpy/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/cmg777/expdpy/branch/main/graph/badge.svg)](https://codecov.io/gh/cmg777/expdpy)
 [![Docs](https://github.com/cmg777/expdpy/actions/workflows/docs.yml/badge.svg)](https://cmg777.github.io/expdpy/)
-[![PyPI](https://img.shields.io/pypi/v/expdpy.svg)](https://pypi.org/project/expdpy/)
-[![Python](https://img.shields.io/pypi/pyversions/expdpy.svg)](https://pypi.org/project/expdpy/)
+[![GitHub release](https://img.shields.io/github/v/release/cmg777/expdpy?include_prereleases&label=release)](https://github.com/cmg777/expdpy/releases)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://github.com/cmg777/expdpy)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 <!-- badges: end -->
@@ -22,10 +22,32 @@ the modern Python data/econometrics stack:
 
 ## Installation
 
+The package is not on PyPI yet — install the latest version straight from GitHub:
+
 ```bash
-pip install expdpy          # core analytical functions
-pip install "expdpy[app]"   # + the interactive ExPanD app
+# Core analytical functions:
+pip install "git+https://github.com/cmg777/expdpy.git"
+
+# ...with the interactive ExPanD app:
+pip install "expdpy[app] @ git+https://github.com/cmg777/expdpy.git"
 ```
+
+Using [uv](https://docs.astral.sh/uv/):
+
+```bash
+uv pip install "git+https://github.com/cmg777/expdpy.git"
+uv pip install "expdpy[app] @ git+https://github.com/cmg777/expdpy.git"
+```
+
+Pin to a branch, tag, or commit for reproducible installs:
+
+```bash
+pip install "git+https://github.com/cmg777/expdpy.git@main"
+# pip install "git+https://github.com/cmg777/expdpy.git@v0.1.0"   # once a release is tagged
+```
+
+> **Coming soon (PyPI):** once published, `pip install expdpy` /
+> `pip install "expdpy[app]"` will work directly.
 
 ## Quickstart
 
