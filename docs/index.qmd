@@ -14,7 +14,7 @@ modern Python stack:
 - **[Shiny for Python](https://shiny.posit.co/py/)** and **[Streamlit](https://streamlit.io/)** — two no-code `ExPdPy` apps
 
 There are **two interactive apps** with the same features: the original
-[Shiny app](tutorials/using-shiny.qmd) and a [Streamlit app](tutorials/using-streamlit.qmd)
+[Shiny app](shiny.qmd) and a [Streamlit app](streamlit.qmd)
 that adds a multipage layout and runs on [Streamlit Community Cloud](https://streamlit.io/cloud).
 See [Shiny vs Streamlit](explanation/shiny-vs-streamlit.qmd) for a side-by-side comparison.
 
@@ -69,7 +69,7 @@ ex.prepare_scatter_plot(
 
 Head to the [Quickstart](quickstart.qmd) to see every function in action, the
 [kuznets dataset](explanation/kuznets-dataset.qmd) page for the data dictionary, or the
-[ExPdPy tutorial](tutorials/using-shiny.qmd) to launch the interactive app.
+[ExPdPy tutorial](shiny.qmd) to launch the interactive app.
 
 ## Why a port?
 

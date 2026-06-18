@@ -15,17 +15,9 @@ website:
       - text: "Quickstart"
         file: quickstart.qmd
       - text: "Shiny app"
-        menu:
-          - text: "Using the Shiny app"
-            file: tutorials/using-shiny.qmd
-          - text: "Customizing the Shiny app"
-            file: how-to/customize-shiny.qmd
+        file: shiny.qmd
       - text: "Streamlit app"
-        menu:
-          - text: "Using the Streamlit app"
-            file: tutorials/using-streamlit.qmd
-          - text: "Customizing the Streamlit app"
-            file: how-to/customize-streamlit.qmd
+        file: streamlit.qmd
       - text: "Explanation"
         menu:
           - text: "The kuznets dataset"

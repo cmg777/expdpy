@@ -1,5 +1,5 @@
 ---
-title: "Using the ExPdPy app (Streamlit)"
+title: "The ExPdPy Streamlit app"
 ---
 
 ::: {.callout-tip appearance="simple"}
@@ -9,7 +9,7 @@ title: "Using the ExPdPy app (Streamlit)"
 :::
 
 `ExPdPy` also ships as a [Streamlit](https://streamlit.io/) app — the same no-code interface
-as the [Shiny version](using-shiny.qmd), reorganised into a **multipage layout** with native,
+as the [Shiny version](shiny.qmd), reorganised into a **multipage layout** with native,
 sortable tables, and ready to deploy on [Streamlit Community Cloud](https://streamlit.io/cloud).
 It is provided by the `streamlit` extra:
 
@@ -21,7 +21,9 @@ uv pip install "expdpy[streamlit] @ git+https://github.com/cmg777/expdpy.git"
 
 Once published to PyPI, `pip install "expdpy[streamlit]"` will work directly.
 
-## Launching on a DataFrame
+## Using the app
+
+### Launching on a DataFrame
 
 ```python
 from expdpy.streamlit_app import ExPdPy
@@ -40,9 +42,9 @@ upload, subset filter, outlier treatment, user-defined variables, and config sav
 notebook export — and the analysis components are grouped into pages you switch between in the
 navigation menu.
 
-![The Overview & Data page on the kuznets panel.](../images/streamlit-overview.png)
+![The Overview & Data page on the kuznets panel.](images/streamlit-overview.png)
 
-## The pages
+### The pages
 
 | Page | Components |
 |---|---|
@@ -56,11 +58,11 @@ navigation menu.
 Time-series pages and components (Trends, missing values, by-group trend) are **hidden
 automatically for cross-sectional data** — exactly as in the Shiny app.
 
-![The Correlations & Scatter page: the N-shaped Kuznets curve (regional inequality vs log GDP per capita) with a LOESS smoother.](../images/streamlit-correlations.png)
+![The Correlations & Scatter page: the N-shaped Kuznets curve (regional inequality vs log GDP per capita) with a LOESS smoother.](images/streamlit-correlations.png)
 
-![The Regression page: the cubic in log GDP per capita recovers the N — a native coefficient table with significance stars and fit statistics.](../images/streamlit-regression.png)
+![The Regression page: the cubic in log GDP per capita recovers the N — a native coefficient table with significance stars and fit statistics.](images/streamlit-regression.png)
 
-## The dataset picker and upload
+### The dataset picker and upload
 
 Launched without data — or deployed to the Cloud — the app starts with a **dataset picker**
 (defaulting to Kuznets; also Gapminder / World Bank / Russell 3000) and a file uploader. An
@@ -72,7 +74,7 @@ from expdpy.streamlit_app import ExPdPy
 ExPdPy()  # bundled-dataset picker + upload box
 ```
 
-## Cross-sectional data
+### Cross-sectional data
 
 Omit the time-series identifier and the time-trend pages/components disappear:
 
@@ -80,13 +82,13 @@ Omit the time-series identifier and the time-trend pages/components disappear:
 ExPdPy(load_kuznets().query("year == 2025"))  # no ts_id -> cross-sectional
 ```
 
-## The sample pipeline
+### The sample pipeline
 
 The sidebar's **Subset by** / **Value** selectors restrict the sample to one level of a factor,
 and **Outlier treatment** winsorizes or truncates the numeric columns at the 1st/99th or
 5th/95th percentile. Every component downstream reflects the prepared sample.
 
-## User-defined variables
+### User-defined variables
 
 Expand **Advanced: user-defined variables** to compute new variables from the base data with
 safe expressions (column references plus `+ - * / ** %`, comparisons, `& |`, and the functions
@@ -98,14 +100,14 @@ Expressions are evaluated with a restricted AST walker — never `eval`/`exec` �
 Shiny app, so configurations are interchangeable between the two apps.
 :::
 
-## Saving configurations and reproducible export
+### Saving configurations and reproducible export
 
 **Save config** downloads the current selections as JSON; **Load config** restores them. The
 format is identical to the Shiny app's, so a config saved in one app loads in the other.
 **Export notebook + data** downloads a zip with the prepared sample (parquet) plus a Jupyter
 notebook and a `.py` script that recreate every displayed component with `expdpy` calls.
 
-## Deploying on Streamlit Community Cloud
+### Deploying on Streamlit Community Cloud
 
 The repository ships a thin entry script, `streamlit_app.py`, that the Cloud points at (or run
 it locally):
@@ -119,3 +121,80 @@ On Streamlit Community Cloud, set the app's main file to `streamlit_app.py` and 
 (with the `streamlit` extra) to the environment. The app starts with the dataset picker and
 upload box — no code required.
 :::
+
+::: {.callout-note}
+Upload size is capped by `.streamlit/config.toml` (`[server] maxUploadSize`, default 200 MB).
+Increase it there, or pass `max_upload_size=` to `ExPdPy(...)` for a local run.
+:::
+
+## Customizing the app
+
+The Streamlit `ExPdPy` launcher takes the same customization arguments as the
+[Shiny version](shiny.qmd) — only the import path differs
+(`from expdpy.streamlit_app import ExPdPy`).
+
+### Selecting components
+
+`components` controls which analysis components appear (and seeds page selection). Pass a list
+or a `{name: bool}` mapping:
+
+```python
+from expdpy.streamlit_app import ExPdPy
+from expdpy.data import load_kuznets, load_kuznets_data_def
+
+ExPdPy(
+    load_kuznets(),
+    df_def=load_kuznets_data_def(),
+    components=["descriptive_table", "scatter_plot", "regression"],
+)
+```
+
+The available component names are:
+
+`bar_chart`, `missing_values`, `descriptive_table`, `histogram`, `ext_obs`,
+`by_group_bar_graph`, `by_group_violin_graph`, `trend_graph`, `quantile_trend_graph`,
+`by_group_trend_graph`, `corrplot`, `scatter_plot`, `regression`.
+
+A navigation page is shown only when at least one of its components is active, and time-series
+components are dropped for cross-sectional data — so disabling components can remove whole
+pages from the menu.
+
+### Advanced mode — building analysis variables
+
+Provide a `var_def` frame (or fill the sidebar's **Advanced: user-defined variables** editor)
+to compute the analysis sample from the base data. Each `var_def` is a safe expression
+(`isna`, `exp`, `log`, `lag`, `lead`, arithmetic, comparisons, `& |`); `lag`/`lead` shift
+within `cs_id` groups ordered by `ts_id`.
+
+```python
+import pandas as pd
+from expdpy.streamlit_app import ExPdPy
+from expdpy.data import load_worldbank, load_worldbank_data_def
+
+var_def = pd.DataFrame(
+    {
+        "var_name": ["country", "year", "gdp_growth"],
+        "var_def": ["country", "year", "(NY.GDP.MKTP.KD - lag(NY.GDP.MKTP.KD, 1)) / lag(NY.GDP.MKTP.KD, 1)"],
+        "type": ["cs_id", "ts_id", "numeric"],
+        "can_be_na": [False, False, True],
+    }
+)
+ExPdPy(load_worldbank(), df_def=load_worldbank_data_def(), var_def=var_def)
+```
+
+### Disabling features and server options
+
+```python
+ExPdPy(
+    load_kuznets(),
+    df_def=load_kuznets_data_def(),
+    export_nb_option=False,      # hide notebook export
+    save_settings_option=False,  # hide config save/load
+    headless=True,               # forwarded to `streamlit run --server.headless true`
+    port=8765,                   # `--server.port 8765`
+)
+```
+
+Server-style keyword arguments (`port`, `host`, `headless`, `max_upload_size`, …) are mapped to
+the corresponding `streamlit run --server.*` flags. Pass `run=False` to get the command list
+back without launching (useful in tests).
