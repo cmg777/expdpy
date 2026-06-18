@@ -128,14 +128,7 @@ Head to the [Quickstart](quickstart.qmd) to see every function in action, the
 expdpy began as a Python port of the excellent
 [ExPanDaR](https://github.com/trr266/ExPanDaR) R package by **Joachim Gassen** and the
 **TRR 266 Accounting for Transparency** project, and its foundations remain deeply inspired by
-that work — ExPanDaR pioneered the idea of exploring and stress-testing empirical evidence
-interactively, without having to share the underlying data. Over time expdpy has grown
-functionality beyond the original — among others, two interactive frontends (Streamlit **and**
-Shiny), a restricted-AST expression evaluator with panel-aware `lag`/`lead`,
-pyfixest-based fixed-effects regressions with Frisch–Waugh–Lovell plots, and reproducible
-notebook / script / data export — and it will keep evolving.
+that work . Over time, expdpy has grown to include more functionality and it will keep evolving.
 
 We are grateful to the ExPanDaR authors. Please cite the original work when using `expdpy` in
-research (see [`CITATION.cff`](https://github.com/cmg777/expdpy/blob/main/CITATION.cff)); the
-[Parity with ExPanDaR](explanation/parity.qmd) page documents how numerical fidelity to the
-original is verified.
+research (see [`CITATION.cff`](https://github.com/cmg777/expdpy/blob/main/CITATION.cff)).
