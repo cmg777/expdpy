@@ -37,6 +37,21 @@ _OUTLIER_CHOICES = {
 }
 
 
+def _favicon_data_uri() -> str | None:
+    """Base64 ``data:`` URI for the packaged favicon SVG, or ``None`` if unavailable.
+
+    Embedding the icon inline keeps the app self-contained — no static asset route needed.
+    """
+    try:
+        from base64 import b64encode
+        from importlib.resources import files
+
+        raw = files("expdpy").joinpath("_assets/favicon.svg").read_bytes()
+        return "data:image/svg+xml;base64," + b64encode(raw).decode("ascii")
+    except Exception:
+        return None
+
+
 def _normalize_samples(
     df: Any, df_name: str | Sequence[str] | None
 ) -> dict[str, pd.DataFrame]:
@@ -178,8 +193,15 @@ def ExPdPy(
             ui.download_button("download_nb", "Export notebook + data"),
         ]
 
+    favicon = _favicon_data_uri()
+    head = (
+        [ui.head_content(ui.tags.link(rel="icon", type="image/svg+xml", href=favicon))]
+        if favicon
+        else []
+    )
     app_ui = ui.page_sidebar(
         ui.sidebar(*sidebar_items, width=320),
+        *head,
         ui.output_ui("main_ui"),
         title=title,
     )

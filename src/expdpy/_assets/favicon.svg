@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="expdpy">
+  <title>expdpy</title>
+  <!-- Solid blue tile so the mark reads at favicon sizes -->
+  <rect x="0" y="0" width="64" height="64" rx="14" fill="#1f77b4"/>
+  <!-- Same N-shaped Kuznets curve, white, fitted to the tile -->
+  <path d="M12 49 C17 36 22 16 27 13 C32 10 38 42 42 44 C46 46 51 21 56 12"
+        fill="none" stroke="#ffffff" stroke-width="5"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="27" cy="13" r="3" fill="#ffffff"/>
+  <circle cx="42" cy="44" r="3" fill="#ffffff"/>
+  <circle cx="56" cy="12" r="3" fill="#ffffff"/>
+</svg>

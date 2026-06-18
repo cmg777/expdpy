@@ -1,4 +1,8 @@
 <p align="center">
+  <img src="https://raw.githubusercontent.com/cmg777/expdpy/main/docs/images/logo.png" alt="expdpy logo" width="96" height="96">
+</p>
+
+<p align="center">
   <img src="https://raw.githubusercontent.com/cmg777/expdpy/main/docs/images/hero.webp" alt="expdpy — A Python library to explore panel data interactively" width="100%">
 </p>
 
