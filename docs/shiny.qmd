@@ -13,7 +13,7 @@ The hosted app runs [Shiny for Python](https://shiny.posit.co/py/) on
 bundled data, so you bring your own CSV / Excel / Parquet. To try it with the panel used throughout
 these docs:
 
-1. Download the sample: <a href="https://raw.githubusercontent.com/cmg777/expdpy/main/docs/data/kuznets.csv" download>**kuznets.csv**</a> (880 rows × 21 columns).
+1. Download the sample: <a href="data/kuznets.csv" download="kuznets.csv">**kuznets.csv**</a> (880 rows × 21 columns).
 2. Open the [live app](https://carlosmendez777.shinyapps.io/expdpy/) and use **Upload** to select `kuznets.csv`.
 3. Explore the descriptive tables, distributions, correlations and scatter (the N-shaped Kuznets curve), and the regression builder.
 
