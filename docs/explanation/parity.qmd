@@ -1,0 +1,34 @@
+---
+title: "Parity with ExPanDaR"
+---
+
+A core goal of `expdpy` is faithful numerical parity with the original R package. Parity is
+verified at two levels.
+
+## Frozen golden values
+
+`tests/fixtures/make_goldens.R` computes reference values with the base-R functions that
+ExPanDaR relies on — `sd` (denominator `n-1`), `quantile` (type 7), and `cor.test`
+(`exact = FALSE`) — on a deterministic fixture. The Python test-suite asserts against these,
+so the fast test run needs no R installation.
+
+## Live parity vs ExPanDaR (rpy2)
+
+The `against_r`-marked tests use [rpy2](https://rpy2.github.io/) to call ExPanDaR directly
+and compare outputs within tolerance. They run in the pixi `r` environment in CI:
+
+```bash
+pixi run -e r test-r
+```
+
+## Implementation notes
+
+- **Quantiles** — numpy `method="linear"` equals R's `type = 7` (the default). Pass
+  `method="averaged_inverted_cdf"` to `treat_outliers` for Stata / R `type = 2`.
+- **Correlations** — computed pairwise (per-pair complete observations, p-values and N),
+  Pearson above and Spearman below the diagonal, exactly as ExPanDaR's `cor_mat`.
+- **Clustered standard errors** — `prepare_regression_table` uses pyfixest with
+  `ssc(k_adj=True, G_adj=True)`, matching `lfe::felm(cmethod = "reghdfe")`.
+- **Approximations** — the scatter LOESS confidence band is bootstrap-based, and weighted
+  LOESS (`loess=2`) approximates ggplot's `geom_smooth(weight=...)`; these are smoke-tested
+  rather than asserted numerically. Logit models are intentionally out of scope (OLS only).

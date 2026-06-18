@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: >-
+  If you use expdpy in your research, please cite both expdpy and the original
+  ExPanDaR R package on which it is based.
+title: "expdpy: Explore your panel data interactively (a Python port of ExPanDaR)"
+type: software
+authors:
+  - given-names: Carlos
+    family-names: Mendez
+repository-code: "https://github.com/cmg777/expdpy"
+url: "https://cmg777.github.io/expdpy/"
+license: MIT
+references:
+  - type: software
+    title: "ExPanDaR: Explore Your Data Interactively"
+    authors:
+      - given-names: Joachim
+        family-names: Gassen
+        orcid: "https://orcid.org/0000-0003-4364-2911"
+    repository-code: "https://github.com/trr266/ExPanDaR"
+    license: MIT

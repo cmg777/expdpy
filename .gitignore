@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.env
+
+# Tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.coverage
+coverage.xml
+htmlcov/
+
+# pixi
+.pixi/
+
+# Docs build
+docs/_site/
+docs/.quarto/
+docs/objects.json
+docs/reference/
+!docs/reference/.gitkeep
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# R
+.Rhistory
+.RData
+.Rproj.user
+
+# Vendored original R package (reference only — upstream: trr266/ExPanDaR)
+/ExPanDaR/

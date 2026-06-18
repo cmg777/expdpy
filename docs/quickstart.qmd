@@ -1,0 +1,93 @@
+---
+title: "Quickstart"
+jupyter: python3
+---
+
+This walkthrough mirrors the *ExPanDaR functions* vignette using the bundled `russell_3000`
+financial-accounting panel.
+
+```{python}
+import expdpy as ex
+from expdpy.data import load_russell_3000
+
+df = load_russell_3000()
+df[["coid", "period", "sector", "sales", "nioa", "ni_sales"]].head()
+```
+
+## Treating outliers
+
+Winsorize the numeric variables at the 1st/99th percentile:
+
+```{python}
+analysis = ex.treat_outliers(
+    df[["sales", "nioa", "ni_sales", "cfoa", "roa"]], percentile=0.01
+).dropna()
+analysis.describe().round(3)
+```
+
+## Descriptive statistics
+
+```{python}
+ex.prepare_descriptive_table(analysis).gt
+```
+
+## Correlations
+
+Pearson correlations appear above, Spearman below the diagonal; significant cells are bold.
+
+```{python}
+ex.prepare_correlation_table(analysis).gt
+```
+
+```{python}
+ex.prepare_correlation_graph(analysis).fig
+```
+
+## Extreme observations
+
+```{python}
+ex.prepare_ext_obs_table(
+    df, n=5, cs_id=["coid", "coname"], ts_id="period", var="sales"
+).gt
+```
+
+## Time trends
+
+```{python}
+ex.prepare_trend_graph(df, ts_id="period", var=["nioa", "roa"]).fig
+```
+
+```{python}
+ex.prepare_quantile_trend_graph(df, ts_id="period", var="nioa").fig
+```
+
+## By-group views
+
+```{python}
+import numpy as np
+
+ex.prepare_by_group_bar_graph(df, "sector", "nioa", np.nanmedian).fig
+```
+
+```{python}
+ex.prepare_by_group_violin_graph(ex.treat_outliers(df), "sector", "nioa")
+```
+
+## Scatter plot with LOESS
+
+```{python}
+ex.prepare_scatter_plot(analysis, x="ni_sales", y="nioa", color="roa", loess=1)
+```
+
+## Regression with fixed effects and clustered SEs
+
+```{python}
+res = ex.prepare_regression_table(
+    df,
+    dvs="nioa",
+    idvs=["ni_sales", "cfoa"],
+    feffects=["sector"],
+    clusters=["sector"],
+)
+res.etable
+```

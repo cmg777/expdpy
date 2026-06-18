@@ -1,0 +1,19 @@
+---
+title: "Changelog"
+---
+
+## 0.1.0 (unreleased)
+
+Initial release — a Python port of ExPanDaR.
+
+- Analytical functions returning Plotly figures and Great Tables / pyfixest output:
+  `prepare_descriptive_table`, `prepare_correlation_table`, `prepare_correlation_graph`,
+  `prepare_ext_obs_table`, `prepare_trend_graph`, `prepare_quantile_trend_graph`,
+  `prepare_by_group_bar_graph`, `prepare_by_group_trend_graph`,
+  `prepare_by_group_violin_graph`, `prepare_histogram`, `prepare_bar_chart`,
+  `prepare_missing_values_graph`, `prepare_scatter_plot`, `prepare_regression_table`,
+  and `treat_outliers`.
+- The interactive `ExPanD` app (Shiny for Python) with in-app upload, save/load of
+  configurations, and reproducible notebook/script export.
+- Bundled datasets: `russell_3000`, `worldbank`, `gapminder` (plus their definition tables
+  and configurations).

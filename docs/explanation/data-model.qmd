@@ -1,0 +1,37 @@
+---
+title: "Data model"
+---
+
+`expdpy` follows ExPanDaR's panel-data model.
+
+## Identifiers
+
+- **`cs_id`** — one or more columns identifying the cross-section (e.g. firm id + name).
+- **`ts_id`** — a single column identifying the time dimension, coercible to an ordered
+  factor (e.g. fiscal year).
+
+Provide them directly, or via a **`df_def`** table:
+
+| column      | meaning                                                            |
+|-------------|-------------------------------------------------------------------|
+| `var_name`  | the column name                                                   |
+| `var_def`   | a human description (or, for `var_def` tables, an expression)     |
+| `type`      | one of `cs_id`, `ts_id`, `factor`, `logical`, `numeric`           |
+| `can_be_na` | optional; if `False`, rows missing this variable are dropped      |
+
+```python
+from expdpy.data import load_russell_3000_data_def
+load_russell_3000_data_def().head()
+```
+
+## Variable categories
+
+Inside the app, columns are classified for the selectors: a **factor** is categorical/object
+or a numeric column with at most `factor_cutoff` (default 10) distinct values; a
+**two-level** column has exactly two values; the rest are **numeric** or **logical**.
+
+## Time-axis conversion
+
+The time-trend functions coerce `ts_id` for nicer ticks: full date strings become dates,
+numeric-looking values (including factor years like `"2013"`) become numbers, and anything
+else becomes an ordered categorical — matching ExPanDaR's `try_convert_ts_id`.

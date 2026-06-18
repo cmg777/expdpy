@@ -1,0 +1,66 @@
+---
+title: "Using the ExPanD app"
+---
+
+The `ExPanD` app wraps the analytical functions in an interactive, no-code interface (built
+with [Shiny for Python](https://shiny.posit.co/py/)). It is provided by the `app` extra:
+
+```bash
+pip install "expdpy[app]"
+```
+
+## Launching on a DataFrame
+
+```python
+from expdpy.app import ExPanD
+from expdpy.data import load_russell_3000, load_russell_3000_data_def
+
+ExPanD(
+    load_russell_3000(),
+    df_def=load_russell_3000_data_def(),   # identifies the panel dimensions
+)
+```
+
+This opens a browser with a sidebar (sample, subset filter, outlier treatment, save/load
+config, notebook export) and a stack of analysis cards: descriptive statistics, histogram,
+extreme observations, correlations, time trends, scatter plot, by-group views and a
+regression builder.
+
+## Cross-sectional data
+
+If you do not provide a time-series identifier, the time-trend components are dropped:
+
+```python
+ExPanD(load_gapminder())  # treated as cross-sectional
+```
+
+## Starting from an upload dialog
+
+Call `ExPanD()` with no data to start with an in-app file upload (CSV/Excel/parquet):
+
+```python
+ExPanD()
+```
+
+## Reproducible export
+
+The **Export notebook + data** button downloads a zip containing the prepared analysis
+sample (parquet) plus a Jupyter notebook and a `.py` script that recreate every displayed
+component with `expdpy` calls — so an analysis done in the app can be reproduced in code.
+
+## Saving configurations
+
+**Save config** downloads the current analysis configuration as JSON (optionally encrypted
+when `store_encrypted=True`); **Load config** restores it. You can also pass a configuration
+at launch:
+
+```python
+from expdpy.data import load_worldbank, load_worldbank_data_def, load_worldbank_var_def, get_config
+
+ExPanD(
+    load_worldbank(),
+    df_def=load_worldbank_data_def(),
+    var_def=load_worldbank_var_def(),
+    config_list=get_config("worldbank"),
+)
+```

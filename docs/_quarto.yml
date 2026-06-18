@@ -1,0 +1,95 @@
+project:
+  type: website
+  output-dir: _site
+
+website:
+  title: "expdpy"
+  description: "Explore your panel data interactively — a Python port of ExPanDaR."
+  repo-url: https://github.com/cmg777/expdpy
+  repo-actions: [issue, edit]
+  navbar:
+    background: primary
+    left:
+      - text: "Home"
+        file: index.qmd
+      - text: "Quickstart"
+        file: quickstart.qmd
+      - text: "Tutorials"
+        menu:
+          - text: "Using the ExPanD app"
+            file: tutorials/using-expand.qmd
+          - text: "Customizing ExPanD"
+            file: how-to/customize-expand.qmd
+      - text: "Explanation"
+        menu:
+          - text: "Data model"
+            file: explanation/data-model.qmd
+          - text: "Parity with ExPanDaR"
+            file: explanation/parity.qmd
+      - text: "Reference"
+        file: reference/index.qmd
+      - text: "Changelog"
+        file: changelog.qmd
+    right:
+      - icon: github
+        href: https://github.com/cmg777/expdpy
+  sidebar:
+    style: docked
+    contents:
+      - reference/_sidebar.yml
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+    code-copy: true
+    code-overflow: wrap
+
+metadata-files:
+  - reference/_sidebar.yml
+
+quartodoc:
+  package: expdpy
+  parser: numpy
+  title: API Reference
+  sidebar: reference/_sidebar.yml
+  dir: reference
+  render_interlinks: true
+  sections:
+    - title: Tables
+      desc: Descriptive, correlation and extreme-observation tables.
+      contents:
+        - prepare_descriptive_table
+        - prepare_correlation_table
+        - prepare_ext_obs_table
+    - title: Graphs
+      desc: Interactive Plotly figures.
+      contents:
+        - prepare_correlation_graph
+        - prepare_trend_graph
+        - prepare_quantile_trend_graph
+        - prepare_by_group_bar_graph
+        - prepare_by_group_trend_graph
+        - prepare_by_group_violin_graph
+        - prepare_histogram
+        - prepare_bar_chart
+        - prepare_missing_values_graph
+        - prepare_scatter_plot
+    - title: Regression
+      desc: OLS with fixed effects and clustered standard errors (pyfixest).
+      contents:
+        - prepare_regression_table
+    - title: Data preparation
+      contents:
+        - treat_outliers
+    - title: Interactive app
+      contents:
+        - package: expdpy.app
+          name: ExPanD
+    - title: Datasets
+      package: expdpy.data
+      contents:
+        - load_russell_3000
+        - load_worldbank
+        - load_gapminder
+        - get_config

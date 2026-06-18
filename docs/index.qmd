@@ -1,0 +1,41 @@
+---
+title: "expdpy"
+subtitle: "Explore your panel data interactively"
+---
+
+**expdpy** is a Python port of the [ExPanDaR](https://github.com/trr266/ExPanDaR) R package
+(Joachim Gassen, TRR 266). It gives you a set of composable analytical functions and an
+interactive web app for exploratory analysis of panel and cross-sectional data, built on the
+modern Python stack:
+
+- **[Plotly](https://plotly.com/python/)** — interactive figures
+- **[pyfixest](https://github.com/py-econometrics/pyfixest)** — fixed-effects / clustered regressions
+- **[Great Tables](https://posit-dev.github.io/great-tables/)** — publication-quality tables
+- **[Shiny for Python](https://shiny.posit.co/py/)** — the no-code `ExPanD` app
+
+## Installation
+
+```bash
+pip install expdpy          # core analytical functions
+pip install "expdpy[app]"   # + the interactive ExPanD app
+```
+
+## At a glance
+
+```python
+import expdpy as ex
+from expdpy.data import load_russell_3000
+
+df = load_russell_3000()
+ex.prepare_descriptive_table(df[["sales", "ni_sales", "nioa"]]).gt
+```
+
+Head to the [Quickstart](quickstart.qmd) to see every function in action, or the
+[ExPanD tutorial](tutorials/using-expand.qmd) to launch the interactive app.
+
+## Why a port?
+
+ExPanDaR is a wonderful tool for assessing the robustness of empirical evidence without
+sharing the underlying data. `expdpy` brings the same workflow to Python users and
+integrates with the `pandas` / `pyfixest` ecosystem. See
+[Parity with ExPanDaR](explanation/parity.qmd) for how numerical fidelity is verified.

@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint & type-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: prefix-dev/setup-pixi@v0.8.1
+        with:
+          environments: lint
+      - name: Ruff (lint)
+        run: pixi run -e lint ruff check src tests
+      - name: Ruff (format)
+        run: pixi run -e lint ruff format --check src tests
+      - name: mypy
+        run: pixi run -e lint mypy src
+
+  test:
+    name: Tests (${{ matrix.environment }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        environment: [py310, py313]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: prefix-dev/setup-pixi@v0.8.1
+        with:
+          environments: ${{ matrix.environment }}
+      - name: Run tests
+        run: pixi run -e ${{ matrix.environment }} test
+      - name: Upload coverage
+        if: matrix.os == 'ubuntu-latest' && matrix.environment == 'py313'
+        uses: codecov/codecov-action@v5
+        with:
+          flags: core
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  r-parity:
+    name: R parity (vs ExPanDaR)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: prefix-dev/setup-pixi@v0.8.1
+        with:
+          environments: r
+      - name: Install ExPanDaR (best effort)
+        run: pixi run -e r Rscript -e 'install.packages("remotes", repos="https://cloud.r-project.org"); remotes::install_github("trr266/ExPanDaR", upgrade="never")'
+      - name: Run R-parity tests
+        run: pixi run -e r test-r

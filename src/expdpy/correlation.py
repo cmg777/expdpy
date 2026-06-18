@@ -1,0 +1,141 @@
+"""Correlation graph (Plotly): Pearson above, Spearman below the diagonal."""
+
+from __future__ import annotations
+
+from typing import Literal
+
+import numpy as np
+import pandas as pd
+import plotly.graph_objects as go
+
+from expdpy._corr import cor_mat
+from expdpy._theme import apply_default_layout
+from expdpy._types import CorrelationGraphResult
+from expdpy._validation import ensure_dataframe, numeric_logical_columns
+
+__all__ = ["prepare_correlation_graph"]
+
+
+def _ellipse_points(cx: float, cy: float, r: float, scale: float = 0.45, n: int = 50):
+    """Return x/y arrays tracing a correlation ellipse for coefficient ``r``.
+
+    Uses the classic correlation-ellipse parametrization (as in R's ``ellipse`` package):
+    a circle for ``r = 0`` collapsing to a 45-degree line as ``|r| -> 1``.
+    """
+    t = np.linspace(0.0, 2.0 * np.pi, n)
+    a = np.arccos(np.clip(r, -1.0, 1.0))
+    x = cx + scale * np.cos(t + a / 2.0)
+    y = cy + scale * np.cos(t - a / 2.0)
+    return x, y
+
+
+def _rdbu(value: float) -> str:
+    """Map a correlation in [-1, 1] to a red-white-blue rgb string."""
+    v = max(-1.0, min(1.0, value))
+    if v >= 0:  # white -> blue
+        t = v
+        r, g, b = int(255 * (1 - t)), int(255 * (1 - t)), 255
+    else:  # white -> red
+        t = -v
+        r, g, b = 255, int(255 * (1 - t)), int(255 * (1 - t))
+    return f"rgb({r},{g},{b})"
+
+
+def prepare_correlation_graph(
+    df: pd.DataFrame,
+    *,
+    style: Literal["heatmap", "ellipse"] = "heatmap",
+) -> CorrelationGraphResult:
+    """Visualise a correlation matrix (Pearson above, Spearman below the diagonal).
+
+    Parameters
+    ----------
+    df
+        Data frame with at least two numeric/logical variables and five observations.
+    style
+        ``"heatmap"`` (default) renders a Plotly heatmap; ``"ellipse"`` reproduces R's
+        ``corrplot(method = "ellipse")`` look with one ellipse glyph per cell.
+
+    Returns
+    -------
+    CorrelationGraphResult
+        ``df_corr``/``df_prob``/``df_n`` plus the Plotly ``fig``.
+    """
+    df = ensure_dataframe(df)
+    df = df[numeric_logical_columns(df)]
+    if len(df) < 5 or df.shape[1] < 2:
+        raise ValueError(
+            "'df' needs at least two variables and five observations of numerical data"
+        )
+
+    pcorr = cor_mat(df, "pearson")
+    scorr = cor_mat(df, "spearman")
+    lower = np.tril(np.ones(pcorr.r.shape, dtype=bool), k=-1)
+    r = pcorr.r.to_numpy(dtype=float).copy()
+    r[lower] = scorr.r.to_numpy(dtype=float)[lower]
+    r = np.minimum(r, 1.0)
+    p = pcorr.p.to_numpy(dtype=float).copy()
+    p[lower] = scorr.p.to_numpy(dtype=float)[lower]
+    n = np.where(lower, scorr.n.to_numpy(), pcorr.n.to_numpy())
+
+    names = list(df.columns)
+    corr_r = pd.DataFrame(r, index=names, columns=names)
+    corr_p = pd.DataFrame(p, index=names, columns=names)
+    corr_n = pd.DataFrame(n, index=names, columns=names).astype("Int64")
+
+    k = len(names)
+    if style == "heatmap":
+        fig = go.Figure(
+            go.Heatmap(
+                z=r,
+                x=names,
+                y=names,
+                zmid=0.0,
+                zmin=-1.0,
+                zmax=1.0,
+                colorscale="RdBu",
+                reversescale=True,
+                colorbar={"title": "corr"},
+                hovertemplate="%{y} vs %{x}<br>corr=%{z:.3f}<extra></extra>",
+            )
+        )
+        fig.update_yaxes(autorange="reversed")
+    else:
+        fig = go.Figure()
+        for i in range(k):
+            for j in range(k):
+                if i == j:
+                    continue
+                # place row i at top: invert y
+                cy = k - 1 - i
+                ex, ey = _ellipse_points(j, cy, r[i, j])
+                fig.add_trace(
+                    go.Scatter(
+                        x=ex,
+                        y=ey,
+                        fill="toself",
+                        mode="lines",
+                        line={"color": "rgba(120,120,120,0.5)", "width": 0.5},
+                        fillcolor=_rdbu(r[i, j]),
+                        hoverinfo="text",
+                        text=f"{names[i]} vs {names[j]}: {r[i, j]:.3f}",
+                        showlegend=False,
+                    )
+                )
+        fig.update_xaxes(
+            tickmode="array",
+            tickvals=list(range(k)),
+            ticktext=names,
+            range=[-0.6, k - 0.4],
+        )
+        fig.update_yaxes(
+            tickmode="array",
+            tickvals=list(range(k)),
+            ticktext=list(reversed(names)),
+            range=[-0.6, k - 0.4],
+            scaleanchor="x",
+            scaleratio=1,
+        )
+
+    apply_default_layout(fig, title="Correlations")
+    return CorrelationGraphResult(df_corr=corr_r, df_prob=corr_p, df_n=corr_n, fig=fig)
