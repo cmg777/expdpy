@@ -74,13 +74,13 @@ def test_correlation_requires_five_obs():
         prepare_correlation_table(df)
 
 
-def test_ext_obs_top_and_bottom(russell):
+def test_ext_obs_top_and_bottom(kuznets):
     res = prepare_ext_obs_table(
-        russell, n=5, cs_id=["coid", "coname"], ts_id="period", var="sales"
+        kuznets, n=5, cs_id=["country"], ts_id="year", var="gini_regional"
     )
     assert res.df.shape[0] == 10
-    top = res.df["sales"].iloc[:5].to_numpy()
-    bottom = res.df["sales"].iloc[5:].to_numpy()
+    top = res.df["gini_regional"].iloc[:5].to_numpy()
+    bottom = res.df["gini_regional"].iloc[5:].to_numpy()
     assert top.min() >= bottom.max()  # the top block dominates the bottom block
     assert isinstance(res.gt, GT)
 

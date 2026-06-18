@@ -4,10 +4,10 @@
 Converts ExPanDaR's bundled R data to the parquet/JSON files shipped under
 ``src/expdpy/data/``:
 
-* data frames (``russell_3000``, ``worldbank`` + their data/var-definition tables) are read
-  from ``.RData`` with :mod:`pyreadr` and written as parquet;
+* ExPanDaR ``.RData`` frames are read with :mod:`pyreadr` and written as parquet — but none
+  are bundled at present (``russell_3000`` / ``worldbank`` were removed), so ``FRAMES`` is empty;
 * ``gapminder`` is read from the vignette CSV and a small data-definition table is derived;
-* the two ``ExPanD_config_*`` R *lists* are converted to JSON by ``tools/convert_rdata.R``.
+* any ``ExPanD_config_*`` R *lists* are converted to JSON by ``tools/convert_rdata.R``.
 
 The synthetic ``kuznets`` dataset is *not* built here — it is generated (no R source) by
 ``tools/build_kuznets.py``.
@@ -31,14 +31,9 @@ SRC = REPO / "ExPanDaR" / "data"
 GAPMINDER_CSV = REPO / "ExPanDaR" / "vignettes" / "data" / "gapminder.csv"
 OUT = REPO / "src" / "expdpy" / "data"
 
-# (rdata file, R object name, output parquet stem)
-FRAMES = [
-    ("russell_3000.RData", "russell_3000", "russell_3000"),
-    ("russell_3000_data_def.RData", "russell_3000_data_def", "russell_3000_data_def"),
-    ("worldbank.RData", "worldbank", "worldbank"),
-    ("worldbank_data_def.RData", "worldbank_data_def", "worldbank_data_def"),
-    ("worldbank_var_def.RData", "worldbank_var_def", "worldbank_var_def"),
-]
+# (rdata file, R object name, output parquet stem). ExPanDaR's russell_3000 / worldbank
+# frames are no longer bundled, so there are none to convert here.
+FRAMES: list[tuple[str, str, str]] = []
 
 
 def _read_frame(rdata: str, obj: str) -> pd.DataFrame:

@@ -29,10 +29,6 @@ from expdpy.data import (
     load_gapminder_data_def,
     load_kuznets,
     load_kuznets_data_def,
-    load_russell_3000,
-    load_russell_3000_data_def,
-    load_worldbank,
-    load_worldbank_data_def,
 )
 from expdpy.streamlit_app import _handoff as handoff
 
@@ -43,8 +39,6 @@ __all__ = ["AppContext", "DATASETS", "resolve_context"]
 DATASETS: dict[str, tuple[Callable[[], pd.DataFrame], Callable[[], pd.DataFrame]]] = {
     "Kuznets": (load_kuznets, load_kuznets_data_def),
     "Gapminder": (load_gapminder, load_gapminder_data_def),
-    "World Bank": (load_worldbank, load_worldbank_data_def),
-    "Russell 3000": (load_russell_3000, load_russell_3000_data_def),
 }
 
 _DEFAULT_TITLE = "ExPdPy — Explore your data!"

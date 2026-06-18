@@ -25,9 +25,6 @@ convert_config <- function(rdata, obj, out) {
   cat("wrote", out, "\n")
 }
 
-# Source .RData files and R object names are ExPanDaR's; the output JSON files use expdpy's
-# (lowercase) naming so the bundled-data loader (expdpy.data._CONFIGS) finds them.
-convert_config("ExPanD_config_russell_3000.RData", "ExPanD_config_russell_3000",
-               "expdpy_config_russell_3000.json")
-convert_config("ExPanD_config_worldbank.RData", "ExPanD_config_worldbank",
-               "expdpy_config_worldbank.json")
+# ExPanDaR's russell_3000 / worldbank config lists are no longer bundled by expdpy, so there
+# are currently no R-list configs to convert here. (The kuznets config is generated directly
+# by tools/build_kuznets.py.) The convert_config helper above is kept for future use.

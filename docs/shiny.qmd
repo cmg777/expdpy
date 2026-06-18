@@ -64,13 +64,12 @@ when `store_encrypted=True`); **Load config** restores it. You can also pass a c
 at launch:
 
 ```python
-from expdpy.data import load_worldbank, load_worldbank_data_def, load_worldbank_var_def, get_config
+from expdpy.data import load_kuznets, load_kuznets_data_def, get_config
 
 ExPdPy(
-    load_worldbank(),
-    df_def=load_worldbank_data_def(),
-    var_def=load_worldbank_var_def(),
-    config_list=get_config("worldbank"),
+    load_kuznets(),
+    df_def=load_kuznets_data_def(),
+    config_list=get_config("kuznets"),
 )
 ```
 
@@ -110,17 +109,17 @@ Provide a `var_def` frame to compute the analysis sample from the base data. Eac
 ```python
 import pandas as pd
 from expdpy.app import ExPdPy
-from expdpy.data import load_worldbank, load_worldbank_data_def
+from expdpy.data import load_kuznets, load_kuznets_data_def
 
 var_def = pd.DataFrame(
     {
-        "var_name": ["country", "year", "gdp_growth"],
-        "var_def": ["country", "year", "(NY.GDP.MKTP.KD - lag(NY.GDP.MKTP.KD, 1)) / lag(NY.GDP.MKTP.KD, 1)"],
+        "var_name": ["country", "year", "gdp_pc_growth"],
+        "var_def": ["country", "year", "(gdp_pc - lag(gdp_pc, 1)) / lag(gdp_pc, 1)"],
         "type": ["cs_id", "ts_id", "numeric"],
         "can_be_na": [False, False, True],
     }
 )
-ExPdPy(load_worldbank(), df_def=load_worldbank_data_def(), var_def=var_def)
+ExPdPy(load_kuznets(), df_def=load_kuznets_data_def(), var_def=var_def)
 ```
 
 ::: {.callout-note}

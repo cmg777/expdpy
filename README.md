@@ -12,15 +12,15 @@
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 <!-- badges: end -->
 
-**expdpy** is a Python port of the [ExPanDaR](https://github.com/trr266/ExPanDaR) R
-package (Joachim Gassen, TRR 266). It helps you explore panel and cross-sectional data
-through a set of composable analytical functions and two interactive, no-code `ExPdPy`
-web apps (Shiny and Streamlit) — built on the modern Python data/econometrics stack:
+**expdpy** is a Python library for interactive, exploratory analysis of **panel and
+cross-sectional data**. It helps you explore your data through a set of composable
+analytical functions and two interactive, no-code `ExPdPy` web apps (Streamlit and Shiny) —
+built on the modern Python data/econometrics stack:
 
 - **[Plotly](https://plotly.com/python/)** for interactive figures
 - **[pyfixest](https://github.com/py-econometrics/pyfixest)** for fixed-effects / clustered regressions
 - **[Great Tables](https://posit-dev.github.io/great-tables/)** for publication-quality tables
-- **[Shiny for Python](https://shiny.posit.co/py/)** and **[Streamlit](https://streamlit.io/)** for the two no-code `ExPdPy` apps
+- **[Streamlit](https://streamlit.io/)** and **[Shiny for Python](https://shiny.posit.co/py/)** for the two no-code `ExPdPy` apps
 
 ## Installation
 
@@ -30,19 +30,19 @@ The package is not on PyPI yet — install the latest version straight from GitH
 # Core analytical functions:
 pip install "git+https://github.com/cmg777/expdpy.git"
 
-# ...with the interactive ExPdPy app (Shiny):
-pip install "expdpy[app] @ git+https://github.com/cmg777/expdpy.git"
-
 # ...with the interactive ExPdPy app (Streamlit):
 pip install "expdpy[streamlit] @ git+https://github.com/cmg777/expdpy.git"
+
+# ...with the interactive ExPdPy app (Shiny):
+pip install "expdpy[app] @ git+https://github.com/cmg777/expdpy.git"
 ```
 
 Using [uv](https://docs.astral.sh/uv/):
 
 ```bash
 uv pip install "git+https://github.com/cmg777/expdpy.git"
-uv pip install "expdpy[app] @ git+https://github.com/cmg777/expdpy.git"          # Shiny
 uv pip install "expdpy[streamlit] @ git+https://github.com/cmg777/expdpy.git"    # Streamlit
+uv pip install "expdpy[app] @ git+https://github.com/cmg777/expdpy.git"          # Shiny
 ```
 
 Pin to a branch, tag, or commit for reproducible installs:
@@ -53,7 +53,7 @@ pip install "git+https://github.com/cmg777/expdpy.git@main"
 ```
 
 > **Coming soon (PyPI):** once published, `pip install expdpy` /
-> `pip install "expdpy[app]"` / `pip install "expdpy[streamlit]"` will work directly.
+> `pip install "expdpy[streamlit]"` / `pip install "expdpy[app]"` will work directly.
 
 ## Quickstart
 
@@ -106,19 +106,20 @@ ex.prepare_fwl_plot(
 ).fig.show()
 ```
 
-Launch the interactive app — **Shiny** — pre-configured to open on the N-shaped curve:
+Launch the interactive app — **Streamlit** — pre-configured to open on the N-shaped curve
+(multipage UI with native tables):
 
 ```python
-from expdpy.app import ExPdPy
+from expdpy.streamlit_app import ExPdPy
 from expdpy.data import load_kuznets, load_kuznets_data_def, get_config
 
 ExPdPy(load_kuznets(), df_def=load_kuznets_data_def(), config_list=get_config("kuznets"))
 ```
 
-…or the **Streamlit** version (same data, multipage UI with native tables):
+…or the **Shiny** version (same data, a single-window card stack):
 
 ```python
-from expdpy.streamlit_app import ExPdPy
+from expdpy.app import ExPdPy
 from expdpy.data import load_kuznets, load_kuznets_data_def, get_config
 
 ExPdPy(load_kuznets(), df_def=load_kuznets_data_def(), config_list=get_config("kuznets"))
@@ -140,8 +141,6 @@ streamlit run streamlit_app.py
 |---|---|---|
 | `load_kuznets` | 80 countries × 2015–2025 | **The default showcase.** Synthetic; rich in control variables; regional inequality traces an **N-shaped** Kuznets curve in income (rises, falls, then rises again at very high income). Built to exercise every feature and ships a preset config (`get_config("kuznets")`) that opens the app directly on the curve. |
 | `load_gapminder` | country × year | Life expectancy, population, GDP per capita. |
-| `load_worldbank` | country × year | World Bank macro indicators (ships `get_config("worldbank")`). |
-| `load_russell_3000` | firm × year | Russell 3000 financial data (ships `get_config("russell_3000")`). |
 
 ## Functions
 
@@ -158,8 +157,8 @@ streamlit run streamlit_app.py
 | `prepare_regression_table` | OLS with fixed effects + clustered SEs (pyfixest) |
 | `prepare_fwl_plot` | Frisch-Waugh-Lovell partial-regression plot (residualized on controls + fixed effects) |
 | `treat_outliers` | Winsorize or truncate outliers |
-| `expdpy.app.ExPdPy` | Interactive Shiny-for-Python exploration app |
 | `expdpy.streamlit_app.ExPdPy` | Interactive Streamlit exploration app (multipage, native tables) |
+| `expdpy.app.ExPdPy` | Interactive Shiny-for-Python exploration app |
 
 ## Documentation
 
@@ -168,10 +167,15 @@ Full documentation, tutorials, and the API reference live at
 
 ## Acknowledgements
 
-This package is a Python port of the excellent
+expdpy began as a Python port of the excellent
 [ExPanDaR](https://github.com/trr266/ExPanDaR) package by Joachim Gassen and the
-TRR 266 Accounting for Transparency project. Please cite the original work when using
-`expdpy` in research (see [`CITATION.cff`](CITATION.cff)).
+TRR 266 Accounting for Transparency project, and its foundations remain deeply inspired by
+that work. Over time it has grown functionality beyond the original — two interactive
+frontends (Streamlit **and** Shiny), a restricted-AST expression evaluator with panel-aware
+`lag`/`lead`, pyfixest-based fixed-effects regressions with Frisch–Waugh–Lovell plots, and
+reproducible notebook / script / data export — and it will keep evolving. We are grateful to
+the ExPanDaR authors; please cite the original work when using `expdpy` in research (see
+[`CITATION.cff`](CITATION.cff)).
 
 ## License
 

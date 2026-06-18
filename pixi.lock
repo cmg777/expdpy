@@ -8796,7 +8796,7 @@ packages:
 - pypi: ./
   name: expdpy
   version: 0.1.0.dev0
-  sha256: 64d134a0a4244cfea8cd7952e9e3b00b0c3ef72cfe35252c6db116e2982a0498
+  sha256: 7093c7238dedb723d7e80725ff189942e2de340e9c4ea57495657484d1d2e369
   requires_dist:
   - pandas>=2.0,<3
   - numpy>=1.24

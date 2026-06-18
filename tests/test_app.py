@@ -28,16 +28,16 @@ pytestmark = pytest.mark.app
 
 
 # --- variable categorization --------------------------------------------------
-def test_varcats(russell):
-    vc = create_var_categories(russell, ["coid", "coname"], "period", factor_cutoff=10)
-    assert "sales" in vc.numeric
-    assert "sector" in vc.factor
-    assert "period" in vc.ts_id
-    assert "coid" in vc.cs_id
+def test_varcats(kuznets):
+    vc = create_var_categories(kuznets, ["country"], "year", factor_cutoff=10)
+    assert "gdp_pc" in vc.numeric
+    assert "continent" in vc.factor
+    assert "year" in vc.ts_id
+    assert "country" in vc.cs_id
     # Panel identifiers are usable as fixed effects, but not as grouping factors.
-    assert {"coid", "period"}.issubset(vc.fe_choices)
-    assert "coid" not in vc.grouping and "period" not in vc.grouping
-    assert "sector" in vc.fe_choices  # grouping factors remain available too
+    assert {"country", "year"}.issubset(vc.fe_choices)
+    assert "country" not in vc.grouping and "year" not in vc.grouping
+    assert "continent" in vc.fe_choices  # grouping factors remain available too
 
 
 # --- config state -------------------------------------------------------------
@@ -48,30 +48,30 @@ def test_parse_config_fills_defaults():
 
 
 # --- sample pipeline ----------------------------------------------------------
-def test_pipeline_winsorize(russell):
+def test_pipeline_winsorize(kuznets):
     out = build_analysis_sample(
-        russell,
-        ["coid", "coname"],
-        "period",
+        kuznets,
+        ["country"],
+        "year",
         {
             "outlier_treatment": "3",
             "subset_factor": "Full Sample",
             "subset_value": "All",
         },
     )
-    assert out["sales"].max() <= russell["sales"].quantile(0.95) + 1e-6
+    assert out["gdp_pc"].max() <= kuznets["gdp_pc"].quantile(0.95) + 1e-6
 
 
-def test_pipeline_subset(russell):
-    level = russell["sector"].dropna().iloc[0]
+def test_pipeline_subset(kuznets):
+    level = kuznets["continent"].dropna().iloc[0]
     out = build_analysis_sample(
-        russell,
-        ["coid", "coname"],
-        "period",
-        {"subset_factor": "sector", "subset_value": level, "outlier_treatment": "1"},
+        kuznets,
+        ["country"],
+        "year",
+        {"subset_factor": "continent", "subset_value": level, "outlier_treatment": "1"},
     )
-    assert len(out) < len(russell)
-    assert set(out["sector"].astype(str)) == {str(level)}
+    assert len(out) < len(kuznets)
+    assert set(out["continent"].astype(str)) == {str(level)}
 
 
 # --- safe UDV evaluator -------------------------------------------------------
@@ -115,26 +115,26 @@ def test_config_roundtrip_encrypted():
 
 
 # --- notebook export ----------------------------------------------------------
-def test_export_script_and_zip(russell):
+def test_export_script_and_zip(kuznets):
     comps = ["descriptive_table", "histogram", "scatter_plot", "regression"]
     cfg = {
-        "hist_var": "sales",
-        "scatter_x": "sales",
-        "scatter_y": "nioa",
-        "reg_y": "nioa",
-        "reg_x": ["ni_sales"],
+        "hist_var": "gdp_pc",
+        "scatter_x": "log_gdp_pc",
+        "scatter_y": "gini_regional",
+        "reg_y": "gini_regional",
+        "reg_x": ["log_gdp_pc"],
     }
-    script = build_script(cfg, comps, ts_id="period")
+    script = build_script(cfg, comps, ts_id="year")
     assert "ex.prepare_descriptive_table" in script
     assert "ex.prepare_regression_table" in script
     assert len(build_notebook(cfg, comps)) > 100
-    assert len(build_export_zip(cfg, comps, russell.head(50), "period")) > 200
+    assert len(build_export_zip(cfg, comps, kuznets.head(50), "year")) > 200
 
 
 # --- upload -------------------------------------------------------------------
-def test_read_uploaded(tmp_path, russell):
+def test_read_uploaded(tmp_path, kuznets):
     p = tmp_path / "d.csv"
-    russell.head(20).to_csv(p, index=False)
+    kuznets.head(20).to_csv(p, index=False)
     df = read_uploaded(str(p), "d.csv")
     assert len(df) == 20
     with pytest.raises(ValueError):
@@ -142,16 +142,16 @@ def test_read_uploaded(tmp_path, russell):
 
 
 # --- component compute helpers ------------------------------------------------
-def test_component_helpers(russell):
+def test_component_helpers(kuznets):
     sample = build_analysis_sample(
-        russell, ["coid", "coname"], "period", {"outlier_treatment": "3"}
+        kuznets, ["country"], "year", {"outlier_treatment": "3"}
     )
     assert comp.descriptive(sample) is not None
-    assert comp.histogram(sample, "sales", 20) is not None
-    assert comp.scatter(sample, "ni_sales", "nioa", "sector", None, True) is not None
+    assert comp.histogram(sample, "gdp_pc", 20) is not None
+    assert comp.scatter(sample, "log_gdp_pc", "gini_regional", "continent", None, True) is not None
     assert comp.corrplot(sample.select_dtypes("number")) is not None
     assert (
-        comp.regression(sample, "nioa", ["ni_sales"], ["sector"], ["sector"])
+        comp.regression(sample, "gini_regional", ["log_gdp_pc"], ["continent"], ["continent"])
         is not None
     )
     # incomplete selections no-op
@@ -160,8 +160,8 @@ def test_component_helpers(russell):
 
 
 # --- app construction ---------------------------------------------------------
-def test_expand_builds_app(russell):
-    app = ExPdPy(russell, cs_id=["coid", "coname"], ts_id="period", run=False)
+def test_expand_builds_app(kuznets):
+    app = ExPdPy(kuznets, cs_id=["country"], ts_id="year", run=False)
     assert isinstance(app, App)
 
 
@@ -169,10 +169,10 @@ def test_expand_upload_mode_builds():
     assert isinstance(ExPdPy(run=False), App)
 
 
-def test_expand_serves_http(russell):
+def test_expand_serves_http(kuznets):
     pytest.importorskip("httpx")
     starlette_test = pytest.importorskip("starlette.testclient")
-    app = ExPdPy(russell, cs_id=["coid", "coname"], ts_id="period", run=False)
+    app = ExPdPy(kuznets, cs_id=["country"], ts_id="year", run=False)
     client = starlette_test.TestClient(app)
     resp = client.get("/")
     assert resp.status_code == 200

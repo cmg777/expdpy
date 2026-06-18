@@ -21,6 +21,5 @@ Initial release — a Python port of ExPanDaR.
   notebook export — runnable locally and on Streamlit Community Cloud
   (`streamlit run streamlit_app.py`).
 - Bundled datasets: `kuznets` (a synthetic panel whose regional inequality traces an
-  N-shaped Kuznets curve — the default showcase across the docs and the app picker),
-  `gapminder`, `worldbank`, and `russell_3000` (plus their definition tables and
-  configurations).
+  N-shaped Kuznets curve — the default showcase across the docs and the app picker)
+  and `gapminder` (plus their definition tables and configurations).

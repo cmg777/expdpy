@@ -65,7 +65,7 @@ automatically for cross-sectional data** — exactly as in the Shiny app.
 ### The dataset picker and upload
 
 Launched without data — or deployed to the Cloud — the app starts with a **dataset picker**
-(defaulting to Kuznets; also Gapminder / World Bank / Russell 3000) and a file uploader. An
+(defaulting to Kuznets; also Gapminder) and a file uploader. An
 uploaded CSV / Excel / Parquet file overrides the selected dataset:
 
 ```python
@@ -169,17 +169,17 @@ within `cs_id` groups ordered by `ts_id`.
 ```python
 import pandas as pd
 from expdpy.streamlit_app import ExPdPy
-from expdpy.data import load_worldbank, load_worldbank_data_def
+from expdpy.data import load_kuznets, load_kuznets_data_def
 
 var_def = pd.DataFrame(
     {
-        "var_name": ["country", "year", "gdp_growth"],
-        "var_def": ["country", "year", "(NY.GDP.MKTP.KD - lag(NY.GDP.MKTP.KD, 1)) / lag(NY.GDP.MKTP.KD, 1)"],
+        "var_name": ["country", "year", "gdp_pc_growth"],
+        "var_def": ["country", "year", "(gdp_pc - lag(gdp_pc, 1)) / lag(gdp_pc, 1)"],
         "type": ["cs_id", "ts_id", "numeric"],
         "can_be_na": [False, False, True],
     }
 )
-ExPdPy(load_worldbank(), df_def=load_worldbank_data_def(), var_def=var_def)
+ExPdPy(load_kuznets(), df_def=load_kuznets_data_def(), var_def=var_def)
 ```
 
 ### Disabling features and server options

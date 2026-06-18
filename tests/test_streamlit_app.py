@@ -62,15 +62,15 @@ def test_app_runs_standalone():
     assert any(s.key == "sample" for s in at.selectbox)  # dataset picker
 
 
-def test_app_runs_bundle_russell(monkeypatch):
-    from expdpy.data import load_russell_3000
+def test_app_runs_bundle_kuznets(monkeypatch):
+    from expdpy.data import load_kuznets
 
     bundle = handoff.write_bundle(
-        {"Russell": load_russell_3000()},
+        {"Kuznets": load_kuznets()},
         df_def=None,
         var_def=None,
-        cs_list=["coid", "coname"],
-        ts="period",
+        cs_list=["country"],
+        ts="year",
         components=None,
         factor_cutoff=10,
         title="t",
@@ -156,11 +156,11 @@ def test_config_roundtrip_plain():
 
 # --- reproducible export ------------------------------------------------------
 def test_export_zip_contents():
-    from expdpy.data import load_russell_3000
+    from expdpy.data import load_kuznets
 
-    cfg = {"hist_var": "sales", "reg_y": "nioa", "reg_x": ["ni_sales"]}
+    cfg = {"hist_var": "gdp_pc", "reg_y": "gini_regional", "reg_x": ["log_gdp_pc"]}
     comps = ["descriptive_table", "histogram", "regression"]
-    payload = build_export_zip(cfg, comps, load_russell_3000().head(50), "period")
+    payload = build_export_zip(cfg, comps, load_kuznets().head(50), "year")
     import io
     import zipfile
 
@@ -173,12 +173,12 @@ def test_export_zip_contents():
 
 # --- launcher (no subprocess) -------------------------------------------------
 def test_launcher_command_and_bundle(monkeypatch):
-    from expdpy.data import load_russell_3000
+    from expdpy.data import load_kuznets
 
     cmd = ExPdPy(
-        load_russell_3000(),
-        cs_id=["coid", "coname"],
-        ts_id="period",
+        load_kuznets(),
+        cs_id=["country"],
+        ts_id="year",
         run=False,
         headless=True,
         port=8765,
@@ -191,8 +191,8 @@ def test_launcher_command_and_bundle(monkeypatch):
     try:
         loaded = handoff.read_bundle(bundle)
         assert list(loaded.samples) == ["Sample"]
-        assert loaded.ts == "period"
-        assert loaded.cs_list == ["coid", "coname"]
+        assert loaded.ts == "year"
+        assert loaded.cs_list == ["country"]
     finally:
         handoff.cleanup_bundle(bundle)
         monkeypatch.delenv(handoff.EXPDPY_BUNDLE_ENV, raising=False)

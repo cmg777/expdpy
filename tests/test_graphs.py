@@ -84,10 +84,10 @@ def test_bar_chart_counts(sample_df):
     assert res.df["count"].sum() == len(sample_df)
 
 
-def test_missing_values_graph(russell):
-    fig = prepare_missing_values_graph(russell, ts_id="period")
+def test_missing_values_graph(kuznets):
+    fig = prepare_missing_values_graph(kuznets, ts_id="year")
     assert isinstance(fig, go.Figure)
-    figb = prepare_missing_values_graph(russell, ts_id="period", binary=True)
+    figb = prepare_missing_values_graph(kuznets, ts_id="year", binary=True)
     assert isinstance(figb, go.Figure)
 
 

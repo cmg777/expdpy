@@ -25,17 +25,10 @@ def goldens() -> dict:
 
 
 @pytest.fixture(scope="session")
-def russell() -> pd.DataFrame:
-    from expdpy.data import load_russell_3000
+def kuznets() -> pd.DataFrame:
+    from expdpy.data import load_kuznets
 
-    return load_russell_3000()
-
-
-@pytest.fixture(scope="session")
-def worldbank() -> pd.DataFrame:
-    from expdpy.data import load_worldbank
-
-    return load_worldbank()
+    return load_kuznets()
 
 
 @pytest.fixture
