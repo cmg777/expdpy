@@ -2,6 +2,12 @@
 title: "Using the ExPdPy app (Streamlit)"
 ---
 
+::: {.callout-tip appearance="simple"}
+**No installation required** — try the full app live in your browser:
+
+<a href="https://expdpy.streamlit.app/" class="btn btn-primary" target="_blank" rel="noopener" role="button">☁️ Launch ExPdPy on Streamlit Cloud →</a>
+:::
+
 `ExPdPy` also ships as a [Streamlit](https://streamlit.io/) app — the same no-code interface
 as the [Shiny version](using-shiny.qmd), reorganised into a **multipage layout** with native,
 sortable tables, and ready to deploy on [Streamlit Community Cloud](https://streamlit.io/cloud).

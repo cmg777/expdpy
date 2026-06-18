@@ -41,8 +41,10 @@ GDP_LO, GDP_HI = 700.0, 110_000.0
 X1, X2 = np.log(3_000.0), np.log(30_000.0)  # local max, then local min -> "N"
 GINI_LO, GINI_HI = 0.08, 0.40  # structural-mean band the cubic is rescaled into
 
-REGIONS = np.array(["Region A", "Region B", "Region C", "Region D", "Region E"])
-REGION_OFFSET = np.array([-0.02, -0.01, 0.0, 0.01, 0.02])
+CONTINENTS = np.array(
+    ["Continent A", "Continent B", "Continent C", "Continent D", "Continent E"]
+)
+CONTINENT_OFFSET = np.array([-0.02, -0.01, 0.0, 0.01, 0.02])
 
 # (column, original Table-4 name, data-def type, human description)
 SCHEMA = [
@@ -54,7 +56,7 @@ SCHEMA = [
     ),
     ("iso", "Country_ISO", "cs_id", "Country ISO code (synthetic, generic codes)"),
     ("year", "year", "ts_id", "Calendar year"),
-    ("region", "(new)", "factor", "Synthetic world region (grouping factor)"),
+    ("continent", "(new)", "factor", "Synthetic continent (grouping factor)"),
     (
         "gini_regional",
         "GINIW_pred_GDP_pc",
@@ -167,7 +169,9 @@ def build_frame() -> pd.DataFrame:
     pct = base_log_gdp.argsort().argsort() / (nc - 1)  # income percentile in [0, 1]
     growth = np.clip(rng.normal(0.025, 0.02, nc), -0.02, 0.07)
     country_re = rng.normal(0.0, 0.02, nc)
-    region_idx = np.clip(np.round(pct * 4 + rng.normal(0, 0.9, nc)), 0, 4).astype(int)
+    continent_idx = np.clip(np.round(pct * 4 + rng.normal(0, 0.9, nc)), 0, 4).astype(
+        int
+    )
 
     pop_base = np.exp(rng.normal(15.5, 2.0, nc))
     pop_growth = rng.normal(0.012, 0.006, nc)
@@ -230,7 +234,7 @@ def build_frame() -> pd.DataFrame:
         + 0.015 * z(resource_rents)
         - 0.015 * z(trade_share)
         - 0.020 * z(school_enrollment)
-        + REGION_OFFSET[region_idx][:, None]
+        + CONTINENT_OFFSET[continent_idx][:, None]
         + rng.normal(0, 0.02, (nc, ny)),
         0.02,
         0.6,
@@ -262,7 +266,7 @@ def build_frame() -> pd.DataFrame:
             "country": np.repeat([f"country {i + 1}" for i in range(nc)], ny),
             "iso": np.repeat([f"C{i + 1:02d}" for i in range(nc)], ny),
             "year": np.tile(YEARS, nc),
-            "region": np.repeat(REGIONS[region_idx], ny),
+            "continent": np.repeat(CONTINENTS[continent_idx], ny),
             "gini_regional": flat(gini_regional),
             "gdp_pc": flat(gdp_pc),
             "population": flat(population).astype("int64"),
@@ -303,7 +307,7 @@ def build_config() -> dict:
     """Build a startup config that opens the app on the N-shaped curve."""
     return {
         "sample": "kuznets",
-        "subset_factor": "region",
+        "subset_factor": "continent",
         "subset_value": "All",
         "outlier_treatment": "1",
         "outlier_factor": "None",
@@ -311,7 +315,7 @@ def build_config() -> dict:
         "udvars": None,
         "delvars": None,
         # bar chart
-        "bar_chart_var1": "region",
+        "bar_chart_var1": "continent",
         "bar_chart_var2": "federal",
         # missing values
         "missing_values_group_by": "All",
@@ -319,14 +323,14 @@ def build_config() -> dict:
         "desc_group_by": "All",
         # by-group bar / violin / trend
         "bgbg_var": "gini_regional",
-        "bgbg_byvar": "region",
+        "bgbg_byvar": "continent",
         "bgbg_stat": "mean",
         "bgbg_sort_by_stat": True,
         "bgvg_var": "gini_regional",
-        "bgvg_byvar": "region",
+        "bgvg_byvar": "continent",
         "bgvg_sort_by_stat": True,
         "bgtg_var": "gini_regional",
-        "bgtg_byvar": "region",
+        "bgtg_byvar": "continent",
         # histogram / extreme obs
         "hist_var": "gdp_pc",
         "hist_nr_of_breaks": 30,
@@ -340,7 +344,7 @@ def build_config() -> dict:
         # scatter — the headline N (log income on x, loess reveals rise-fall-rise)
         "scatter_x": "log_gdp_pc",
         "scatter_y": "gini_regional",
-        "scatter_color": "region",
+        "scatter_color": "continent",
         "scatter_size": "population",
         "scatter_loess": True,
         "scatter_sample": False,

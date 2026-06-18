@@ -6,7 +6,7 @@ jupyter: python3
 `kuznets` is the package's lead showcase dataset: a **synthetic** country–year panel of
 **80 countries over 2015–2025** (880 observations). It is modelled on Table 4 of the
 [Lessmann & Seidel (2017) regional-inequality replication](https://carlos-mendez.org/post/python_kuznets_dmsp/data/)
-— the same variables (renamed to clean `snake_case`) plus a synthetic `region` grouping —
+— the same variables (renamed to clean `snake_case`) plus a synthetic `continent` grouping —
 but the data is generated so that regional inequality traces an **N-shaped Kuznets curve**
 in income: inequality *rises*, *falls*, then *rises again* at very high income.
 
@@ -38,7 +38,7 @@ Highlights:
 - **`gini_regional`** — the outcome that follows the N-shape (regional inequality).
 - **`gdp_pc`** and its derived `log_gdp_pc`, `log_gdp_pc_sq`, `log_gdp_pc_cu` — income and the
   polynomial terms that make the cubic curve turnkey.
-- **`region`** (5 levels) and **`federal`** (0/1) — grouping factors for by-group views and
+- **`continent`** (5 levels) and **`federal`** (0/1) — grouping factors for by-group views and
   fixed effects.
 - **`gasoline_price`, `school_enrollment`, `gini_lights`, `polity2`** carry realistic missing
   values (heavier in the early years), so the missing-value heatmap has something to show.
@@ -50,7 +50,7 @@ the rise–fall–rise directly:
 
 ```{python}
 ex.prepare_scatter_plot(
-    df, x="log_gdp_pc", y="gini_regional", color="region", size="population", loess=1
+    df, x="log_gdp_pc", y="gini_regional", color="continent", size="population", loess=1
 )
 ```
 

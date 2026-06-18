@@ -16,7 +16,7 @@ import expdpy as ex
 from expdpy.data import load_kuznets
 
 df = load_kuznets()
-df[["country", "region", "year", "gini_regional", "gdp_pc", "log_gdp_pc"]].head()
+df[["country", "continent", "year", "gini_regional", "gdp_pc", "log_gdp_pc"]].head()
 ```
 
 ## Treating outliers
@@ -69,35 +69,35 @@ ex.prepare_quantile_trend_graph(df, ts_id="year", var="gini_regional").fig
 ## By-group views
 
 ```{python}
-ex.prepare_by_group_bar_graph(df, "region", "gini_regional", np.nanmedian).fig
+ex.prepare_by_group_bar_graph(df, "continent", "gini_regional", np.nanmedian).fig
 ```
 
 ```{python}
-ex.prepare_by_group_violin_graph(df, "region", "gini_regional")
+ex.prepare_by_group_violin_graph(df, "continent", "gini_regional")
 ```
 
 ## Scatter plot with LOESS
 
 The **N-shaped Kuznets curve** — regional inequality against (log) GDP per capita, sized by
-population and colored by region. The LOESS smoother traces the rise–fall–rise:
+population and colored by continent. The LOESS smoother traces the rise–fall–rise:
 
 ```{python}
 ex.prepare_scatter_plot(
-    df, x="log_gdp_pc", y="gini_regional", color="region", size="population", loess=1
+    df, x="log_gdp_pc", y="gini_regional", color="continent", size="population", loess=1
 )
 ```
 
 ## Regression with fixed effects and clustered SEs
 
 A cubic in (log) GDP per capita recovers the N — a positive, significant cubic term — with
-region fixed effects and standard errors clustered by country:
+continent fixed effects and standard errors clustered by country:
 
 ```{python}
 res = ex.prepare_regression_table(
     df,
     dvs="gini_regional",
     idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"],
-    feffects=["region"],
+    feffects=["continent"],
     clusters=["country"],
 )
 res.etable
@@ -109,7 +109,7 @@ The same coefficient, *seen*. `prepare_fwl_plot` residualizes both the outcome a
 regressor on the **other** regressors **and** the fixed effects, then scatters the two
 residuals. By the Frisch-Waugh-Lovell theorem the fitted slope equals the focal coefficient
 in the regression above — here the linear `log_gdp_pc` term, net of the quadratic/cubic terms
-and the region fixed effects:
+and the continent fixed effects:
 
 ```{python}
 ex.prepare_fwl_plot(
@@ -117,7 +117,7 @@ ex.prepare_fwl_plot(
     dv="gini_regional",
     var="log_gdp_pc",
     controls=["log_gdp_pc_sq", "log_gdp_pc_cu"],
-    feffects=["region"],
+    feffects=["continent"],
     clusters=["country"],
 ).fig
 ```

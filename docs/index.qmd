@@ -63,7 +63,7 @@ from expdpy.data import load_kuznets
 df = load_kuznets()
 # The N-shaped regional Kuznets curve: regional inequality vs (log) GDP per capita
 ex.prepare_scatter_plot(
-    df, x="log_gdp_pc", y="gini_regional", color="region", size="population", loess=1
+    df, x="log_gdp_pc", y="gini_regional", color="continent", size="population", loess=1
 )
 ```
 

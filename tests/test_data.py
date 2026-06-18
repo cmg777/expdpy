@@ -43,7 +43,7 @@ def test_load_kuznets():
         "country",
         "iso",
         "year",
-        "region",
+        "continent",
         "gini_regional",
         "gdp_pc",
         "population",

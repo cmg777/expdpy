@@ -77,7 +77,7 @@ ex.prepare_trend_graph(df, ts_id="year", var=["gini_regional"]).fig.show()
 
 # The N-shaped Kuznets curve: regional inequality vs (log) GDP per capita
 ex.prepare_scatter_plot(
-    df, x="log_gdp_pc", y="gini_regional", color="region", size="population", loess=1
+    df, x="log_gdp_pc", y="gini_regional", color="continent", size="population", loess=1
 ).show()
 
 # Cubic regression recovers the N (significant positive cubic term), clustered by country
@@ -90,13 +90,13 @@ reg = ex.prepare_regression_table(
 reg.etable
 
 # Frisch-Waugh-Lovell plot: the partial relationship between gini and log GDP per capita,
-# net of the other terms AND region fixed effects (the fitted slope equals the coefficient)
+# net of the other terms AND continent fixed effects (the fitted slope equals the coefficient)
 ex.prepare_fwl_plot(
     df,
     dv="gini_regional",
     var="log_gdp_pc",
     controls=["log_gdp_pc_sq", "log_gdp_pc_cu"],
-    feffects=["region"],
+    feffects=["continent"],
     clusters=["country"],
 ).fig.show()
 ```
