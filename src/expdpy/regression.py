@@ -103,6 +103,38 @@ def prepare_regression_table(
     RegressionTableResult
         ``models`` (fitted pyfixest models), ``etable`` (rendered table) and ``df`` (tidy
         coefficient frame).
+
+    Examples
+    --------
+    Basic — a pooled OLS regression of the cubic Kuznets curve:
+
+    ```python
+    import expdpy as ex
+    from expdpy.data import load_kuznets
+
+    df = load_kuznets()
+    ex.prepare_regression_table(
+        df,
+        dvs="gini_regional",
+        idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"],
+    ).etable
+    ```
+
+    Advanced — absorb two-way (country + year) fixed effects with standard errors
+    clustered by country, then read the tidy coefficient frame and fitted models:
+
+    ```python
+    result = ex.prepare_regression_table(
+        df,
+        dvs="gini_regional",
+        idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"],
+        feffects=["country", "year"],
+        clusters=["country"],
+    )
+    result.etable
+    result.df
+    result.models
+    ```
     """
     df = ensure_dataframe(df)
     dvs_list = _as_list(dvs)

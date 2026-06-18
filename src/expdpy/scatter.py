@@ -91,6 +91,29 @@ def prepare_scatter_plot(
     -------
     plotly.graph_objects.Figure
         The scatter figure.
+
+    Examples
+    --------
+    Basic — a plain scatter of two variables (this function returns a Plotly figure
+    directly, so there is no ``.fig`` attribute):
+
+    ```python
+    import expdpy as ex
+    from expdpy.data import load_kuznets
+
+    df = load_kuznets()
+    ex.prepare_scatter_plot(df, x="log_gdp_pc", y="gini_regional")
+    ```
+
+    Advanced — map color and marker size to other columns, add a size-weighted LOESS
+    smoother (the N-shaped Kuznets curve) and tune opacity:
+
+    ```python
+    ex.prepare_scatter_plot(
+        df, x="log_gdp_pc", y="gini_regional",
+        color="continent", size="population", loess=2, alpha=0.6,
+    )
+    ```
     """
     df = ensure_dataframe(df)
     cols = [c for c in (x, y, color, size) if c]

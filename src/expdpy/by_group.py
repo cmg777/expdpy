@@ -53,6 +53,32 @@ def prepare_by_group_bar_graph(
     -------
     ByGroupBarGraphResult
         ``df`` (columns ``by_var`` and ``stat_<var>``) and the Plotly ``fig``.
+
+    Examples
+    --------
+    Basic — mean of a variable within each group:
+
+    ```python
+    import expdpy as ex
+    from expdpy.data import load_kuznets
+
+    df = load_kuznets()
+    ex.prepare_by_group_bar_graph(df, "continent", "gini_regional").fig
+    ```
+
+    Advanced — a different statistic, bars ordered by it, a custom color, and the
+    per-group values from ``.df``:
+
+    ```python
+    import numpy as np
+
+    result = ex.prepare_by_group_bar_graph(
+        df, "continent", "gini_regional",
+        stat_fun=np.nanmedian, order_by_stat=True, color="#4682b4",
+    )
+    result.fig
+    result.df
+    ```
     """
     df = ensure_dataframe(df)
     stat_col = f"stat_{var}"
@@ -118,6 +144,29 @@ def prepare_by_group_trend_graph(
     -------
     ByGroupTrendGraphResult
         ``df`` (columns ``ts_id``, ``group_var``, ``mean``, ``se``) and the Plotly ``fig``.
+
+    Examples
+    --------
+    Basic — one line per group, tracking a variable's mean over time:
+
+    ```python
+    import expdpy as ex
+    from expdpy.data import load_kuznets
+
+    df = load_kuznets()
+    ex.prepare_by_group_trend_graph(
+        df, ts_id="year", group_var="continent", var="gini_regional"
+    ).fig
+    ```
+
+    Advanced — add standard-error bars and drop the per-observation markers:
+
+    ```python
+    ex.prepare_by_group_trend_graph(
+        df, ts_id="year", group_var="continent", var="gini_regional",
+        error_bars=True, points=False,
+    ).fig
+    ```
     """
     df = ensure_dataframe(df)
     for col in (ts_id, group_var, var):
@@ -191,6 +240,27 @@ def prepare_by_group_violin_graph(
     -------
     plotly.graph_objects.Figure
         The violin figure.
+
+    Examples
+    --------
+    Basic — distribution of a variable across groups (this function returns a Plotly
+    figure directly, so there is no ``.fig`` attribute):
+
+    ```python
+    import expdpy as ex
+    from expdpy.data import load_kuznets
+
+    df = load_kuznets()
+    ex.prepare_by_group_violin_graph(df, "continent", "gini_regional")
+    ```
+
+    Advanced — order groups by their mean and orient the violins vertically:
+
+    ```python
+    ex.prepare_by_group_violin_graph(
+        df, "continent", "gini_regional", order_by_mean=True, group_on_y=False
+    )
+    ```
     """
     df = ensure_dataframe(df)
     sub = df[[by_var, var]].dropna()

@@ -88,6 +88,34 @@ def prepare_fwl_plot(
     FWLPlotResult
         ``df`` (residual frame), ``fig`` (Plotly figure) and the scalar statistics
         ``slope``, ``se``, ``intercept``, ``n_obs`` and ``r2_within``.
+
+    Examples
+    --------
+    Basic — partial relationship of the outcome and a single regressor:
+
+    ```python
+    import expdpy as ex
+    from expdpy.data import load_kuznets
+
+    df = load_kuznets()
+    ex.prepare_fwl_plot(df, dv="gini_regional", var="log_gdp_pc").fig
+    ```
+
+    Advanced — residualize on the other cubic terms and two-way fixed effects, cluster
+    the reported standard error by country, then read the FWL statistics back:
+
+    ```python
+    result = ex.prepare_fwl_plot(
+        df,
+        dv="gini_regional",
+        var="log_gdp_pc",
+        controls=["log_gdp_pc_sq", "log_gdp_pc_cu"],
+        feffects=["country", "year"],
+        clusters=["country"],
+    )
+    result.fig
+    result.slope, result.se, result.r2_within
+    ```
     """
     df = ensure_dataframe(df)
     controls = _as_list(controls)

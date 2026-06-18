@@ -92,6 +92,28 @@ def prepare_trend_graph(
     -------
     TrendGraphResult
         ``df`` (columns ``variable``, ``ts_id``, ``mean``, ``se``) and the Plotly ``fig``.
+
+    Examples
+    --------
+    Basic — mean of a single variable over time, with standard-error bars:
+
+    ```python
+    import expdpy as ex
+    from expdpy.data import load_kuznets
+
+    df = load_kuznets()
+    ex.prepare_trend_graph(df, ts_id="year", var=["gini_regional"]).fig
+    ```
+
+    Advanced — several variables on one chart, with the aggregated frame from ``.df``:
+
+    ```python
+    result = ex.prepare_trend_graph(
+        df, ts_id="year", var=["gini_regional", "trade_share"]
+    )
+    result.fig
+    result.df.head()
+    ```
     """
     df = ensure_dataframe(df)
     if ts_id not in df.columns:
@@ -170,6 +192,26 @@ def prepare_quantile_trend_graph(
     -------
     QuantileTrendGraphResult
         ``df`` (long format: ``ts_id``, ``quantile``, value) and the Plotly ``fig``.
+
+    Examples
+    --------
+    Basic — the default quantiles of a variable over time:
+
+    ```python
+    import expdpy as ex
+    from expdpy.data import load_kuznets
+
+    df = load_kuznets()
+    ex.prepare_quantile_trend_graph(df, ts_id="year", var="gini_regional").fig
+    ```
+
+    Advanced — custom quantile levels and no per-observation points:
+
+    ```python
+    ex.prepare_quantile_trend_graph(
+        df, ts_id="year", var="gini_regional", quantiles=(0.1, 0.5, 0.9), points=False
+    ).fig
+    ```
     """
     df = ensure_dataframe(df)
     if ts_id not in df.columns:

@@ -60,6 +60,30 @@ def prepare_correlation_graph(
     -------
     CorrelationGraphResult
         ``df_corr``/``df_prob``/``df_n`` plus the Plotly ``fig``.
+
+    Examples
+    --------
+    Basic — a correlation heatmap for a few variables:
+
+    ```python
+    import expdpy as ex
+    from expdpy.data import load_kuznets
+
+    df = load_kuznets()
+    ex.prepare_correlation_graph(df[["gini_regional", "gdp_pc", "log_gdp_pc"]]).fig
+    ```
+
+    Advanced — the ellipse style (R ``corrplot`` look), with the underlying
+    correlation matrix available from ``.df_corr``:
+
+    ```python
+    result = ex.prepare_correlation_graph(
+        df[["gini_regional", "gdp_pc", "log_gdp_pc", "trade_share"]],
+        style="ellipse",
+    )
+    result.fig
+    result.df_corr
+    ```
     """
     df = ensure_dataframe(df)
     df = df[numeric_logical_columns(df)]

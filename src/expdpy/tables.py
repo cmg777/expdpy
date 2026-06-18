@@ -62,6 +62,31 @@ def prepare_descriptive_table(
     -------
     DescriptiveTableResult
         ``df`` (the statistics table) and ``gt`` (a Great Tables object).
+
+    Examples
+    --------
+    Basic — descriptive statistics for every numeric column of the panel:
+
+    ```python
+    import expdpy as ex
+    from expdpy.data import load_kuznets
+
+    df = load_kuznets()
+    ex.prepare_descriptive_table(df).gt
+    ```
+
+    Advanced — set the decimals per statistic (``None`` drops that column), add a
+    caption, and read the tidy statistics frame back from ``.df``:
+
+    ```python
+    result = ex.prepare_descriptive_table(
+        df,
+        digits=(0, 2, 2, None, None, 2, None, None),
+        caption="Kuznets panel",
+    )
+    result.gt
+    result.df.head()
+    ```
     """
     df = ensure_dataframe(df)
     cols = numeric_logical_columns(df)
@@ -124,6 +149,33 @@ def prepare_correlation_table(
     CorrelationTableResult
         ``df_corr``/``df_prob``/``df_n`` (numeric matrices keyed by the original variable
         names) and ``gt`` (a Great Tables object using letter labels).
+
+    Examples
+    --------
+    Basic — Pearson (above) and Spearman (below) correlations for a few variables:
+
+    ```python
+    import expdpy as ex
+    from expdpy.data import load_kuznets
+
+    df = load_kuznets()
+    ex.prepare_correlation_table(df[["gini_regional", "gdp_pc", "log_gdp_pc"]]).gt
+    ```
+
+    Advanced — more decimals, a stricter bold threshold, a caption, and the raw
+    coefficient/p-value matrices from ``.df_corr`` / ``.df_prob``:
+
+    ```python
+    result = ex.prepare_correlation_table(
+        df[["gini_regional", "gdp_pc", "log_gdp_pc", "trade_share"]],
+        digits=3,
+        bold=0.01,
+        caption="Correlations (kuznets)",
+    )
+    result.gt
+    result.df_corr
+    result.df_prob
+    ```
     """
     df = ensure_dataframe(df)
     df = df[numeric_logical_columns(df)]
@@ -230,6 +282,28 @@ def prepare_ext_obs_table(
     ExtObsTableResult
         ``df`` (the ``2 * n`` extreme rows) and ``gt`` (a Great Tables object with a
         separator row between the top and bottom blocks).
+
+    Examples
+    --------
+    Basic — the five highest and lowest observations (sorted by the last numeric
+    column), tabulating all variables:
+
+    ```python
+    import expdpy as ex
+    from expdpy.data import load_kuznets
+
+    df = load_kuznets()
+    ex.prepare_ext_obs_table(df, n=5).gt
+    ```
+
+    Advanced — the ten most extreme observations of a chosen variable, showing only
+    the panel identifiers and that variable:
+
+    ```python
+    ex.prepare_ext_obs_table(
+        df, n=10, cs_id=["country"], ts_id="year", var="gini_regional"
+    ).gt
+    ```
     """
     df = ensure_dataframe(df)
     if 2 * n > len(df):

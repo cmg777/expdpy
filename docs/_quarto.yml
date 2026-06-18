@@ -18,7 +18,7 @@ website:
         file: streamlit.qmd
       - text: "Shiny app"
         file: shiny.qmd
-      - text: "Explanation"
+      - text: "Articles"
         menu:
           - text: "The kuznets dataset"
             file: explanation/kuznets-dataset.qmd
@@ -28,8 +28,12 @@ website:
             file: explanation/parity.qmd
           - text: "Streamlit vs Shiny"
             file: explanation/streamlit-vs-shiny.qmd
-      - text: "Reference"
-        file: reference/index.qmd
+      - text: "API Reference"
+        menu:
+          - text: "Function reference"
+            file: reference/index.qmd
+          - text: "Examples gallery"
+            file: examples.qmd
       - text: "Changelog"
         file: changelog.qmd
     right:

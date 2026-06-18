@@ -37,6 +37,25 @@ def prepare_missing_values_graph(
     -------
     plotly.graph_objects.Figure
         The missing-values heatmap.
+
+    Examples
+    --------
+    Basic — fraction of missing values by variable and year (this function returns a
+    Plotly figure directly, so there is no ``.fig`` attribute):
+
+    ```python
+    import expdpy as ex
+    from expdpy.data import load_kuznets
+
+    df = load_kuznets()
+    ex.prepare_missing_values_graph(df, ts_id="year")
+    ```
+
+    Advanced — restrict to numeric variables and show only whether values are missing:
+
+    ```python
+    ex.prepare_missing_values_graph(df, ts_id="year", no_factors=True, binary=True)
+    ```
     """
     df = ensure_dataframe(df)
     if ts_id not in df.columns:

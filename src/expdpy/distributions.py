@@ -34,6 +34,26 @@ def prepare_histogram(
     -------
     HistogramResult
         ``df`` (columns ``bin_left``, ``bin_right``, ``count``) and the Plotly ``fig``.
+
+    Examples
+    --------
+    Basic — a 30-bin histogram of a numeric variable:
+
+    ```python
+    import expdpy as ex
+    from expdpy.data import load_kuznets
+
+    df = load_kuznets()
+    ex.prepare_histogram(df, "gini_regional").fig
+    ```
+
+    Advanced — finer bins, with the bin/count table from ``.df``:
+
+    ```python
+    result = ex.prepare_histogram(df, "gdp_pc", bins=50)
+    result.fig
+    result.df.head()
+    ```
     """
     df = ensure_dataframe(df)
     if var not in df.columns:
@@ -76,6 +96,24 @@ def prepare_bar_chart(
     -------
     BarChartResult
         ``df`` (columns ``var`` and ``count``) and the Plotly ``fig``.
+
+    Examples
+    --------
+    Basic — category counts of a (typically categorical) variable:
+
+    ```python
+    import expdpy as ex
+    from expdpy.data import load_kuznets
+
+    df = load_kuznets()
+    ex.prepare_bar_chart(df, "continent").fig
+    ```
+
+    Advanced — order bars by descending count and set a custom color:
+
+    ```python
+    ex.prepare_bar_chart(df, "continent", order_by_count=True, color="red").fig
+    ```
     """
     df = ensure_dataframe(df)
     if var not in df.columns:

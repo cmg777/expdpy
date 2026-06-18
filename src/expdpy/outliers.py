@@ -97,9 +97,25 @@ def treat_outliers(x, percentile=0.01, *, truncate=False, by=None, method="linea
 
     Examples
     --------
-    >>> import numpy as np
-    >>> treat_outliers(np.arange(1, 101, dtype=float), 0.05)[:3]
-    array([6., 6., 6.])
+    Basic — winsorize a single variable at the 1st/99th percentile:
+
+    ```python
+    import expdpy as ex
+    from expdpy.data import load_kuznets
+
+    df = load_kuznets()
+    ex.treat_outliers(df["gdp_pc"], percentile=0.01).describe()
+    ```
+
+    Advanced — winsorize several columns at the 5th/95th percentile, with the cut-offs
+    computed within each continent:
+
+    ```python
+    treated = ex.treat_outliers(
+        df[["gini_regional", "gdp_pc"]], percentile=0.05, by=df["continent"]
+    )
+    treated.describe()
+    ```
     """
     if not isinstance(percentile, (int, float)) or isinstance(percentile, bool):
         raise TypeError("'percentile' needs to be a numeric scalar")
