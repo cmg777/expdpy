@@ -167,6 +167,7 @@ hypothesis = ">=6"
 ruff = ">=0.6"
 mypy = ">=1.10"
 pre-commit = ">=3.7"
+pandas-stubs = ">=3.0.3.260530,<4"
 
 [tool.pixi.feature.r.dependencies]
 rpy2 = ">=3.6,<4"
