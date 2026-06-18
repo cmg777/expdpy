@@ -3,6 +3,23 @@ title: "Quickstart"
 jupyter: python3
 ---
 
+```{=html}
+<div style="border:1px solid #e3e3e3;border-radius:8px;padding:1rem 1.25rem;margin:0 0 1.5rem;
+            background:#f8f9fa;display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+  <div style="flex:1 1 auto;min-width:220px;">
+    <strong>Run this Quickstart in the cloud — no install needed.</strong><br>
+    Every cell below runs as-is in a free Google Colab notebook.
+  </div>
+  <a href="https://colab.research.google.com/github/cmg777/expdpy/blob/main/notebooks/quickstart.ipynb"
+     target="_blank" rel="noopener"
+     style="display:inline-flex;align-items:center;gap:.5rem;background:#F9AB00;color:#202124;
+            font-weight:600;text-decoration:none;padding:.6rem 1rem;border-radius:6px;white-space:nowrap;">
+    <img src="https://colab.research.google.com/img/colab_favicon_256px.png" alt="" width="20" height="20" style="display:block;">
+    Run the Quick Start in Google Colab
+  </a>
+</div>
+```
+
 This walkthrough mirrors the *ExPanDaR functions* vignette using the bundled `kuznets`
 panel (80 countries × 2015–2025) — a synthetic dataset, rich in control variables, whose
 regional inequality (`gini_regional`) traces an **N-shaped Kuznets curve** in income: it

@@ -209,4 +209,5 @@ test = "pytest -n auto --cov=expdpy --cov-report=term-missing -m 'not against_r'
 test-r = "pytest -m against_r"
 lint = "pre-commit run --all-files"
 typecheck = "mypy src"
-docs-build = "quartodoc build --config docs/_quarto.yml && quarto render docs"
+build-quickstart-notebook = "python tools/build_quickstart_notebook.py"
+docs-build = "python tools/build_quickstart_notebook.py && quartodoc build --config docs/_quarto.yml && quarto render docs"
