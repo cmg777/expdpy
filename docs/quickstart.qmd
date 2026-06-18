@@ -3,15 +3,17 @@ title: "Quickstart"
 jupyter: python3
 ---
 
-This walkthrough mirrors the *ExPanDaR functions* vignette using the bundled `russell_3000`
-financial-accounting panel.
+This walkthrough mirrors the *ExPanDaR functions* vignette using the bundled `gapminder`
+panel (country × year, 1952–2007: life expectancy, population and GDP per capita).
 
 ```{python}
+import numpy as np
 import expdpy as ex
-from expdpy.data import load_russell_3000
+from expdpy.data import load_gapminder
 
-df = load_russell_3000()
-df[["coid", "period", "sector", "sales", "nioa", "ni_sales"]].head()
+df = load_gapminder()
+df["log_gdppercap"] = np.log(df["gdpPercap"])
+df[["country", "continent", "year", "lifeExp", "pop", "gdpPercap"]].head()
 ```
 
 ## Treating outliers
@@ -20,7 +22,7 @@ Winsorize the numeric variables at the 1st/99th percentile:
 
 ```{python}
 analysis = ex.treat_outliers(
-    df[["sales", "nioa", "ni_sales", "cfoa", "roa"]], percentile=0.01
+    df[["lifeExp", "gdpPercap", "pop"]], percentile=0.01
 ).dropna()
 analysis.describe().round(3)
 ```
@@ -47,47 +49,51 @@ ex.prepare_correlation_graph(analysis).fig
 
 ```{python}
 ex.prepare_ext_obs_table(
-    df, n=5, cs_id=["coid", "coname"], ts_id="period", var="sales"
+    df, n=5, cs_id=["country"], ts_id="year", var="gdpPercap"
 ).gt
 ```
 
 ## Time trends
 
 ```{python}
-ex.prepare_trend_graph(df, ts_id="period", var=["nioa", "roa"]).fig
+ex.prepare_trend_graph(df, ts_id="year", var=["lifeExp"]).fig
 ```
 
 ```{python}
-ex.prepare_quantile_trend_graph(df, ts_id="period", var="nioa").fig
+ex.prepare_quantile_trend_graph(df, ts_id="year", var="lifeExp").fig
 ```
 
 ## By-group views
 
 ```{python}
-import numpy as np
-
-ex.prepare_by_group_bar_graph(df, "sector", "nioa", np.nanmedian).fig
+ex.prepare_by_group_bar_graph(df, "continent", "lifeExp", np.nanmedian).fig
 ```
 
 ```{python}
-ex.prepare_by_group_violin_graph(ex.treat_outliers(df), "sector", "nioa")
+ex.prepare_by_group_violin_graph(df, "continent", "lifeExp")
 ```
 
 ## Scatter plot with LOESS
 
+The classic Preston curve — life expectancy against GDP per capita, sized by population and
+colored by continent:
+
 ```{python}
-ex.prepare_scatter_plot(analysis, x="ni_sales", y="nioa", color="roa", loess=1)
+ex.prepare_scatter_plot(df, x="gdpPercap", y="lifeExp", color="continent", size="pop", loess=1)
 ```
 
 ## Regression with fixed effects and clustered SEs
 
+Regress life expectancy on (log) GDP per capita with country fixed effects and standard
+errors clustered by country:
+
 ```{python}
 res = ex.prepare_regression_table(
     df,
-    dvs="nioa",
-    idvs=["ni_sales", "cfoa"],
-    feffects=["sector"],
-    clusters=["sector"],
+    dvs="lifeExp",
+    idvs=["log_gdppercap"],
+    feffects=["country"],
+    clusters=["country"],
 )
 res.etable
 ```

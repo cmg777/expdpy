@@ -18,11 +18,11 @@ Once published to PyPI, `pip install "expdpy[app]"` will work directly.
 
 ```python
 from expdpy.app import ExPanD
-from expdpy.data import load_russell_3000, load_russell_3000_data_def
+from expdpy.data import load_gapminder, load_gapminder_data_def
 
 ExPanD(
-    load_russell_3000(),
-    df_def=load_russell_3000_data_def(),   # identifies the panel dimensions
+    load_gapminder(),
+    df_def=load_gapminder_data_def(),   # identifies the panel dimensions (country x year)
 )
 ```
 
@@ -33,10 +33,11 @@ regression builder.
 
 ## Cross-sectional data
 
-If you do not provide a time-series identifier, the time-trend components are dropped:
+If you do not provide a time-series identifier, the time-trend components are dropped. For
+example, a single year of gapminder is cross-sectional:
 
 ```python
-ExPanD(load_gapminder())  # treated as cross-sectional
+ExPanD(load_gapminder().query("year == 2007"))  # no ts_id -> cross-sectional
 ```
 
 ## Starting from an upload dialog

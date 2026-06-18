@@ -48,10 +48,10 @@ pip install "git+https://github.com/cmg777/expdpy.git@main"
 
 ```python
 import expdpy as ex
-from expdpy.data import load_russell_3000
+from expdpy.data import load_gapminder
 
-df = load_russell_3000()
-ex.prepare_descriptive_table(df[["sales", "ni_sales", "nioa"]]).gt
+df = load_gapminder()
+ex.prepare_descriptive_table(df[["lifeExp", "gdpPercap", "pop"]]).gt
 ```
 
 Head to the [Quickstart](quickstart.qmd) to see every function in action, or the

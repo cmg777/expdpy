@@ -53,27 +53,27 @@ pip install "git+https://github.com/cmg777/expdpy.git@main"
 
 ```python
 import expdpy as ex
-from expdpy.data import load_russell_3000
+from expdpy.data import load_gapminder
 
-df = load_russell_3000()
+df = load_gapminder()  # country x year panel (life expectancy, population, GDP per capita)
 
 # Descriptive statistics (returns a DataFrame + a Great Tables object)
-desc = ex.prepare_descriptive_table(df[["sales", "ni_sales", "nioa"]])
+desc = ex.prepare_descriptive_table(df[["lifeExp", "gdpPercap", "pop"]])
 desc.gt  # renders in a notebook
 
 # Winsorize outliers at the 1st/99th percentile
-clean = ex.treat_outliers(df[["sales", "ni_sales", "nioa"]], percentile=0.01)
+clean = ex.treat_outliers(df[["lifeExp", "gdpPercap", "pop"]], percentile=0.01)
 
 # Correlation table (Pearson above, Spearman below the diagonal)
 corr = ex.prepare_correlation_table(clean)
 corr.gt
 
 # Time trend of a variable across the panel
-ex.prepare_trend_graph(df, ts_id="period", var=["nioa"]).fig.show()
+ex.prepare_trend_graph(df, ts_id="year", var=["lifeExp"]).fig.show()
 
-# Regression with firm fixed effects and clustered standard errors (pyfixest)
+# Regression with country fixed effects and clustered standard errors (pyfixest)
 reg = ex.prepare_regression_table(
-    df, dvs="nioa", idvs=["ni_sales"], feffects=["sector"], clusters=["sector"]
+    df, dvs="lifeExp", idvs=["gdpPercap"], feffects=["country"], clusters=["country"]
 )
 reg.etable
 ```
@@ -82,9 +82,9 @@ Launch the interactive app:
 
 ```python
 from expdpy.app import ExPanD
-from expdpy.data import load_worldbank, load_worldbank_data_def
+from expdpy.data import load_gapminder, load_gapminder_data_def
 
-ExPanD(load_worldbank(), df_def=load_worldbank_data_def())
+ExPanD(load_gapminder(), df_def=load_gapminder_data_def())
 ```
 
 ## Functions

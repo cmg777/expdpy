@@ -9,11 +9,11 @@ list (order matters) or a `{name: bool}` mapping:
 
 ```python
 from expdpy.app import ExPanD
-from expdpy.data import load_russell_3000, load_russell_3000_data_def
+from expdpy.data import load_gapminder, load_gapminder_data_def
 
 ExPanD(
-    load_russell_3000(),
-    df_def=load_russell_3000_data_def(),
+    load_gapminder(),
+    df_def=load_gapminder_data_def(),
     components=["descriptive_table", "scatter_plot", "regression"],
 )
 ```
@@ -59,8 +59,8 @@ sandboxed `eval`.
 
 ```python
 ExPanD(
-    load_russell_3000(),
-    df_def=load_russell_3000_data_def(),
+    load_gapminder(),
+    df_def=load_gapminder_data_def(),
     export_nb_option=False,     # hide notebook export
     save_settings_option=False, # hide config save/load
 )
