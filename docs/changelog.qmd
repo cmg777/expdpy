@@ -20,6 +20,7 @@ Initial release — a Python port of ExPanDaR.
   pipeline, config save/load (interchangeable with the Shiny app's configs) and reproducible
   notebook export — runnable locally and on Streamlit Community Cloud
   (`streamlit run streamlit_app.py`).
-- Bundled datasets: `gapminder`, `kuznets` (a synthetic panel whose regional inequality
-  traces an N-shaped Kuznets curve), `worldbank`, and `russell_3000` (plus their definition
-  tables and configurations).
+- Bundled datasets: `kuznets` (a synthetic panel whose regional inequality traces an
+  N-shaped Kuznets curve — the default showcase across the docs and the app picker),
+  `gapminder`, `worldbank`, and `russell_3000` (plus their definition tables and
+  configurations).

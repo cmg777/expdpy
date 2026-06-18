@@ -51,15 +51,24 @@ pip install "git+https://github.com/cmg777/expdpy.git@main"
 
 ## At a glance
 
+The lead example throughout these docs is the bundled `kuznets` panel (80 countries ×
+2015–2025): a synthetic dataset, rich in control variables, whose regional inequality traces
+an **N-shaped Kuznets curve** in income — it rises, falls, then rises again at very high
+income.
+
 ```python
 import expdpy as ex
-from expdpy.data import load_gapminder
+from expdpy.data import load_kuznets
 
-df = load_gapminder()
-ex.prepare_descriptive_table(df[["lifeExp", "gdpPercap", "pop"]]).gt
+df = load_kuznets()
+# The N-shaped regional Kuznets curve: regional inequality vs (log) GDP per capita
+ex.prepare_scatter_plot(
+    df, x="log_gdp_pc", y="gini_regional", color="region", size="population", loess=1
+)
 ```
 
-Head to the [Quickstart](quickstart.qmd) to see every function in action, or the
+Head to the [Quickstart](quickstart.qmd) to see every function in action, the
+[kuznets dataset](explanation/kuznets-dataset.qmd) page for the data dictionary, or the
 [ExPdPy tutorial](tutorials/using-shiny.qmd) to launch the interactive app.
 
 ## Why a port?

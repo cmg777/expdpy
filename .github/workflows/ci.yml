@@ -59,5 +59,7 @@ jobs:
           environments: r
       - name: Install ExPanDaR (best effort)
         run: pixi run -e r Rscript -e 'install.packages("remotes", repos="https://cloud.r-project.org"); remotes::install_github("trr266/ExPanDaR", upgrade="never")'
+      - name: Install local fwlplot (best effort)
+        run: pixi run -e r Rscript -e 'remotes::install_local("fwlplot-r", upgrade="never", dependencies=FALSE)'
       - name: Run R-parity tests
         run: pixi run -e r test-r

@@ -178,6 +178,27 @@ def page_regression() -> None:
     clusters = w.cluster_vars(choice, fe1, fe2)
     render.render_regression(active.sample, y, list(xs), [fe1, fe2], clusters)
 
+    valid_xs = [x for x in xs if x not in (None, "", "None")]
+    if valid_xs:
+        st.divider()
+        st.subheader("Frisch-Waugh-Lovell plot")
+        st.caption(
+            "Residualizes the dependent variable and the focal regressor on the *other* "
+            "regressors **and** the fixed effects above, then plots the two residuals. "
+            "The fitted slope equals the focal coefficient in the table above."
+        )
+        focal = w.selectbox(
+            "Focal variable",
+            valid_xs,
+            key="fwl_focal",
+            help="Its coefficient is the FWL slope; the remaining regressors become controls.",
+        )
+        render.render_plotly(
+            lambda: comp.fwl_plot(
+                active.sample, y, valid_xs, focal, [fe1, fe2], clusters
+            )
+        )
+
 
 # ----------------------------------------------------------------------------- navigation ---
 # (title, icon, url_path, function, components that justify showing the page)

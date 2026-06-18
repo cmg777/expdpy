@@ -171,6 +171,12 @@ pre-commit = ">=3.7"
 [tool.pixi.feature.r.dependencies]
 rpy2 = ">=3.6,<4"
 r-base = ">=4.3"
+# For the fwlplot parity test (the local fwlplot-r package is installed via remotes).
+r-remotes = "*"
+r-fixest = "*"
+"r-data.table" = "*"
+r-tinyplot = "*"
+r-ggplot2 = "*"
 
 [tool.pixi.feature.docs.dependencies]
 quarto = ">=1.5"

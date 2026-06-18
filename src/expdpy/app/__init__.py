@@ -287,6 +287,24 @@ def ExPdPy(
                 "subset_value", "Value", choices=levels, selected="All"
             )
 
+        @render.ui
+        def fwl_focal_ui():
+            # Focal-variable choices track the live regression regressors (reg_x); the
+            # other regressors become the FWL controls. Resets if the focal is removed.
+            xs = _g(inp, "reg_x", []) or []
+            xs = list(xs) if isinstance(xs, (list, tuple)) else [xs]
+            xs = [x for x in xs if x not in (None, "", "None")]
+            if not xs:
+                return ui.help_text(
+                    "Select one or more independent variables in the regression card above."
+                )
+            sel = cfg_state().get("fwl_focal")
+            if sel not in xs:
+                sel = xs[0]
+            return ui.input_select(
+                "fwl_focal", "Focal variable", choices=xs, selected=sel
+            )
+
         # --- main component area --------------------------------------------
         @render.ui
         def main_ui():
@@ -366,6 +384,23 @@ def ExPdPy(
                 _g(inp, "scatter_color"),
                 _g(inp, "scatter_size"),
                 bool(_g(inp, "scatter_loess", True)),
+            )
+            req(fig is not None)
+            return fig
+
+        @render_plotly
+        def w_fwl_plot():
+            xs = _g(inp, "reg_x", []) or []
+            xs = list(xs) if isinstance(xs, (list, tuple)) else [xs]
+            fig = comp.fwl_plot(
+                analysis_sample(),
+                _g(inp, "reg_y"),
+                xs,
+                _g(inp, "fwl_focal"),
+                [_g(inp, "reg_fe1"), _g(inp, "reg_fe2")],
+                _cluster_vars(
+                    _g(inp, "cluster", 1), _g(inp, "reg_fe1"), _g(inp, "reg_fe2")
+                ),
             )
             req(fig is not None)
             return fig
@@ -465,6 +500,7 @@ _CONFIG_INPUT_KEYS = [
     "reg_fe1",
     "reg_fe2",
     "cluster",
+    "fwl_focal",
 ]
 
 
@@ -568,6 +604,16 @@ def _component_card(name: str, vc, cfg: dict, ts: str | None) -> Any:
                 choices={"1": "None", "2": "FE 1", "3": "FE 1 + FE 2"},
                 selected=str(cfg.get("cluster", 1)),
             ),
+        ]
+    elif name == "fwl_plot":
+        controls = [
+            ui.markdown(
+                "**Frisch-Waugh-Lovell plot.** Residualizes the dependent variable and "
+                "the focal regressor on the *other* regressors **and** the fixed effects "
+                "chosen in the regression above, then plots the two residuals. The fitted "
+                "slope equals the focal coefficient in that regression."
+            ),
+            ui.output_ui("fwl_focal_ui"),
         ]
     # descriptive_table, corrplot, missing_values need no selectors.
     return ui.card(ui.card_header(name.replace("_", " ").title()), *controls, out)

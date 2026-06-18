@@ -116,6 +116,23 @@ def _emit_regression(cfg: dict) -> str:
     )
 
 
+def _emit_fwl_plot(cfg: dict) -> str:
+    reg_x = cfg.get("reg_x")
+    xs = reg_x if isinstance(reg_x, list) else [reg_x]
+    xs = [x for x in xs if x not in (None, "None")]
+    focal = cfg.get("fwl_focal")
+    controls = [x for x in xs if x != focal]
+    fes = [
+        cfg.get(k) for k in ("reg_fe1", "reg_fe2") if cfg.get(k) not in (None, "None")
+    ]
+    cluster_choice = int(cfg.get("cluster", 1))
+    clusters = fes[: max(0, cluster_choice - 1)] if cluster_choice > 1 else []
+    return (
+        f"ex.prepare_fwl_plot(df, dv={_q(cfg.get('reg_y'))}, var={_q(focal)}, "
+        f"controls={_q(controls)}, feffects={_q(fes)}, clusters={_q(clusters)}).fig"
+    )
+
+
 _EMITTERS = {
     "descriptive_table": lambda c, t: _emit_descriptive(c),
     "histogram": lambda c, t: _emit_histogram(c),
@@ -130,6 +147,7 @@ _EMITTERS = {
     "corrplot": lambda c, t: _emit_corr(c),
     "scatter_plot": lambda c, t: _emit_scatter(c),
     "regression": lambda c, t: _emit_regression(c),
+    "fwl_plot": lambda c, t: _emit_fwl_plot(c),
 }
 
 _HEADINGS = {
@@ -146,6 +164,7 @@ _HEADINGS = {
     "corrplot": "Correlations",
     "scatter_plot": "Scatter plot",
     "regression": "Regression",
+    "fwl_plot": "Frisch-Waugh-Lovell plot",
 }
 
 

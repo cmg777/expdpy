@@ -19,11 +19,12 @@ Once published to PyPI, `pip install "expdpy[streamlit]"` will work directly.
 
 ```python
 from expdpy.streamlit_app import ExPdPy
-from expdpy.data import load_gapminder, load_gapminder_data_def
+from expdpy.data import load_kuznets, load_kuznets_data_def, get_config
 
 ExPdPy(
-    load_gapminder(),
-    df_def=load_gapminder_data_def(),   # identifies the panel dimensions (country x year)
+    load_kuznets(),
+    df_def=load_kuznets_data_def(),     # identifies the panel dimensions (country x year)
+    config_list=get_config("kuznets"),  # opens on the N-shaped Kuznets curve
 )
 ```
 
@@ -33,7 +34,7 @@ upload, subset filter, outlier treatment, user-defined variables, and config sav
 notebook export — and the analysis components are grouped into pages you switch between in the
 navigation menu.
 
-![The Overview & Data page on the gapminder panel.](../images/streamlit-overview.png)
+![The Overview & Data page on the kuznets panel.](../images/streamlit-overview.png)
 
 ## The pages
 
@@ -49,15 +50,15 @@ navigation menu.
 Time-series pages and components (Trends, missing values, by-group trend) are **hidden
 automatically for cross-sectional data** — exactly as in the Shiny app.
 
-![The Correlations & Scatter page.](../images/streamlit-correlations.png)
+![The Correlations & Scatter page: the N-shaped Kuznets curve (regional inequality vs log GDP per capita) with a LOESS smoother.](../images/streamlit-correlations.png)
 
-![The Regression page: a native coefficient table with significance stars and fit statistics.](../images/streamlit-regression.png)
+![The Regression page: the cubic in log GDP per capita recovers the N — a native coefficient table with significance stars and fit statistics.](../images/streamlit-regression.png)
 
 ## The dataset picker and upload
 
 Launched without data — or deployed to the Cloud — the app starts with a **dataset picker**
-(Gapminder / World Bank / Russell 3000) and a file uploader. An uploaded CSV / Excel / Parquet
-file overrides the selected dataset:
+(defaulting to Kuznets; also Gapminder / World Bank / Russell 3000) and a file uploader. An
+uploaded CSV / Excel / Parquet file overrides the selected dataset:
 
 ```python
 from expdpy.streamlit_app import ExPdPy
@@ -70,7 +71,7 @@ ExPdPy()  # bundled-dataset picker + upload box
 Omit the time-series identifier and the time-trend pages/components disappear:
 
 ```python
-ExPdPy(load_gapminder().query("year == 2007"))  # no ts_id -> cross-sectional
+ExPdPy(load_kuznets().query("year == 2025"))  # no ts_id -> cross-sectional
 ```
 
 ## The sample pipeline

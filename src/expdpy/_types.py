@@ -24,6 +24,7 @@ __all__ = [
     "CorrelationTableResult",
     "DescriptiveTableResult",
     "ExtObsTableResult",
+    "FWLPlotResult",
     "HistogramResult",
     "QuantileTrendGraphResult",
     "RegressionTableResult",
@@ -131,3 +132,28 @@ class RegressionTableResult:
     models: list[Any]
     etable: Any
     df: pd.DataFrame
+
+
+@dataclass(frozen=True)
+class FWLPlotResult:
+    """Result of :func:`expdpy.prepare_fwl_plot`.
+
+    ``df`` is the residual frame sorted by ``x_resid`` with columns ``x_resid``,
+    ``y_resid``, ``fit``, ``lwr`` and ``upr`` (the OLS fit and 95% pointwise confidence band
+    of ``y_resid`` on ``x_resid``). ``fig`` is the Plotly figure. ``slope`` equals the
+    full-model coefficient on the focal variable (Frisch-Waugh-Lovell theorem); ``se`` is its
+    standard error from the full model (clustered when clusters are given, matching
+    :func:`prepare_regression_table`) — note the plotted band is the simpler residual-OLS
+    confidence interval, so its implied uncertainty can differ from ``se``. ``intercept`` is
+    the residual-OLS intercept (≈ 0 when residualized); ``n_obs`` is the complete-case sample
+    size; ``r2_within`` is the full model's within-R² (``nan`` when there are no fixed
+    effects).
+    """
+
+    df: pd.DataFrame
+    fig: go.Figure
+    slope: float
+    se: float
+    intercept: float
+    n_obs: int
+    r2_within: float

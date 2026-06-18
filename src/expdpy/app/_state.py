@@ -77,6 +77,8 @@ DEFAULT_CONFIG: dict = {
     "reg_by": "None",
     "cluster": 1,
     "model": "ols",
+    # fwl plot (reuses the regression inputs; only the focal regressor is chosen here)
+    "fwl_focal": "None",
 }
 
 

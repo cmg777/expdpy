@@ -17,6 +17,7 @@ from expdpy._types import (
     CorrelationTableResult,
     DescriptiveTableResult,
     ExtObsTableResult,
+    FWLPlotResult,
     HistogramResult,
     QuantileTrendGraphResult,
     RegressionTableResult,
@@ -29,6 +30,7 @@ from expdpy.by_group import (
 )
 from expdpy.correlation import prepare_correlation_graph
 from expdpy.distributions import prepare_bar_chart, prepare_histogram
+from expdpy.fwl import prepare_fwl_plot
 from expdpy.missing import prepare_missing_values_graph
 from expdpy.outliers import treat_outliers
 from expdpy.regression import prepare_regression_table
@@ -67,6 +69,8 @@ __all__ = [
     "prepare_scatter_plot",
     # regression
     "prepare_regression_table",
+    # fwl plot
+    "prepare_fwl_plot",
     # result types
     "DescriptiveTableResult",
     "CorrelationTableResult",
@@ -79,4 +83,5 @@ __all__ = [
     "HistogramResult",
     "BarChartResult",
     "RegressionTableResult",
+    "FWLPlotResult",
 ]

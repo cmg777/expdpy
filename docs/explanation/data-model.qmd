@@ -6,7 +6,7 @@ title: "Data model"
 
 ## Identifiers
 
-- **`cs_id`** — one or more columns identifying the cross-section (e.g. firm id + name).
+- **`cs_id`** — one or more columns identifying the cross-section (e.g. country + ISO code).
 - **`ts_id`** — a single column identifying the time dimension, coercible to an ordered
   factor (e.g. fiscal year).
 
@@ -20,8 +20,8 @@ Provide them directly, or via a **`df_def`** table:
 | `can_be_na` | optional; if `False`, rows missing this variable are dropped      |
 
 ```python
-from expdpy.data import load_russell_3000_data_def
-load_russell_3000_data_def().head()
+from expdpy.data import load_kuznets_data_def
+load_kuznets_data_def()  # cs_id (country, iso), ts_id (year), factors and numerics
 ```
 
 ## Variable categories

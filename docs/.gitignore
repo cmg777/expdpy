@@ -1,2 +1,7 @@
 /.quarto/
 **/*.quarto_ipynb
+# Quarto render output (project output-dir + stray single-file render artifacts)
+/_site/
+/site_libs/
+/search.json
+*.html

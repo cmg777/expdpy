@@ -28,6 +28,8 @@ website:
             file: how-to/customize-streamlit.qmd
       - text: "Explanation"
         menu:
+          - text: "The kuznets dataset"
+            file: explanation/kuznets-dataset.qmd
           - text: "Data model"
             file: explanation/data-model.qmd
           - text: "Parity with ExPanDaR"
@@ -87,6 +89,7 @@ quartodoc:
       desc: OLS with fixed effects and clustered standard errors (pyfixest).
       contents:
         - prepare_regression_table
+        - prepare_fwl_plot
     - title: Data preparation
       contents:
         - treat_outliers
@@ -98,7 +101,9 @@ quartodoc:
     - title: Datasets
       package: expdpy.data
       contents:
-        - load_russell_3000
-        - load_worldbank
+        - load_kuznets
+        - load_kuznets_data_def
         - load_gapminder
+        - load_worldbank
+        - load_russell_3000
         - get_config

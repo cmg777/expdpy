@@ -87,10 +87,13 @@ def test_app_runs_bundle_russell(monkeypatch):
 
 
 # --- individual pages ---------------------------------------------------------
+# Variables are picked from the widgets' actual options so these stay valid regardless
+# of which bundled dataset is the picker default.
 def test_distributions_histogram():
     at = _page("distributions")
     assert not at.exception
-    at.selectbox(key="hist_var").set_value("lifeExp")
+    var = at.selectbox(key="hist_var")
+    var.set_value(var.options[0])
     at.run()
     assert not at.exception
 
@@ -98,8 +101,9 @@ def test_distributions_histogram():
 def test_correlations_and_scatter():
     at = _page("correlations")
     assert not at.exception
-    at.selectbox(key="scatter_x").set_value("gdpPercap")
-    at.selectbox(key="scatter_y").set_value("lifeExp")
+    x, y = at.selectbox(key="scatter_x"), at.selectbox(key="scatter_y")
+    x.set_value(x.options[0])
+    y.set_value(y.options[1] if len(y.options) > 1 else y.options[0])
     at.run()
     assert not at.exception
 
@@ -107,8 +111,11 @@ def test_correlations_and_scatter():
 def test_regression_renders_table():
     at = _page("regression")
     assert not at.exception
-    at.selectbox(key="reg_y").set_value("lifeExp")
-    at.multiselect(key="reg_x").set_value(["gdpPercap"])
+    y = at.selectbox(key="reg_y")
+    y.set_value(y.options[0])
+    rx = at.multiselect(key="reg_x")
+    x = rx.options[1] if len(rx.options) > 1 else rx.options[0]
+    rx.set_value([x])
     at.run()
     assert not at.exception
     assert len(at.dataframe) >= 1  # coefficient table

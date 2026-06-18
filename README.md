@@ -88,6 +88,17 @@ reg = ex.prepare_regression_table(
     clusters=["country"],
 )
 reg.etable
+
+# Frisch-Waugh-Lovell plot: the partial relationship between gini and log GDP per capita,
+# net of the other terms AND region fixed effects (the fitted slope equals the coefficient)
+ex.prepare_fwl_plot(
+    df,
+    dv="gini_regional",
+    var="log_gdp_pc",
+    controls=["log_gdp_pc_sq", "log_gdp_pc_cu"],
+    feffects=["region"],
+    clusters=["country"],
+).fig.show()
 ```
 
 Launch the interactive app — **Shiny** — pre-configured to open on the N-shaped curve:
@@ -122,29 +133,10 @@ streamlit run streamlit_app.py
 
 | Loader | Panel | Notes |
 |---|---|---|
-| `load_gapminder` | country × year | Life expectancy, population, GDP per capita (the default). |
-| `load_kuznets` | 80 countries × 2015–2025 | Synthetic; regional inequality traces an **N-shaped** Kuznets curve in income (rises, falls, then rises again at very high income). |
-| `load_worldbank` | country × year | World Bank macro indicators. |
-| `load_russell_3000` | firm × year | Russell 3000 financial data. |
-
-The `kuznets` dataset is built to exercise every feature of the package, and ships a preset
-config that opens the app directly on the curve:
-
-```python
-import expdpy as ex
-from expdpy.data import load_kuznets, load_kuznets_data_def, get_config
-
-df = load_kuznets()  # 880 rows; the N-shape is in `gini_regional` vs `gdp_pc`
-
-# Cubic regression recovers the N (significant positive cubic term)
-ex.prepare_regression_table(
-    df, dvs="gini_regional", idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"]
-).etable
-
-# Launch the app pre-configured to show the N-shaped curve
-from expdpy.streamlit_app import ExPdPy
-ExPdPy(df, df_def=load_kuznets_data_def(), config_list=get_config("kuznets"))
-```
+| `load_kuznets` | 80 countries × 2015–2025 | **The default showcase.** Synthetic; rich in control variables; regional inequality traces an **N-shaped** Kuznets curve in income (rises, falls, then rises again at very high income). Built to exercise every feature and ships a preset config (`get_config("kuznets")`) that opens the app directly on the curve. |
+| `load_gapminder` | country × year | Life expectancy, population, GDP per capita. |
+| `load_worldbank` | country × year | World Bank macro indicators (ships `get_config("worldbank")`). |
+| `load_russell_3000` | firm × year | Russell 3000 financial data (ships `get_config("russell_3000")`). |
 
 ## Functions
 
@@ -159,6 +151,7 @@ ExPdPy(df, df_def=load_kuznets_data_def(), config_list=get_config("kuznets"))
 | `prepare_missing_values_graph` | Missing-value heatmap across the panel |
 | `prepare_scatter_plot` | Scatter with optional size/color/LOESS |
 | `prepare_regression_table` | OLS with fixed effects + clustered SEs (pyfixest) |
+| `prepare_fwl_plot` | Frisch-Waugh-Lovell partial-regression plot (residualized on controls + fixed effects) |
 | `treat_outliers` | Winsorize or truncate outliers |
 | `expdpy.app.ExPdPy` | Interactive Shiny-for-Python exploration app |
 | `expdpy.streamlit_app.ExPdPy` | Interactive Streamlit exploration app (multipage, native tables) |

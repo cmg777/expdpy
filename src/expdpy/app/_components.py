@@ -17,6 +17,7 @@ from expdpy import (
     prepare_correlation_graph,
     prepare_descriptive_table,
     prepare_ext_obs_table,
+    prepare_fwl_plot,
     prepare_histogram,
     prepare_missing_values_graph,
     prepare_quantile_trend_graph,
@@ -44,6 +45,7 @@ COMPONENT_ORDER = [
     "corrplot",
     "scatter_plot",
     "regression",
+    "fwl_plot",
 ]
 
 # Components that only need the panel's time dimension.
@@ -70,6 +72,7 @@ COMPONENT_KIND = {
     "corrplot": "plotly",
     "scatter_plot": "plotly",
     "regression": "gt",
+    "fwl_plot": "plotly",
 }
 
 
@@ -179,3 +182,16 @@ def regression(sample, y, xs, fes, clusters):
         sample, dvs=y, idvs=xs, feffects=fes, clusters=clusters, format="gt"
     )
     return res.etable.as_raw_html()
+
+
+def fwl_plot(sample, y, xs, focal, fes, clusters):
+    """Frisch-Waugh-Lovell plot for the focal regressor, reusing the regression inputs."""
+    xs = [x for x in xs if _ok(x)]
+    if not (_ok(y) and _ok(focal) and focal in xs):
+        return None
+    controls = [x for x in xs if x != focal]
+    fes = [f for f in fes if _ok(f)]
+    clusters = [c for c in clusters if _ok(c)]
+    return prepare_fwl_plot(
+        sample, dv=y, var=focal, controls=controls, feffects=fes, clusters=clusters
+    ).fig

@@ -3,26 +3,29 @@ title: "Quickstart"
 jupyter: python3
 ---
 
-This walkthrough mirrors the *ExPanDaR functions* vignette using the bundled `gapminder`
-panel (country × year, 1952–2007: life expectancy, population and GDP per capita).
+This walkthrough mirrors the *ExPanDaR functions* vignette using the bundled `kuznets`
+panel (80 countries × 2015–2025) — a synthetic dataset, rich in control variables, whose
+regional inequality (`gini_regional`) traces an **N-shaped Kuznets curve** in income: it
+rises, falls, then rises again at very high income. The log of GDP per capita and its square
+and cube ship as columns (`log_gdp_pc`, `log_gdp_pc_sq`, `log_gdp_pc_cu`) so the cubic curve
+is turnkey.
 
 ```{python}
 import numpy as np
 import expdpy as ex
-from expdpy.data import load_gapminder
+from expdpy.data import load_kuznets
 
-df = load_gapminder()
-df["log_gdppercap"] = np.log(df["gdpPercap"])
-df[["country", "continent", "year", "lifeExp", "pop", "gdpPercap"]].head()
+df = load_kuznets()
+df[["country", "region", "year", "gini_regional", "gdp_pc", "log_gdp_pc"]].head()
 ```
 
 ## Treating outliers
 
-Winsorize the numeric variables at the 1st/99th percentile:
+Winsorize the (skewed) numeric variables at the 1st/99th percentile:
 
 ```{python}
 analysis = ex.treat_outliers(
-    df[["lifeExp", "gdpPercap", "pop"]], percentile=0.01
+    df[["gini_regional", "gdp_pc", "school_enrollment", "resource_rents"]], percentile=0.01
 ).dropna()
 analysis.describe().round(3)
 ```
@@ -49,51 +52,72 @@ ex.prepare_correlation_graph(analysis).fig
 
 ```{python}
 ex.prepare_ext_obs_table(
-    df, n=5, cs_id=["country"], ts_id="year", var="gdpPercap"
+    df, n=5, cs_id=["country"], ts_id="year", var="gini_regional"
 ).gt
 ```
 
 ## Time trends
 
 ```{python}
-ex.prepare_trend_graph(df, ts_id="year", var=["lifeExp"]).fig
+ex.prepare_trend_graph(df, ts_id="year", var=["gini_regional"]).fig
 ```
 
 ```{python}
-ex.prepare_quantile_trend_graph(df, ts_id="year", var="lifeExp").fig
+ex.prepare_quantile_trend_graph(df, ts_id="year", var="gini_regional").fig
 ```
 
 ## By-group views
 
 ```{python}
-ex.prepare_by_group_bar_graph(df, "continent", "lifeExp", np.nanmedian).fig
+ex.prepare_by_group_bar_graph(df, "region", "gini_regional", np.nanmedian).fig
 ```
 
 ```{python}
-ex.prepare_by_group_violin_graph(df, "continent", "lifeExp")
+ex.prepare_by_group_violin_graph(df, "region", "gini_regional")
 ```
 
 ## Scatter plot with LOESS
 
-The classic Preston curve — life expectancy against GDP per capita, sized by population and
-colored by continent:
+The **N-shaped Kuznets curve** — regional inequality against (log) GDP per capita, sized by
+population and colored by region. The LOESS smoother traces the rise–fall–rise:
 
 ```{python}
-ex.prepare_scatter_plot(df, x="gdpPercap", y="lifeExp", color="continent", size="pop", loess=1)
+ex.prepare_scatter_plot(
+    df, x="log_gdp_pc", y="gini_regional", color="region", size="population", loess=1
+)
 ```
 
 ## Regression with fixed effects and clustered SEs
 
-Regress life expectancy on (log) GDP per capita with country fixed effects and standard
-errors clustered by country:
+A cubic in (log) GDP per capita recovers the N — a positive, significant cubic term — with
+region fixed effects and standard errors clustered by country:
 
 ```{python}
 res = ex.prepare_regression_table(
     df,
-    dvs="lifeExp",
-    idvs=["log_gdppercap"],
-    feffects=["country"],
+    dvs="gini_regional",
+    idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"],
+    feffects=["region"],
     clusters=["country"],
 )
 res.etable
+```
+
+## Frisch-Waugh-Lovell plot
+
+The same coefficient, *seen*. `prepare_fwl_plot` residualizes both the outcome and the focal
+regressor on the **other** regressors **and** the fixed effects, then scatters the two
+residuals. By the Frisch-Waugh-Lovell theorem the fitted slope equals the focal coefficient
+in the regression above — here the linear `log_gdp_pc` term, net of the quadratic/cubic terms
+and the region fixed effects:
+
+```{python}
+ex.prepare_fwl_plot(
+    df,
+    dv="gini_regional",
+    var="log_gdp_pc",
+    controls=["log_gdp_pc_sq", "log_gdp_pc_cu"],
+    feffects=["region"],
+    clusters=["country"],
+).fig
 ```
