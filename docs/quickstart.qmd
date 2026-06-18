@@ -89,15 +89,17 @@ ex.prepare_scatter_plot(
 
 ## Regression with fixed effects and clustered SEs
 
-A cubic in (log) GDP per capita recovers the N — a positive, significant cubic term — with
-continent fixed effects and standard errors clustered by country:
+`kuznets` is a country–year panel, so the natural specification absorbs **two-way (country +
+year) fixed effects** — controlling for every time-invariant country trait and every common
+annual shock. A cubic in (log) GDP per capita still recovers the N — a positive, significant
+cubic term — *within* country, with standard errors clustered by country:
 
 ```{python}
 res = ex.prepare_regression_table(
     df,
     dvs="gini_regional",
     idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"],
-    feffects=["continent"],
+    feffects=["country", "year"],
     clusters=["country"],
 )
 res.etable
@@ -109,7 +111,7 @@ The same coefficient, *seen*. `prepare_fwl_plot` residualizes both the outcome a
 regressor on the **other** regressors **and** the fixed effects, then scatters the two
 residuals. By the Frisch-Waugh-Lovell theorem the fitted slope equals the focal coefficient
 in the regression above — here the linear `log_gdp_pc` term, net of the quadratic/cubic terms
-and the continent fixed effects:
+and the country and year fixed effects:
 
 ```{python}
 ex.prepare_fwl_plot(
@@ -117,7 +119,7 @@ ex.prepare_fwl_plot(
     dv="gini_regional",
     var="log_gdp_pc",
     controls=["log_gdp_pc_sq", "log_gdp_pc_cu"],
-    feffects=["continent"],
+    feffects=["country", "year"],
     clusters=["country"],
 ).fig
 ```

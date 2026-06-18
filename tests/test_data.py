@@ -98,6 +98,11 @@ def test_get_config_kuznets():
     assert isinstance(cfg, dict)
     assert cfg["sample"] == "kuznets"
     assert cfg["reg_x"] == ["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"]
+    # The preset opens on the panel's two-way (country + year) fixed effects, clustered
+    # by country (cluster choice "2" == FE 1).
+    assert cfg["reg_fe1"] == "country"
+    assert cfg["reg_fe2"] == "year"
+    assert cfg["cluster"] == "2"
     assert cfg["scatter_x"] == "log_gdp_pc"
     assert cfg["scatter_y"] == "gini_regional"
 

@@ -38,8 +38,10 @@ Highlights:
 - **`gini_regional`** — the outcome that follows the N-shape (regional inequality).
 - **`gdp_pc`** and its derived `log_gdp_pc`, `log_gdp_pc_sq`, `log_gdp_pc_cu` — income and the
   polynomial terms that make the cubic curve turnkey.
-- **`continent`** (5 levels) and **`federal`** (0/1) — grouping factors for by-group views and
-  fixed effects.
+- **`country`** (`cs_id`) and **`year`** (`ts_id`) — the panel identifiers, and the natural
+  two-way fixed effects for any regression on this dataset.
+- **`continent`** (5 levels) and **`federal`** (0/1) — extra grouping factors for by-group
+  views (and alternative fixed effects).
 - **`gasoline_price`, `school_enrollment`, `gini_lights`, `polity2`** carry realistic missing
   values (heavier in the early years), so the missing-value heatmap has something to show.
 
@@ -56,14 +58,18 @@ ex.prepare_scatter_plot(
 
 ## Statistical evidence
 
-A cubic in (log) GDP per capita recovers the N — the cubic term is **positive and
-significant** — with standard errors clustered by country:
+Because `kuznets` is a country–year panel, the regression absorbs **two-way (country + year)
+fixed effects** — the natural specification for panel data, controlling for every
+time-invariant country trait and every common annual shock. A cubic in (log) GDP per capita
+still recovers the N *within* country — the cubic term is **positive and significant** — with
+standard errors clustered by country:
 
 ```{python}
 ex.prepare_regression_table(
     df,
     dvs="gini_regional",
     idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"],
+    feffects=["country", "year"],
     clusters=["country"],
 ).etable
 ```

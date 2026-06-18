@@ -40,6 +40,10 @@ def _factors(active: Active) -> list[str]:
     return active.var_cats.grouping or ["None"]
 
 
+def _fe_choices(active: Active) -> list[str]:
+    return active.var_cats.fe_choices or ["None"]
+
+
 # --------------------------------------------------------------------------------- pages ---
 def page_overview() -> None:
     """Sample preview, descriptive statistics, extreme observations, missing values."""
@@ -162,9 +166,13 @@ def page_regression() -> None:
     xs = w.multiselect("Independent variables", _numeric(active), key="reg_x")
     c1, c2 = st.columns(2)
     with c1:
-        fe1 = w.selectbox("Fixed effect 1", _factors(active), key="reg_fe1", none=True)
+        fe1 = w.selectbox(
+            "Fixed effect 1", _fe_choices(active), key="reg_fe1", none=True
+        )
     with c2:
-        fe2 = w.selectbox("Fixed effect 2", _factors(active), key="reg_fe2", none=True)
+        fe2 = w.selectbox(
+            "Fixed effect 2", _fe_choices(active), key="reg_fe2", none=True
+        )
 
     cl_opts = ["1", "2", "3"]
     cur = str(st.session_state.get("cluster", "1"))

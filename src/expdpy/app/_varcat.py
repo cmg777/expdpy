@@ -32,6 +32,16 @@ class VarCats:
         """Columns usable for grouping/subsetting (factors and logicals)."""
         return [*self.factor, *self.logical]
 
+    @property
+    def fe_choices(self) -> list[str]:
+        """Columns usable as fixed effects: panel identifiers + grouping factors.
+
+        Unlike :attr:`grouping`, this includes the cross-sectional and time-series
+        identifiers (``cs_id`` / ``ts_id``) so a panel can absorb the natural two-way
+        (e.g. country + year) fixed effects.
+        """
+        return [*self.cs_id, *self.ts_id, *self.factor, *self.logical]
+
 
 def create_var_categories(
     df: pd.DataFrame,

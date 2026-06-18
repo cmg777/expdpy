@@ -535,6 +535,7 @@ def _component_card(name: str, vc, cfg: dict, ts: str | None) -> Any:
 
     numeric = vc.numeric_logical or ["None"]
     factors = vc.grouping or ["None"]
+    fe_choices = vc.fe_choices or ["None"]
     kind = COMPONENT_KIND[name]
     out = output_widget(f"w_{name}") if kind == "plotly" else ui.output_ui(f"t_{name}")
 
@@ -596,8 +597,8 @@ def _component_card(name: str, vc, cfg: dict, ts: str | None) -> Any:
                 multiple=True,
                 selected=[c for c in (cfg.get("reg_x") or []) if c in numeric],
             ),
-            _sel("reg_fe1", "Fixed effect 1", factors, cfg, none=True),
-            _sel("reg_fe2", "Fixed effect 2", factors, cfg, none=True),
+            _sel("reg_fe1", "Fixed effect 1", fe_choices, cfg, none=True),
+            _sel("reg_fe2", "Fixed effect 2", fe_choices, cfg, none=True),
             ui.input_select(
                 "cluster",
                 "Cluster SE",

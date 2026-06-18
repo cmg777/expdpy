@@ -46,8 +46,8 @@
     "log_gdp_pc_sq",
     "log_gdp_pc_cu"
   ],
-  "reg_fe1": "None",
-  "reg_fe2": "None",
+  "reg_fe1": "country",
+  "reg_fe2": "year",
   "reg_by": "None",
   "cluster": "2",
   "model": "ols"

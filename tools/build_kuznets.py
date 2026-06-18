@@ -167,7 +167,11 @@ def build_frame() -> pd.DataFrame:
         0, 0.05, nc
     )
     pct = base_log_gdp.argsort().argsort() / (nc - 1)  # income percentile in [0, 1]
-    growth = np.clip(rng.normal(0.025, 0.02, nc), -0.02, 0.07)
+    # Heterogeneous income dynamics: a country-specific growth slope *and* curvature so
+    # within-country income moves enough (and differently across countries) to identify the
+    # cubic Kuznets curve *within* country, not only cross-sectionally.
+    growth = np.clip(rng.normal(0.03, 0.05, nc), -0.06, 0.16)
+    accel = rng.normal(0.0, 0.003, nc)
     country_re = rng.normal(0.0, 0.02, nc)
     continent_idx = np.clip(np.round(pct * 4 + rng.normal(0, 0.9, nc)), 0, 4).astype(
         int
@@ -192,12 +196,19 @@ def build_frame() -> pd.DataFrame:
     def col(*, scale: float, base: np.ndarray) -> np.ndarray:
         return base[:, None] + rng.normal(0, scale, (nc, ny))
 
-    gdp_pc = (
-        np.exp(base_log_gdp)[:, None]
-        * (1 + growth)[:, None] ** tt[None, :]
-        * np.exp(rng.normal(0, 0.03, (nc, ny)))
+    # Build the log-income path directly: base level + country slope*t + country curvature*t^2
+    # + idiosyncratic year shock. Clipped to a sane band so the structural cubic is not
+    # extrapolated far past its design range [GDP_LO, GDP_HI].
+    log_gdp = np.clip(
+        base_log_gdp[:, None]
+        + growth[:, None] * tt[None, :]
+        + accel[:, None] * (tt**2)[None, :]
+        + rng.normal(0, 0.04, (nc, ny)),
+        np.log(500.0),
+        np.log(150_000.0),
     )
-    x = np.log(gdp_pc)
+    gdp_pc = np.exp(log_gdp)
+    x = log_gdp
 
     population = (pop_base[:, None] * (1 + pop_growth)[:, None] ** tt[None, :]).round()
     area_panel = np.repeat(area[:, None], ny, axis=1)
@@ -227,15 +238,19 @@ def build_frame() -> pd.DataFrame:
     def z(a: np.ndarray) -> np.ndarray:
         return (a - a.mean()) / a.std()
 
+    # A small common year effect gives the year fixed effect real work to do (and is absorbed
+    # by it); the country intercept is absorbed by the country fixed effect.
+    year_effect = rng.normal(0, 0.01, ny)
     structural = _structural_gini(x)
     gini_regional = np.clip(
         structural
         + country_re[:, None]
+        + year_effect[None, :]
         + 0.015 * z(resource_rents)
         - 0.015 * z(trade_share)
         - 0.020 * z(school_enrollment)
         + CONTINENT_OFFSET[continent_idx][:, None]
-        + rng.normal(0, 0.02, (nc, ny)),
+        + rng.normal(0, 0.035, (nc, ny)),
         0.02,
         0.6,
     )
@@ -348,11 +363,12 @@ def build_config() -> dict:
         "scatter_size": "population",
         "scatter_loess": True,
         "scatter_sample": False,
-        # regression — statistical evidence of the cubic N
+        # regression — statistical evidence of the cubic N, controlling for the panel's
+        # two-way (country + year) fixed effects, with SEs clustered by country (FE 1).
         "reg_y": "gini_regional",
         "reg_x": ["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"],
-        "reg_fe1": "None",
-        "reg_fe2": "None",
+        "reg_fe1": "country",
+        "reg_fe2": "year",
         "reg_by": "None",
         "cluster": "2",
         "model": "ols",

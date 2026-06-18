@@ -82,23 +82,26 @@ ex.prepare_scatter_plot(
     df, x="log_gdp_pc", y="gini_regional", color="continent", size="population", loess=1
 ).show()
 
-# Cubic regression recovers the N (significant positive cubic term), clustered by country
+# Cubic regression recovers the N (significant positive cubic term), controlling for
+# country and year (two-way) fixed effects, with SEs clustered by country
 reg = ex.prepare_regression_table(
     df,
     dvs="gini_regional",
     idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"],
+    feffects=["country", "year"],
     clusters=["country"],
 )
 reg.etable
 
 # Frisch-Waugh-Lovell plot: the partial relationship between gini and log GDP per capita,
-# net of the other terms AND continent fixed effects (the fitted slope equals the coefficient)
+# net of the other terms AND the country and year fixed effects (the fitted slope equals
+# the coefficient)
 ex.prepare_fwl_plot(
     df,
     dv="gini_regional",
     var="log_gdp_pc",
     controls=["log_gdp_pc_sq", "log_gdp_pc_cu"],
-    feffects=["continent"],
+    feffects=["country", "year"],
     clusters=["country"],
 ).fig.show()
 ```

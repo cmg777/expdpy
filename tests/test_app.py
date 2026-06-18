@@ -34,6 +34,10 @@ def test_varcats(russell):
     assert "sector" in vc.factor
     assert "period" in vc.ts_id
     assert "coid" in vc.cs_id
+    # Panel identifiers are usable as fixed effects, but not as grouping factors.
+    assert {"coid", "period"}.issubset(vc.fe_choices)
+    assert "coid" not in vc.grouping and "period" not in vc.grouping
+    assert "sector" in vc.fe_choices  # grouping factors remain available too
 
 
 # --- config state -------------------------------------------------------------
