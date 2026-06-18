@@ -2,6 +2,27 @@
 title: "The ExPdPy Shiny app"
 ---
 
+::: {.callout-tip appearance="simple"}
+**No installation required** — try the app live in your browser:
+
+<a href="https://carlosmendez777.shinyapps.io/expdpy/" class="btn btn-primary" target="_blank" rel="noopener" role="button">☁️ Launch ExPdPy on shinyapps.io →</a>
+:::
+
+The hosted app runs [Shiny for Python](https://shiny.posit.co/py/) on
+[shinyapps.io](https://www.shinyapps.io/) and starts with a **file-upload dialog** — there is no
+bundled data, so you bring your own CSV / Excel / Parquet. To try it with the panel used throughout
+these docs:
+
+1. Download the sample: <a href="https://raw.githubusercontent.com/cmg777/expdpy/main/docs/data/kuznets.csv" download>**kuznets.csv**</a> (880 rows × 21 columns).
+2. Open the [live app](https://carlosmendez777.shinyapps.io/expdpy/) and use **Upload** to select `kuznets.csv`.
+3. Explore the descriptive tables, distributions, correlations and scatter (the N-shaped Kuznets curve), and the regression builder.
+
+::: {.callout-warning}
+The hosted **free-tier** instance has limited compute time and memory, so heavy operations may be
+slow or time out, and the app may sleep when idle. For the full, fast experience — and larger
+datasets — **run the app locally** (install and launch instructions below).
+:::
+
 The `ExPdPy` app wraps the analytical functions in an interactive, no-code interface (built
 with [Shiny for Python](https://shiny.posit.co/py/)). It is provided by the `app` extra. The
 package is not on PyPI yet, so install it from GitHub:
