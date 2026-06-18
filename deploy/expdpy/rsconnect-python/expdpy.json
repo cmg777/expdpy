@@ -1,0 +1,12 @@
+{
+    "https://api.shinyapps.io": {
+        "server_url": "https://api.shinyapps.io",
+        "filename": "/Users/carlos/GitHub/expdpy/deploy/expdpy",
+        "app_url": "https://carlosmendez777.shinyapps.io/expdpy/",
+        "app_id": "17527058",
+        "app_guid": null,
+        "title": "expdpy",
+        "app_mode": "python-shiny",
+        "app_store_version": 1
+    }
+}

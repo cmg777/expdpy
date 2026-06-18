@@ -1,0 +1,9 @@
+# Dependency set shinyapps.io installs on its build server.
+# expdpy is not on PyPI yet, so install it (with the Shiny "app" extra) straight from the public
+# GitHub repo. The [app] extra brings shiny, shinywidgets, nbformat, cryptography, openpyxl, and the
+# install pulls the runtime deps (pandas/numpy/scipy/plotly/pyfixest/great-tables/statsmodels/pyarrow)
+# plus the package code and bundled assets.
+#
+# Tracks `main`. To force a redeploy to pick up new code, pin a commit (changes the env-cache hash):
+#   expdpy[app] @ git+https://github.com/cmg777/expdpy.git@<commit-sha>
+expdpy[app] @ git+https://github.com/cmg777/expdpy.git
