@@ -1,6 +1,6 @@
-"""The ExPanD interactive app (Shiny for Python).
+"""The ExPdPy interactive app (Shiny for Python).
 
-``ExPanD`` builds a config-driven, no-code exploration UI on top of the library's
+``ExPdPy`` builds a config-driven, no-code exploration UI on top of the library's
 ``prepare_*`` functions: a reactive sample pipeline (subset / outlier treatment) feeds an
 ordered set of analysis components (descriptive table, histogram, correlations, trends,
 scatter, regression, ...), each rendered with Plotly or Great Tables. It also supports
@@ -11,11 +11,9 @@ notebook.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pandas as pd
-from shiny import App, reactive, render, req, ui
-from shinywidgets import output_widget, render_plotly
 
 from expdpy.app import _components as comp
 from expdpy.app._components import COMPONENT_KIND, COMPONENT_ORDER, TS_COMPONENTS
@@ -25,7 +23,10 @@ from expdpy.app._sample import apply_user_vars, build_analysis_sample
 from expdpy.app._state import parse_config
 from expdpy.app._varcat import create_var_categories
 
-__all__ = ["ExPanD"]
+if TYPE_CHECKING:
+    from shiny import App
+
+__all__ = ["ExPdPy"]
 
 _OUTLIER_CHOICES = {
     "1": "None",
@@ -83,7 +84,7 @@ def _g(inp: Any, key: str, default: Any = None) -> Any:
     return default if val in (None, "") else val
 
 
-def ExPanD(
+def ExPdPy(
     df: Any = None,
     cs_id: Sequence[str] | str | None = None,
     ts_id: str | None = None,
@@ -91,7 +92,7 @@ def ExPanD(
     var_def: pd.DataFrame | None = None,
     config_list: dict | None = None,
     *,
-    title: str = "ExPanD - Explore your data!",
+    title: str = "ExPdPy - Explore your data!",
     df_name: str | Sequence[str] | None = None,
     components: Any = None,
     factor_cutoff: int = 10,
@@ -102,7 +103,7 @@ def ExPanD(
     run: bool = True,
     **run_kwargs: Any,
 ) -> App:
-    """Launch (or build) the interactive ExPanD app.
+    """Launch (or build) the interactive ExPdPy app.
 
     Parameters
     ----------
@@ -141,13 +142,16 @@ def ExPanD(
     shiny.App
         The constructed app (also returned when ``run=True`` after the server stops).
     """
+    from shiny import App, reactive, render, req, ui
+    from shinywidgets import render_plotly
+
     samples = _normalize_samples(df, df_name)
     cs_list, ts = _resolve_ids(df_def, cs_id, ts_id)
     active = _active_components(components, ts)
     base_cfg = parse_config(config_list)
 
     # ------------------------------------------------------------------ UI ---
-    sidebar_items: list[Any] = [ui.h4("ExPanD")]
+    sidebar_items: list[Any] = [ui.h4("ExPdPy")]
     if len(samples) > 1:
         sidebar_items.append(
             ui.input_select(
@@ -288,7 +292,7 @@ def ExPanD(
         def main_ui():
             if base_df() is None:
                 return ui.div(
-                    ui.h3("Welcome to ExPanD"),
+                    ui.h3("Welcome to ExPdPy"),
                     ui.p(
                         "Upload a data file (sidebar) with at least two numeric variables to begin."
                     ),
@@ -414,13 +418,13 @@ def ExPanD(
                     cfg[key] = list(val) if isinstance(val, tuple) else val
             return cfg
 
-        @render.download(filename="expand_config.json")
+        @render.download(filename="expdpy_config.json")
         def download_config():
             yield dump_config(
                 _current_config(), key_phrase if store_encrypted else None
             )
 
-        @render.download(filename="ExPanD_analysis.zip")
+        @render.download(filename="ExPdPy_analysis.zip")
         def download_nb():
             sample = analysis_sample()
             if sample is not None:
@@ -479,6 +483,8 @@ def _cluster_vars(choice: Any, fe1: str | None, fe2: str | None) -> list[str]:
 def _sel(
     id_: str, label: str, choices: list[str], cfg: dict, *, none: bool = False
 ) -> Any:
+    from shiny import ui
+
     opts = (["None", *choices] if none else choices) or ["None"]
     selected = cfg.get(id_)
     if selected not in opts:
@@ -488,6 +494,9 @@ def _sel(
 
 def _component_card(name: str, vc, cfg: dict, ts: str | None) -> Any:
     """Build the controls + output card for a single component."""
+    from shiny import ui
+    from shinywidgets import output_widget
+
     numeric = vc.numeric_logical or ["None"]
     factors = vc.grouping or ["None"]
     kind = COMPONENT_KIND[name]

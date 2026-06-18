@@ -11,7 +11,12 @@ modern Python stack:
 - **[Plotly](https://plotly.com/python/)** — interactive figures
 - **[pyfixest](https://github.com/py-econometrics/pyfixest)** — fixed-effects / clustered regressions
 - **[Great Tables](https://posit-dev.github.io/great-tables/)** — publication-quality tables
-- **[Shiny for Python](https://shiny.posit.co/py/)** — the no-code `ExPanD` app
+- **[Shiny for Python](https://shiny.posit.co/py/)** and **[Streamlit](https://streamlit.io/)** — two no-code `ExPdPy` apps
+
+There are **two interactive apps** with the same features: the original
+[Shiny app](tutorials/using-shiny.qmd) and a [Streamlit app](tutorials/using-streamlit.qmd)
+that adds a multipage layout and runs on [Streamlit Community Cloud](https://streamlit.io/cloud).
+See [Shiny vs Streamlit](explanation/shiny-vs-streamlit.qmd) for a side-by-side comparison.
 
 ## Installation
 
@@ -21,7 +26,7 @@ The package is not on PyPI yet — install the latest version straight from GitH
 # Core analytical functions:
 pip install "git+https://github.com/cmg777/expdpy.git"
 
-# ...with the interactive ExPanD app:
+# ...with the interactive ExPdPy app:
 pip install "expdpy[app] @ git+https://github.com/cmg777/expdpy.git"
 ```
 
@@ -55,7 +60,7 @@ ex.prepare_descriptive_table(df[["lifeExp", "gdpPercap", "pop"]]).gt
 ```
 
 Head to the [Quickstart](quickstart.qmd) to see every function in action, or the
-[ExPanD tutorial](tutorials/using-expand.qmd) to launch the interactive app.
+[ExPdPy tutorial](tutorials/using-shiny.qmd) to launch the interactive app.
 
 ## Why a port?
 

@@ -1,4 +1,4 @@
-"""Variable categorization for the ExPanD app (port of create_var_categories)."""
+"""Variable categorization for the ExPdPy app (port of create_var_categories)."""
 
 from __future__ import annotations
 

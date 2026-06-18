@@ -1,4 +1,4 @@
-"""Tests for the ExPanD app: pipeline, varcats, UDV safety, config IO, export, build."""
+"""Tests for the ExPdPy app: pipeline, varcats, UDV safety, config IO, export, build."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ pytest.importorskip("shiny")
 
 from shiny import App
 
-from expdpy.app import ExPanD
+from expdpy.app import ExPdPy
 from expdpy.app import _components as comp
 from expdpy.app._config_io import dump_config, load_config
 from expdpy.app._export_nb import (
@@ -157,19 +157,19 @@ def test_component_helpers(russell):
 
 # --- app construction ---------------------------------------------------------
 def test_expand_builds_app(russell):
-    app = ExPanD(russell, cs_id=["coid", "coname"], ts_id="period", run=False)
+    app = ExPdPy(russell, cs_id=["coid", "coname"], ts_id="period", run=False)
     assert isinstance(app, App)
 
 
 def test_expand_upload_mode_builds():
-    assert isinstance(ExPanD(run=False), App)
+    assert isinstance(ExPdPy(run=False), App)
 
 
 def test_expand_serves_http(russell):
     pytest.importorskip("httpx")
     starlette_test = pytest.importorskip("starlette.testclient")
-    app = ExPanD(russell, cs_id=["coid", "coname"], ts_id="period", run=False)
+    app = ExPdPy(russell, cs_id=["coid", "coname"], ts_id="period", run=False)
     client = starlette_test.TestClient(app)
     resp = client.get("/")
     assert resp.status_code == 200
-    assert "ExPanD" in resp.text
+    assert "ExPdPy" in resp.text

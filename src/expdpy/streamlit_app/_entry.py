@@ -1,0 +1,31 @@
+"""The app body executed on every Streamlit rerun.
+
+``run_app`` is import-safe (it has no module-level side effects), so it can be driven both by
+Streamlit's script runner (via :mod:`expdpy.streamlit_app._run`) and by
+``streamlit.testing.v1.AppTest`` in the test-suite. A pre-built :class:`AppContext` may be
+injected through ``_ctx`` to bypass the bundle/dataset resolution in tests.
+"""
+
+from __future__ import annotations
+
+import streamlit as st
+
+from expdpy.streamlit_app._context import AppContext, resolve_context
+from expdpy.streamlit_app._pages import build_pages
+from expdpy.streamlit_app._sidebar import apply_pending_config, render_sidebar
+
+__all__ = ["run_app"]
+
+
+def run_app(_ctx: AppContext | None = None) -> None:
+    """Resolve the data source, render the sidebar, and run the multipage navigation."""
+    if _ctx is not None:
+        st.session_state["_ctx"] = _ctx
+        ctx = _ctx
+    else:
+        ctx = resolve_context()
+
+    st.set_page_config(page_title=ctx.title, page_icon="📊", layout="wide")
+    apply_pending_config(ctx)
+    active = render_sidebar(ctx)
+    st.navigation(build_pages(active)).run()

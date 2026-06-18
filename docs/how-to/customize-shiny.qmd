@@ -1,5 +1,5 @@
 ---
-title: "Customizing ExPanD"
+title: "Customizing the ExPdPy app (Shiny)"
 ---
 
 ## Selecting and ordering components
@@ -8,10 +8,10 @@ The `components` argument controls which analysis cards appear and in what order
 list (order matters) or a `{name: bool}` mapping:
 
 ```python
-from expdpy.app import ExPanD
+from expdpy.app import ExPdPy
 from expdpy.data import load_gapminder, load_gapminder_data_def
 
-ExPanD(
+ExPdPy(
     load_gapminder(),
     df_def=load_gapminder_data_def(),
     components=["descriptive_table", "scatter_plot", "regression"],
@@ -35,7 +35,7 @@ Provide a `var_def` frame to compute the analysis sample from the base data. Eac
 
 ```python
 import pandas as pd
-from expdpy.app import ExPanD
+from expdpy.app import ExPdPy
 from expdpy.data import load_worldbank, load_worldbank_data_def
 
 var_def = pd.DataFrame(
@@ -46,7 +46,7 @@ var_def = pd.DataFrame(
         "can_be_na": [False, False, True],
     }
 )
-ExPanD(load_worldbank(), df_def=load_worldbank_data_def(), var_def=var_def)
+ExPdPy(load_worldbank(), df_def=load_worldbank_data_def(), var_def=var_def)
 ```
 
 ::: {.callout-note}
@@ -58,7 +58,7 @@ sandboxed `eval`.
 ## Disabling app features
 
 ```python
-ExPanD(
+ExPdPy(
     load_gapminder(),
     df_def=load_gapminder_data_def(),
     export_nb_option=False,     # hide notebook export

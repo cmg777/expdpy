@@ -1,7 +1,7 @@
 """Bundled example datasets ported from ExPanDaR.
 
 All loaders return :class:`pandas.DataFrame` objects read from parquet files shipped with
-the package; :func:`get_config` returns a startup configuration ``dict`` for the ``ExPanD``
+the package; :func:`get_config` returns a startup configuration ``dict`` for the ``ExPdPy``
 app. The data is provided for didactic purposes only (see the ExPanDaR documentation).
 """
 
@@ -18,6 +18,8 @@ __all__ = [
     "get_config",
     "load_gapminder",
     "load_gapminder_data_def",
+    "load_kuznets",
+    "load_kuznets_data_def",
     "load_russell_3000",
     "load_russell_3000_data_def",
     "load_worldbank",
@@ -26,8 +28,9 @@ __all__ = [
 ]
 
 _CONFIGS = {
-    "russell_3000": "ExPanD_config_russell_3000.json",
-    "worldbank": "ExPanD_config_worldbank.json",
+    "kuznets": "expdpy_config_kuznets.json",
+    "russell_3000": "expdpy_config_russell_3000.json",
+    "worldbank": "expdpy_config_worldbank.json",
 }
 
 
@@ -85,14 +88,25 @@ def load_gapminder_data_def() -> pd.DataFrame:
     return _normalize_def(_read_parquet("gapminder_data_def"))
 
 
+def load_kuznets() -> pd.DataFrame:
+    """Load the synthetic kuznets dataset (country-year, N-shaped regional Kuznets curve)."""
+    return _read_parquet("kuznets")
+
+
+def load_kuznets_data_def() -> pd.DataFrame:
+    """Return variable definitions for :func:`load_kuznets`."""
+    return _normalize_def(_read_parquet("kuznets_data_def"))
+
+
 @cache
 def get_config(name: str) -> dict:
-    """Return a startup configuration for ``ExPanD``.
+    """Return a startup configuration for ``ExPdPy``.
 
     Parameters
     ----------
     name
-        Either ``"russell_3000"`` or ``"worldbank"``.
+        One of ``"kuznets"``, ``"russell_3000"`` or ``"worldbank"`` (see
+        :func:`available_configs`).
 
     Returns
     -------
@@ -106,5 +120,5 @@ def get_config(name: str) -> dict:
 
 
 def available_configs() -> list[str]:
-    """Return the names of the bundled ``ExPanD`` configurations."""
+    """Return the names of the bundled ``ExPdPy`` configurations."""
     return sorted(_CONFIGS)

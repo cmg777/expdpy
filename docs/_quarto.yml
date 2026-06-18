@@ -14,18 +14,26 @@ website:
         file: index.qmd
       - text: "Quickstart"
         file: quickstart.qmd
-      - text: "Tutorials"
+      - text: "Shiny app"
         menu:
-          - text: "Using the ExPanD app"
-            file: tutorials/using-expand.qmd
-          - text: "Customizing ExPanD"
-            file: how-to/customize-expand.qmd
+          - text: "Using the Shiny app"
+            file: tutorials/using-shiny.qmd
+          - text: "Customizing the Shiny app"
+            file: how-to/customize-shiny.qmd
+      - text: "Streamlit app"
+        menu:
+          - text: "Using the Streamlit app"
+            file: tutorials/using-streamlit.qmd
+          - text: "Customizing the Streamlit app"
+            file: how-to/customize-streamlit.qmd
       - text: "Explanation"
         menu:
           - text: "Data model"
             file: explanation/data-model.qmd
           - text: "Parity with ExPanDaR"
             file: explanation/parity.qmd
+          - text: "Shiny vs Streamlit"
+            file: explanation/shiny-vs-streamlit.qmd
       - text: "Reference"
         file: reference/index.qmd
       - text: "Changelog"
@@ -82,10 +90,11 @@ quartodoc:
     - title: Data preparation
       contents:
         - treat_outliers
-    - title: Interactive app
+    - title: Interactive apps
+      desc: The no-code ExPdPy exploration apps (Shiny and Streamlit).
       contents:
-        - package: expdpy.app
-          name: ExPanD
+        - app.ExPdPy
+        - streamlit_app.ExPdPy
     - title: Datasets
       package: expdpy.data
       contents:

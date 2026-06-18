@@ -1,0 +1,7 @@
+# Streamlit configuration for the ExPdPy app (local runs and Community Cloud).
+[server]
+# Maximum upload size in MB for the in-app data uploader.
+maxUploadSize = 200
+
+[theme]
+base = "light"

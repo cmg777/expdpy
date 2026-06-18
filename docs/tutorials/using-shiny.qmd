@@ -1,8 +1,8 @@
 ---
-title: "Using the ExPanD app"
+title: "Using the ExPdPy app (Shiny)"
 ---
 
-The `ExPanD` app wraps the analytical functions in an interactive, no-code interface (built
+The `ExPdPy` app wraps the analytical functions in an interactive, no-code interface (built
 with [Shiny for Python](https://shiny.posit.co/py/)). It is provided by the `app` extra. The
 package is not on PyPI yet, so install it from GitHub:
 
@@ -17,10 +17,10 @@ Once published to PyPI, `pip install "expdpy[app]"` will work directly.
 ## Launching on a DataFrame
 
 ```python
-from expdpy.app import ExPanD
+from expdpy.app import ExPdPy
 from expdpy.data import load_gapminder, load_gapminder_data_def
 
-ExPanD(
+ExPdPy(
     load_gapminder(),
     df_def=load_gapminder_data_def(),   # identifies the panel dimensions (country x year)
 )
@@ -37,15 +37,15 @@ If you do not provide a time-series identifier, the time-trend components are dr
 example, a single year of gapminder is cross-sectional:
 
 ```python
-ExPanD(load_gapminder().query("year == 2007"))  # no ts_id -> cross-sectional
+ExPdPy(load_gapminder().query("year == 2007"))  # no ts_id -> cross-sectional
 ```
 
 ## Starting from an upload dialog
 
-Call `ExPanD()` with no data to start with an in-app file upload (CSV/Excel/parquet):
+Call `ExPdPy()` with no data to start with an in-app file upload (CSV/Excel/parquet):
 
 ```python
-ExPanD()
+ExPdPy()
 ```
 
 ## Reproducible export
@@ -63,7 +63,7 @@ at launch:
 ```python
 from expdpy.data import load_worldbank, load_worldbank_data_def, load_worldbank_var_def, get_config
 
-ExPanD(
+ExPdPy(
     load_worldbank(),
     df_def=load_worldbank_data_def(),
     var_def=load_worldbank_var_def(),

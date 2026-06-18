@@ -9,6 +9,9 @@ Converts ExPanDaR's bundled R data to the parquet/JSON files shipped under
 * ``gapminder`` is read from the vignette CSV and a small data-definition table is derived;
 * the two ``ExPanD_config_*`` R *lists* are converted to JSON by ``tools/convert_rdata.R``.
 
+The synthetic ``kuznets`` dataset is *not* built here — it is generated (no R source) by
+``tools/build_kuznets.py``.
+
 Run from the repo root::
 
     python tools/build_datasets.py
@@ -80,7 +83,8 @@ def build() -> None:
     # Mark the conventional panel identifiers when present.
     type_map = {"country": "cs_id", "iso3c": "cs_id", "year": "ts_id"}
     gap_def["type"] = [
-        type_map.get(name, t) for name, t in zip(gap_def["var_name"], gap_def["type"])
+        type_map.get(name, t)
+        for name, t in zip(gap_def["var_name"], gap_def["type"], strict=False)
     ]
     gap_def["can_be_na"] = [t not in ("cs_id", "ts_id") for t in gap_def["type"]]
     gap_def.to_parquet(OUT / "gapminder_data_def.parquet", index=False)

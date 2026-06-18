@@ -1,4 +1,4 @@
-"""Read user-uploaded data files for the ExPanD app."""
+"""Read user-uploaded data files for the ExPdPy app."""
 
 from __future__ import annotations
 

@@ -13,7 +13,13 @@ Initial release — a Python port of ExPanDaR.
   `prepare_by_group_violin_graph`, `prepare_histogram`, `prepare_bar_chart`,
   `prepare_missing_values_graph`, `prepare_scatter_plot`, `prepare_regression_table`,
   and `treat_outliers`.
-- The interactive `ExPanD` app (Shiny for Python) with in-app upload, save/load of
+- The interactive `ExPdPy` app (Shiny for Python) with in-app upload, save/load of
   configurations, and reproducible notebook/script export.
-- Bundled datasets: `russell_3000`, `worldbank`, `gapminder` (plus their definition tables
-  and configurations).
+- A second interactive `ExPdPy` app (Streamlit): the same no-code exploration UI in
+  a multipage layout with native tables, the subset / outlier / user-defined-variable
+  pipeline, config save/load (interchangeable with the Shiny app's configs) and reproducible
+  notebook export — runnable locally and on Streamlit Community Cloud
+  (`streamlit run streamlit_app.py`).
+- Bundled datasets: `gapminder`, `kuznets` (a synthetic panel whose regional inequality
+  traces an N-shaped Kuznets curve), `worldbank`, and `russell_3000` (plus their definition
+  tables and configurations).

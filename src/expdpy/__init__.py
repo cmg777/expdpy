@@ -4,7 +4,7 @@ A Python port of the ExPanDaR R package (Joachim Gassen, TRR 266). Provides a se
 of analytical functions for exploratory analysis of panel and cross-sectional data
 (descriptive tables, correlations, time trends, scatter plots, regression tables)
 returning interactive Plotly figures and Great Tables / pyfixest output, plus the
-``ExPanD`` interactive app (Shiny for Python).
+``ExPdPy`` interactive app (Shiny for Python).
 """
 
 from __future__ import annotations

@@ -38,5 +38,6 @@ docs/reference/
 .RData
 .Rproj.user
 
-# Vendored original R package (reference only — upstream: trr266/ExPanDaR)
+# Vendored reference R packages (reference only — not part of the expdpy package)
 /ExPanDaR/
+/fwlplot-r/

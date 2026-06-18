@@ -1,4 +1,4 @@
-"""Per-component compute helpers for the ExPanD app.
+"""Per-component compute helpers for the ExPdPy app.
 
 Each helper turns the current analysis sample plus the user's selections into a Plotly
 figure or a Great Tables HTML string, reusing the library's ``prepare_*`` functions. They

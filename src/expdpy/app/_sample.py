@@ -1,4 +1,4 @@
-"""The ExPanD analysis-sample pipeline (port of create_analysis_sample)."""
+"""The ExPdPy analysis-sample pipeline (port of create_analysis_sample)."""
 
 from __future__ import annotations
 

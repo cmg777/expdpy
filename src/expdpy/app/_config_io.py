@@ -1,4 +1,4 @@
-"""Save/load ExPanD analysis configurations (JSON, optionally Fernet-encrypted)."""
+"""Save/load ExPdPy analysis configurations (JSON, optionally Fernet-encrypted)."""
 
 from __future__ import annotations
 
