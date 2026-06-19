@@ -148,10 +148,15 @@ def test_component_helpers(kuznets):
     )
     assert comp.descriptive(sample) is not None
     assert comp.histogram(sample, "gdp_pc", 20) is not None
-    assert comp.scatter(sample, "log_gdp_pc", "gini_regional", "continent", None, True) is not None
+    assert (
+        comp.scatter(sample, "log_gdp_pc", "gini_regional", "continent", None, True)
+        is not None
+    )
     assert comp.corrplot(sample.select_dtypes("number")) is not None
     assert (
-        comp.regression(sample, "gini_regional", ["log_gdp_pc"], ["continent"], ["continent"])
+        comp.regression(
+            sample, "gini_regional", ["log_gdp_pc"], ["continent"], ["continent"]
+        )
         is not None
     )
     # incomplete selections no-op
