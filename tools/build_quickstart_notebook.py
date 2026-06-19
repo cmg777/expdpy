@@ -27,6 +27,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
 
 import nbformat
@@ -37,9 +38,14 @@ SRC_QMD = REPO / "docs" / "quickstart.qmd"
 OUT_IPYNB = REPO / "notebooks" / "quickstart.ipynb"
 
 # Install with the optional ``panel`` extra (linearmodels) so the classic panel-model and
-# Hausman cells run live in Colab; the rest of the toolkit comes with the core install.
+# Hausman cells run live in Colab; the rest of the toolkit comes with the core install. The
+# second line force-refreshes *only* the expdpy code to the latest ``main`` commit — pip skips
+# a git reinstall when the version string is unchanged, so a re-run on a warm runtime would
+# otherwise keep stale code. ``--no-deps`` keeps it fast (re-fetches just the expdpy wheel).
 INSTALL_CELL = (
-    '!pip install -q "expdpy[panel] @ git+https://github.com/cmg777/expdpy.git"'
+    '!pip install -q "expdpy[panel] @ git+https://github.com/cmg777/expdpy.git"\n'
+    "!pip install -q --force-reinstall --no-deps "
+    '"expdpy @ git+https://github.com/cmg777/expdpy.git"'
 )
 
 # Colab does not always pick a Plotly renderer that draws figures returned as the last cell
@@ -60,6 +66,9 @@ SETUP_CELL = (
 
 TITLE_CELL = (
     "# expdpy — Quickstart\n"
+    "\n"
+    "_Notebook version: built {{BUILD_STAMP}} — re-open this notebook from GitHub if yours is "
+    "older, to get the latest version._\n"
     "\n"
     "A cloud-runnable walkthrough of [expdpy](https://github.com/cmg777/expdpy) on the bundled "
     "`kuznets` panel. Run the install cell below first, then run the rest top to bottom.\n"
@@ -125,7 +134,8 @@ def build() -> None:
             cell["source"] = _strip_raw_html(cell.source)
     cells = [c for c in cells if c.cell_type != "markdown" or c.source.strip()]
 
-    title = new_markdown_cell(TITLE_CELL)
+    build_stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    title = new_markdown_cell(TITLE_CELL.replace("{{BUILD_STAMP}}", build_stamp))
     install = new_code_cell(INSTALL_CELL)
     setup = new_code_cell(SETUP_CELL)
     nb.cells = [title, install, setup, *cells]

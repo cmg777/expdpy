@@ -295,7 +295,12 @@ Here, randomization inference for the treatment effect, clustering the permutati
 
 ```{python}
 #| warning: false
-m = ex.prepare_regression_table(did, dvs="outcome", idvs=["treated"], clusters=["unit"])
+# Cast the 0/1 treatment to float so pyfixest's numba-accelerated randomization resampler
+# (used in cloud runtimes such as Google Colab) can run — it needs a floating-point resampvar.
+did_f = did.assign(treated=did["treated"].astype(float))
+m = ex.prepare_regression_table(
+    did_f, dvs="outcome", idvs=["treated"], clusters=["unit"]
+)
 ri = ex.prepare_robust_inference(
     m, param="treated", method="ritest", reps=500, cluster="unit", seed=0
 )
