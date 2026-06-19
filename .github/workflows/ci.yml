@@ -51,15 +51,17 @@ jobs:
   r-parity:
     name: R parity (vs ExPanDaR)
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: prefix-dev/setup-pixi@v0.8.1
         with:
           environments: r
       - name: Install ExPanDaR (best effort)
+        continue-on-error: true
         run: pixi run -e r Rscript -e 'install.packages("remotes", repos="https://cloud.r-project.org"); remotes::install_github("trr266/ExPanDaR", upgrade="never")'
       - name: Install local fwlplot (best effort)
+        continue-on-error: true
         run: pixi run -e r Rscript -e 'remotes::install_local("fwlplot-r", upgrade="never", dependencies=FALSE)'
       - name: Run R-parity tests
+        continue-on-error: true
         run: pixi run -e r test-r
