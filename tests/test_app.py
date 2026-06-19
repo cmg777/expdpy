@@ -165,17 +165,26 @@ def test_component_helpers(kuznets):
 
 
 def test_event_study_and_panel_helpers():
+    import importlib.util
+
     from expdpy.data import load_staggered_did
 
+    has_lm = importlib.util.find_spec("linearmodels") is not None
     df = load_staggered_did()
+    # Event study needs only pyfixest, which is always present.
     fig = comp.event_study(df, "outcome", "unit", "year", "cohort", "did2s")
     assert fig is not None
     notes = comp.event_study_notes(df, "outcome", "unit", "year", "cohort", "did2s")
     assert notes is not None and len(notes) == 2
+    # Panel models need the optional linearmodels extra; without it the card shows a
+    # friendly HTML message and the notes helper returns None (graceful degradation).
     html = comp.panel_models(df, "outcome", ["treated"], "unit", "year")
     assert html and "<" in html
     pnotes = comp.panel_models_notes(df, "outcome", ["treated"], "unit", "year")
-    assert pnotes is not None and len(pnotes) == 2
+    if has_lm:
+        assert pnotes is not None and len(pnotes) == 2
+    else:
+        assert pnotes is None
     # incomplete selections no-op
     assert comp.event_study(df, "None", "unit", "year", "cohort", "did2s") is None
     assert comp.panel_models(df, "outcome", [], "unit", "year") is None
