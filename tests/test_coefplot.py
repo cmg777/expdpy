@@ -71,6 +71,17 @@ def test_multi_model_labels_and_dodge(pooled, fe):
     assert res.fig.data[0].y[0] != res.fig.data[1].y[0]
 
 
+def test_accepts_list_of_result_objects(pooled, fe):
+    # a list may mix/contain result objects (not just bare models); they flatten in place
+    res = ex.prepare_coefficient_plot(
+        [pooled, fe],
+        model_labels=["Pooled OLS", "Two-way FE"],
+        keep=["log_gdp_pc"],
+    )
+    assert [t.name for t in res.fig.data] == ["Pooled OLS", "Two-way FE"]
+    assert sorted(res.df["model"].unique()) == ["Pooled OLS", "Two-way FE"]
+
+
 def test_model_labels_length_mismatch_raises(pooled):
     with pytest.raises(ValueError, match="model_labels"):
         ex.prepare_coefficient_plot(pooled, model_labels=["only one", "too many"])

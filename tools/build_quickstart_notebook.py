@@ -8,9 +8,10 @@ notebook straight from GitHub (https://colab.research.google.com/github/cmg777/e
 
 The conversion is ``quarto convert`` (the canonical ``.qmd`` -> ``.ipynb`` mapping: prose ->
 markdown cells, ``{python}`` blocks -> code cells) followed by light post-processing with
-``nbformat``: the YAML front-matter cell is dropped and two cells are prepended — a title cell
-and, as the first *code* cell, a GitHub ``pip install`` so the notebook is runnable from a cold
-Colab runtime.
+``nbformat``: the YAML front-matter cell is dropped and three cells are prepended — a title
+cell, a GitHub ``pip install`` (with the ``panel`` extra) so the notebook is runnable from a
+cold Colab runtime, and a setup cell that forces Plotly's ``colab`` renderer so every figure
+draws.
 
 ``quarto`` lives in the pixi ``docs`` environment, so run this from there::
 
@@ -35,13 +36,36 @@ REPO = Path(__file__).resolve().parents[1]
 SRC_QMD = REPO / "docs" / "quickstart.qmd"
 OUT_IPYNB = REPO / "notebooks" / "quickstart.ipynb"
 
-INSTALL_CELL = '!pip install -q "git+https://github.com/cmg777/expdpy.git"'
+# Install with the optional ``panel`` extra (linearmodels) so the classic panel-model and
+# Hausman cells run live in Colab; the rest of the toolkit comes with the core install.
+INSTALL_CELL = (
+    '!pip install -q "expdpy[panel] @ git+https://github.com/cmg777/expdpy.git"'
+)
+
+# Colab does not always pick a Plotly renderer that draws figures returned as the last cell
+# expression, so force the dedicated "colab" renderer there. This is a no-op in Jupyter /
+# nbclient (where the default renderer already produces a rich mimebundle) and is injected
+# into the notebook only — the docs site keeps Quarto's own Plotly handling.
+SETUP_CELL = (
+    "# Ensure Plotly figures render in Google Colab (a no-op in other notebook frontends).\n"
+    "import plotly.io as pio\n"
+    "\n"
+    "try:\n"
+    "    import google.colab  # noqa: F401  (present only on Colab)\n"
+    "\n"
+    '    pio.renderers.default = "colab"\n'
+    "except ImportError:\n"
+    "    pass"
+)
 
 TITLE_CELL = (
     "# expdpy — Quickstart\n"
     "\n"
     "A cloud-runnable walkthrough of [expdpy](https://github.com/cmg777/expdpy) on the bundled "
     "`kuznets` panel. Run the install cell below first, then run the rest top to bottom.\n"
+    "\n"
+    "> If Colab prompts you to **restart the runtime** after the install, do so, then "
+    "continue from the setup cell.\n"
     "\n"
     "This notebook mirrors the [Quickstart page](https://cmg777.github.io/expdpy/quickstart.html) "
     "of the docs."
@@ -101,13 +125,15 @@ def build() -> None:
             cell["source"] = _strip_raw_html(cell.source)
     cells = [c for c in cells if c.cell_type != "markdown" or c.source.strip()]
 
-    title, install = new_markdown_cell(TITLE_CELL), new_code_cell(INSTALL_CELL)
-    nb.cells = [title, install, *cells]
+    title = new_markdown_cell(TITLE_CELL)
+    install = new_code_cell(INSTALL_CELL)
+    setup = new_code_cell(SETUP_CELL)
+    nb.cells = [title, install, setup, *cells]
 
     # Reconcile cell ids with the nbformat minor version quarto emitted: ids are required from
-    # 4.5+ and forbidden before it. Use fixed ids for our two cells so re-runs stay byte-stable.
+    # 4.5+ and forbidden before it. Use fixed ids for our cells so re-runs stay byte-stable.
     if nb.nbformat_minor >= 5:
-        title["id"], install["id"] = "title", "install"
+        title["id"], install["id"], setup["id"] = "title", "install", "setup"
     else:
         for cell in nb.cells:
             cell.pop("id", None)

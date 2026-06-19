@@ -28,11 +28,21 @@ __all__ = ["prepare_coefficient_plot"]
 
 
 def _coerce_models(models: Any) -> list[Any]:
-    """Return a flat list of fitted models from a model, a list, or a result object."""
+    """Return a flat list of fitted models from a model, a list, or a result object.
+
+    A list may mix bare fitted models and result objects (anything carrying ``.models``,
+    e.g. a :class:`~expdpy.RegressionTableResult`); result objects are expanded in place so
+    ``prepare_coefficient_plot([pooled, fe])`` works as readily as passing the raw models.
+    """
     if hasattr(models, "models"):  # e.g. a RegressionTableResult
         out = list(models.models)
     elif isinstance(models, (list, tuple)):
-        out = list(models)
+        out = []
+        for item in models:
+            if hasattr(item, "models"):  # a result object nested in the list
+                out.extend(item.models)
+            else:
+                out.append(item)
     else:
         out = [models]
     if not out:
@@ -118,7 +128,7 @@ def prepare_coefficient_plot(
         df, dvs="gini_regional", idvs=["log_gdp_pc"], feffects=["country", "year"]
     )
     ex.prepare_coefficient_plot(
-        [pooled.models[0], fe.models[0]],
+        [pooled, fe],
         model_labels=["Pooled OLS", "Two-way FE"],
         keep=["log_gdp_pc"],
     ).fig

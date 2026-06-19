@@ -331,9 +331,10 @@ def prepare_ext_obs_table(
     bottom = ordered.tail(n)
     out = pd.concat([top, bottom])
 
-    # Separator row carrying the same dtypes as the data (avoids dtype-coercion warnings).
-    separator = ordered.iloc[[0]].copy()
-    separator.loc[:, :] = np.nan
+    # A blank separator row between the top and bottom blocks. Build it as its own all-NaN
+    # frame so concat unifies dtypes (int -> float) cleanly, instead of assigning NaN into
+    # the existing int columns in place (which pandas now warns will become an error).
+    separator = pd.DataFrame([[np.nan] * len(top.columns)], columns=top.columns)
     display = pd.concat([top, separator, bottom], ignore_index=True)
 
     gt = (
