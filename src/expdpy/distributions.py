@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
-from expdpy._theme import apply_default_layout
+from expdpy._theme import apply_default_layout, color_for
 from expdpy._types import BarChartResult, HistogramResult
 from expdpy._validation import ensure_dataframe
 
@@ -66,7 +66,7 @@ def prepare_histogram(
     )
     centers = (edges[:-1] + edges[1:]) / 2.0
     fig = go.Figure(
-        go.Bar(x=centers, y=counts, width=np.diff(edges), marker_color="#1f77b4")
+        go.Bar(x=centers, y=counts, width=np.diff(edges), marker_color=color_for(0))
     )
     apply_default_layout(fig, xaxis={"title": var}, yaxis={"title": "Count"}, bargap=0)
     return HistogramResult(df=out, fig=fig)
@@ -77,7 +77,7 @@ def prepare_bar_chart(
     var: str,
     *,
     order_by_count: bool = False,
-    color: str = "#4682b4",
+    color: str | None = None,
 ) -> BarChartResult:
     """Bar chart of category counts for a (typically categorical) variable.
 
@@ -90,7 +90,7 @@ def prepare_bar_chart(
     order_by_count
         If ``True``, bars are ordered by descending count; otherwise by category.
     color
-        Bar fill color.
+        Bar fill color. Defaults to the primary theme color.
 
     Returns
     -------
@@ -122,6 +122,9 @@ def prepare_bar_chart(
     if not order_by_count:
         counts = counts.sort_index()
     out = counts.rename_axis(var).reset_index(name="count")
-    fig = go.Figure(go.Bar(x=out[var].astype(str), y=out["count"], marker_color=color))
+    bar_color = color if color is not None else color_for(0)
+    fig = go.Figure(
+        go.Bar(x=out[var].astype(str), y=out["count"], marker_color=bar_color)
+    )
     apply_default_layout(fig, xaxis={"title": var}, yaxis={"title": "Count"})
     return BarChartResult(df=out, fig=fig)

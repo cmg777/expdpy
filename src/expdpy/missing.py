@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
-from expdpy._theme import apply_default_layout
+from expdpy._theme import SEQUENTIAL_SCALE, apply_default_layout
 from expdpy._validation import ensure_dataframe, numeric_logical_columns
 
 __all__ = ["prepare_missing_values_graph"]
@@ -86,7 +86,7 @@ def prepare_missing_values_graph(
                 z=z,
                 x=cols,
                 y=[str(lvl) for lvl in levels],
-                colorscale=[[0.0, "#d9d9d9"], [1.0, "#08519c"]],
+                colorscale=[[0.0, "#EDEDED"], [1.0, "#4E79A7"]],
                 zmin=0,
                 zmax=1,
                 colorbar={
@@ -104,7 +104,7 @@ def prepare_missing_values_graph(
                 z=z,
                 x=cols,
                 y=[str(lvl) for lvl in levels],
-                colorscale="Blues",
+                colorscale=SEQUENTIAL_SCALE,
                 zmin=0,
                 zmax=1,
                 colorbar={"title": "% missing", "tickformat": ".0%"},

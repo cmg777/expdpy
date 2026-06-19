@@ -27,7 +27,7 @@ def prepare_by_group_bar_graph(
     stat_fun: Callable[[np.ndarray], float] = np.nanmean,
     *,
     order_by_stat: bool = False,
-    color: str = "red",
+    color: str | None = None,
 ) -> ByGroupBarGraphResult:
     """Bar chart of a statistic of ``var`` computed within each ``by_var`` group.
 
@@ -47,7 +47,7 @@ def prepare_by_group_bar_graph(
         If ``True``, bars are ordered by the statistic (largest at the top); otherwise the
         groups keep their order of appearance.
     color
-        Bar fill color.
+        Bar fill color. Defaults to the primary theme color.
 
     Returns
     -------
@@ -94,12 +94,13 @@ def prepare_by_group_bar_graph(
         grouped = grouped.sort_values(stat_col, ascending=False)
     display_order = [str(g) for g in grouped[by_var]]  # top -> bottom
 
+    bar_color = color if color is not None else color_for(0)
     fig = go.Figure(
         go.Bar(
             x=grouped[stat_col],
             y=grouped[by_var].astype(str),
             orientation="h",
-            marker_color=color,
+            marker_color=bar_color,
         )
     )
     apply_default_layout(

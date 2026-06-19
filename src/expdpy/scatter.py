@@ -11,7 +11,7 @@ import plotly.graph_objects as go
 from pandas.api import types as pdt
 from statsmodels.nonparametric.smoothers_lowess import lowess
 
-from expdpy._theme import apply_default_layout, color_for
+from expdpy._theme import SEQUENTIAL_SCALE, apply_default_layout, color_for
 from expdpy._validation import ensure_dataframe
 
 __all__ = ["prepare_scatter_plot"]
@@ -166,7 +166,7 @@ def prepare_scatter_plot(
                 marker=_marker(
                     {
                         "color": sub[color].to_numpy(dtype=float),
-                        "colorscale": "Viridis",
+                        "colorscale": SEQUENTIAL_SCALE,
                         "showscale": True,
                         "colorbar": {"title": color},
                     }
@@ -198,7 +198,7 @@ def prepare_scatter_plot(
                 x=xs,
                 y=ys,
                 mode="lines",
-                line={"color": "#1f77b4", "width": 2},
+                line={"color": color_for(0), "width": 2},
                 name="loess",
             )
         )

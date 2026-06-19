@@ -9,7 +9,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from expdpy._corr import cor_mat
-from expdpy._theme import apply_default_layout
+from expdpy._theme import DIVERGING_SCALE, apply_default_layout, diverging_color
 from expdpy._types import CorrelationGraphResult
 from expdpy._validation import ensure_dataframe, numeric_logical_columns
 
@@ -27,18 +27,6 @@ def _ellipse_points(cx: float, cy: float, r: float, scale: float = 0.45, n: int 
     x = cx + scale * np.cos(t + a / 2.0)
     y = cy + scale * np.cos(t - a / 2.0)
     return x, y
-
-
-def _rdbu(value: float) -> str:
-    """Map a correlation in [-1, 1] to a red-white-blue rgb string."""
-    v = max(-1.0, min(1.0, value))
-    if v >= 0:  # white -> blue
-        t = v
-        r, g, b = int(255 * (1 - t)), int(255 * (1 - t)), 255
-    else:  # white -> red
-        t = -v
-        r, g, b = 255, int(255 * (1 - t)), int(255 * (1 - t))
-    return f"rgb({r},{g},{b})"
 
 
 def prepare_correlation_graph(
@@ -117,8 +105,7 @@ def prepare_correlation_graph(
                 zmid=0.0,
                 zmin=-1.0,
                 zmax=1.0,
-                colorscale="RdBu",
-                reversescale=True,
+                colorscale=DIVERGING_SCALE,
                 colorbar={"title": "corr"},
                 hovertemplate="%{y} vs %{x}<br>corr=%{z:.3f}<extra></extra>",
             )
@@ -140,7 +127,7 @@ def prepare_correlation_graph(
                         fill="toself",
                         mode="lines",
                         line={"color": "rgba(120,120,120,0.5)", "width": 0.5},
-                        fillcolor=_rdbu(r[i, j]),
+                        fillcolor=diverging_color(r[i, j]),
                         hoverinfo="text",
                         text=f"{names[i]} vs {names[j]}: {r[i, j]:.3f}",
                         showlegend=False,

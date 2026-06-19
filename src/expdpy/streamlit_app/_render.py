@@ -18,6 +18,7 @@ from expdpy import (
     prepare_ext_obs_table,
     prepare_regression_table,
 )
+from expdpy._theme import PLOTLY_CONFIG
 
 __all__ = [
     "render_plotly",
@@ -47,7 +48,7 @@ def render_plotly(thunk, *, hint: str = _SELECT_HINT) -> None:
     if fig is None:
         st.info(hint)
     else:
-        st.plotly_chart(fig, width="stretch")
+        st.plotly_chart(fig, width="stretch", config=PLOTLY_CONFIG)
 
 
 def _number_config(df: pd.DataFrame, decimals: int = 3) -> dict:
@@ -128,7 +129,7 @@ def render_correlation(sample: pd.DataFrame) -> None:
         "Pearson correlations above the diagonal, Spearman correlations below "
         "(self-correlations on the diagonal)."
     )
-    st.plotly_chart(graph.fig, width="stretch")
+    st.plotly_chart(graph.fig, width="stretch", config=PLOTLY_CONFIG)
 
 
 def _stars(p: float) -> str:
