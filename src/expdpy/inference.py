@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any, Literal
 
 import numpy as np
+import pandas as pd
 
 from expdpy._estimation import first_model
 from expdpy._types import RobustInferenceResult
@@ -53,9 +54,32 @@ def prepare_robust_inference(
     model = first_model(result_or_model)
 
     if method == "ritest":
-        series = model.ritest(
-            resampvar=param, reps=reps, cluster=cluster, rng=np.random.default_rng(seed)
-        )
+        # pyfixest's numba-compiled resampler returns a float array in its clustered branch
+        # but the resampvar's own dtype otherwise; an integer/bool resampvar therefore makes
+        # numba fail to unify the two return types (a TypingError that only surfaces where
+        # numba is installed, e.g. Google Colab). Casting the column to float is
+        # value-preserving (0/1 -> 0.0/1.0, identical estimate and p-value). Restore the
+        # caller's column afterwards so the model object is not left mutated.
+        col = param.split("=", 1)[0].strip()
+        data = getattr(model, "_data", None)
+        cast_back: pd.Series | None = None
+        if (
+            isinstance(data, pd.DataFrame)
+            and col in data.columns
+            and not pd.api.types.is_float_dtype(data[col])
+        ):
+            cast_back = data[col]
+            data[col] = data[col].astype(float)
+        try:
+            series = model.ritest(
+                resampvar=param,
+                reps=reps,
+                cluster=cluster,
+                rng=np.random.default_rng(seed),
+            )
+        finally:
+            if cast_back is not None and isinstance(data, pd.DataFrame):
+                data[col] = cast_back
         return RobustInferenceResult(
             method="ritest",
             param=param,

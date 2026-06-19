@@ -166,6 +166,9 @@ pytest = ">=8"
 pytest-cov = ">=5"
 pytest-xdist = ">=3"
 hypothesis = ">=6"
+# numba so the test envs exercise pyfixest's JIT-compiled paths (e.g. ritest's
+# `_resample`) — the same code Google Colab runs, which a numba-free env silently skips.
+numba = "*"
 
 [tool.pixi.feature.lint.dependencies]
 ruff = ">=0.6"
