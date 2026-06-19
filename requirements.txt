@@ -1,0 +1,10 @@
+# Dependencies for Streamlit Community Cloud, which auto-installs from this file when it
+# deploys streamlit_app.py. Install the released package with the Streamlit + panel extras so
+# the hosted app has Streamlit, linearmodels (the Panel-models page), and all runtime deps.
+#
+# Pin a version for reproducible deploys (e.g. expdpy[streamlit,panel]==0.2.0), or use the
+# git+https://github.com/cmg777/expdpy.git URL to track the unreleased main branch.
+#
+# Note: this file is only for the hosted Streamlit app and plain `pip install -r`. Local
+# development uses pixi (pyproject.toml + pixi.lock), not this file.
+expdpy[streamlit,panel]

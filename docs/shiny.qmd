@@ -116,7 +116,12 @@ The available component names are:
 
 `bar_chart`, `missing_values`, `descriptive_table`, `histogram`, `ext_obs`,
 `by_group_bar_graph`, `by_group_violin_graph`, `trend_graph`, `quantile_trend_graph`,
-`by_group_trend_graph`, `corrplot`, `scatter_plot`, `regression`.
+`by_group_trend_graph`, `corrplot`, `scatter_plot`, `regression`, `event_study`,
+`panel_models`.
+
+The regression card also shows a plain-language interpretation and a method explainer; the
+`event_study` and `panel_models` cards appear for panel data (`panel_models` needs the
+optional `panel` extra).
 
 (Time-series components are automatically dropped for cross-sectional data.)
 

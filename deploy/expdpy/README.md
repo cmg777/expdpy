@@ -7,7 +7,7 @@ in **upload mode** — visitors bring their own data; no bundled dataset is show
 | File | Purpose |
 |------|---------|
 | `app.py` | Module-level `app = ExPdPy(run=False)` — the entrypoint shinyapps.io serves (`app:app`). |
-| `requirements.txt` | Installs `expdpy[app]` from the public GitHub repo (tracks `main`). |
+| `requirements.txt` | Installs `expdpy[app,panel]` from PyPI (Shiny app + panel-models extras). |
 
 ## One-time: install the deploy CLI
 
@@ -54,10 +54,10 @@ pixi run shiny run deploy/expdpy/app.py   # then open http://127.0.0.1:8000
 
 ## Notes
 
-- **Tracking `main`:** shinyapps.io caches the Python env by the `requirements.txt` hash. With the
-  unpinned git URL, pushing new commits to `main` won't necessarily reinstall `expdpy` on a later
-  redeploy. To force an update, pin a commit in `requirements.txt`
-  (`...expdpy.git@<sha>`) — that changes the hash and triggers a rebuild.
+- **Versions & rebuilds:** shinyapps.io caches the Python env by the `requirements.txt` hash.
+  The unpinned `expdpy[app,panel]` installs the latest PyPI release; pin a version
+  (`expdpy[app,panel]==0.2.0`) to force a clean rebuild when you publish a new one, or swap in
+  the `git+https://github.com/cmg777/expdpy.git` URL to track the unreleased `main` branch.
 - **Free tier:** ~1 GB RAM / limited active hours / max 5 apps. The dependency set
   (pyfixest/statsmodels/scipy/plotly) is memory-heavy; move to a paid instance if the build or
   runtime struggles.

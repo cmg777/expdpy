@@ -297,6 +297,213 @@ ex.prepare_fwl_plot(
 ).fig
 ```
 
+## Estimation
+
+### `prepare_estimation`
+
+A unified estimator: OLS by default, or IV/2SLS, Poisson and logit/probit via `model=`,
+with a wide choice of standard errors and stepwise model comparison.
+
+Basic — a cumulative-stepwise OLS comparison (watch the estimate move as terms are added):
+
+```{python}
+ex.prepare_estimation(
+    df,
+    dv="gini_regional",
+    idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"],
+    stepwise="csw",
+).etable
+```
+
+Advanced — instrumental variables (2SLS) with clustered standard errors, then a
+plain-language reading:
+
+```{python}
+res = ex.prepare_estimation(
+    df,
+    dv="gini_regional",
+    idvs=["log_gdp_pc_sq"],
+    model="iv",
+    endog=["log_gdp_pc"],
+    instruments=["log_gdp_pc_cu"],
+    cluster=["country"],
+)
+print(res.interpret())
+res.etable
+```
+
+### `prepare_coefficient_plot`
+
+Coefficient estimates with confidence intervals; pass a fitted result or several models.
+
+Basic:
+
+```{python}
+reg = ex.prepare_regression_table(
+    df, dvs="gini_regional", idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"]
+)
+ex.prepare_coefficient_plot(reg).fig
+```
+
+Advanced — compare pooled OLS and two-way fixed effects side by side:
+
+```{python}
+pooled = ex.prepare_regression_table(df, dvs="gini_regional", idvs=["log_gdp_pc"])
+fe = ex.prepare_regression_table(
+    df, dvs="gini_regional", idvs=["log_gdp_pc"], feffects=["country", "year"]
+)
+ex.prepare_coefficient_plot(
+    [pooled.models[0], fe.models[0]],
+    model_labels=["Pooled OLS", "Two-way FE"],
+    keep=["log_gdp_pc"],
+).fig
+```
+
+## Post-estimation
+
+### `prepare_fixef_plot`
+
+The estimated fixed effects of a model, ranked.
+
+```{python}
+country_fe = ex.prepare_regression_table(
+    df, dvs="gini_regional", idvs=["log_gdp_pc"], feffects=["country", "year"]
+)
+ex.prepare_fixef_plot(country_fe, fixef="country", top_n=20).fig
+```
+
+### `prepare_predictions`
+
+Fitted values, with residuals and actuals in-sample.
+
+```{python}
+ex.prepare_predictions(reg).df.head()
+```
+
+### `prepare_joint_test`
+
+A Wald joint-significance test that several coefficients are all zero.
+
+```{python}
+joint = ex.prepare_joint_test(reg, ["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"])
+print(joint.summary())
+```
+
+## Robust inference
+
+### `prepare_robust_inference`
+
+Randomization inference for one coefficient (the wild cluster bootstrap is also available
+via `method="wildboot"` when the optional `wildboottest` package is installed).
+
+```{python}
+clustered = ex.prepare_regression_table(
+    df, dvs="gini_regional", idvs=["log_gdp_pc"], feffects=["country"], clusters=["country"]
+)
+ri = ex.prepare_robust_inference(clustered, "log_gdp_pc", method="ritest", reps=200, seed=0)
+ri.p_value, ri.conf_int
+```
+
+## Event study & difference-in-differences
+
+These use the bundled staggered difference-in-differences panel:
+
+```{python}
+from expdpy.data import load_staggered_did
+
+did = load_staggered_did()
+```
+
+### `prepare_panel_view`
+
+Visualize the treatment structure — which units are treated, and when.
+
+```{python}
+ex.prepare_panel_view(did, unit="unit", time="year", cohort="cohort").fig
+```
+
+### `prepare_event_study`
+
+Dynamic treatment effects with a built-in pre-trend diagnostic. Basic — Gardner's `did2s`:
+
+```{python}
+es = ex.prepare_event_study(
+    did, outcome="outcome", unit="unit", time="year", cohort="cohort", estimator="did2s"
+)
+print(es.interpret())
+es.fig
+```
+
+Advanced — the Sun–Abraham (`saturated`) estimator, one curve per treatment cohort:
+
+```{python}
+ex.prepare_event_study(
+    did, outcome="outcome", unit="unit", time="year", cohort="cohort", estimator="saturated"
+).fig
+```
+
+## Panel models
+
+These require the optional `panel` extra (`pip install "expdpy[panel]"`, via linearmodels),
+so the snippets are shown but not executed here.
+
+### `prepare_panel_table`
+
+Pooled / between / fixed-effects / random-effects estimates side by side.
+
+```{python}
+#| eval: false
+ex.prepare_panel_table(
+    did, dv="outcome", idvs=["treated"], entity="unit", time="year"
+).etable
+```
+
+### `prepare_hausman_test`
+
+Choose between fixed and random effects.
+
+```{python}
+#| eval: false
+print(
+    ex.prepare_hausman_test(
+        did, dv="outcome", idvs=["treated"], entity="unit", time="year"
+    ).interpret()
+)
+```
+
+## Concept sandboxes
+
+Simulated demonstrations — each returns a figure, a small comparison table and a `summary`
+of the facts it turns on. Turn the knobs to see the concept change.
+
+### `sandbox_omitted_variable_bias`
+
+```{python}
+ex.sandbox_omitted_variable_bias(corr_xz=0.6).fig
+```
+
+### `sandbox_pooled_vs_fixed_effects`
+
+```{python}
+ex.sandbox_pooled_vs_fixed_effects(unit_effect_corr=0.8).fig
+```
+
+### `sandbox_clustering_se`
+
+```{python}
+ex.sandbox_clustering_se(icc=0.4).fig
+```
+
+## Pedagogy
+
+### `explain`
+
+A concept explainer for any method; `ex.list_topics()` lists them all.
+
+```{python}
+print(ex.explain("fixed_effects"))
+```
+
 ## Data preparation
 
 ### `treat_outliers`

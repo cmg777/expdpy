@@ -91,6 +91,46 @@ quartodoc:
       contents:
         - prepare_regression_table
         - prepare_fwl_plot
+    - title: Estimation
+      desc: >-
+        A unified estimator (IV/2SLS, Poisson, logit/probit), richer standard errors and
+        model comparison, plus coefficient plots.
+      contents:
+        - prepare_estimation
+        - prepare_coefficient_plot
+    - title: Post-estimation
+      desc: Operate on a fitted model — visualize fixed effects, predict, and joint-test.
+      contents:
+        - prepare_fixef_plot
+        - prepare_predictions
+        - prepare_joint_test
+    - title: Robust inference
+      desc: Randomization inference and the wild cluster bootstrap.
+      contents:
+        - prepare_robust_inference
+    - title: Event study & difference-in-differences
+      desc: Staggered DiD / event studies and panel-structure visualization.
+      contents:
+        - prepare_event_study
+        - prepare_panel_view
+    - title: Panel models
+      desc: >-
+        Pooled / between / fixed / random effects and the Hausman test (requires the
+        optional ``panel`` extra, via linearmodels).
+      contents:
+        - prepare_panel_table
+        - prepare_hausman_test
+    - title: Concept sandboxes
+      desc: Simulated teaching demonstrations.
+      contents:
+        - sandbox_omitted_variable_bias
+        - sandbox_pooled_vs_fixed_effects
+        - sandbox_clustering_se
+    - title: Pedagogy
+      desc: Concept explainers (plain-language interpretation lives on the result objects).
+      contents:
+        - explain
+        - list_topics
     - title: Data preparation
       contents:
         - treat_outliers
@@ -105,4 +145,5 @@ quartodoc:
         - load_kuznets
         - load_kuznets_data_def
         - load_gapminder
+        - load_staggered_did
         - get_config

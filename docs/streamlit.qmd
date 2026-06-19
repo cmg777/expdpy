@@ -53,7 +53,10 @@ navigation menu.
 | **By group** | group means (bar), distribution (violin), group means over time |
 | **Trends** | variable trend (1–3 series), quantile trend |
 | **Correlations & Scatter** | correlation table + heatmap, scatter with color/size/LOESS |
-| **Regression** | OLS with fixed effects and clustered standard errors |
+| **Regression** | OLS with fixed effects and clustered standard errors — with plain-language interpretation, a method explainer and a coefficient plot |
+| **Event study & DiD** | staggered difference-in-differences / event study and the treatment-structure panel view (shown for panel data) |
+| **Panel models** | pooled / between / fixed / random effects and the Hausman test (panel data; needs the `panel` extra) |
+| **Concept sandboxes** | simulated teaching demos — omitted-variable bias, pooled-vs-fixed-effects, clustering (always available) |
 
 Time-series pages and components (Trends, missing values, by-group trend) are **hidden
 automatically for cross-sectional data** — exactly as in the Shiny app.
@@ -153,7 +156,8 @@ The available component names are:
 
 `bar_chart`, `missing_values`, `descriptive_table`, `histogram`, `ext_obs`,
 `by_group_bar_graph`, `by_group_violin_graph`, `trend_graph`, `quantile_trend_graph`,
-`by_group_trend_graph`, `corrplot`, `scatter_plot`, `regression`.
+`by_group_trend_graph`, `corrplot`, `scatter_plot`, `regression`, `event_study`,
+`panel_models`.
 
 A navigation page is shown only when at least one of its components is active, and time-series
 components are dropped for cross-sectional data — so disabling components can remove whole

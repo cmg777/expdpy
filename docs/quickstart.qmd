@@ -140,3 +140,78 @@ ex.prepare_fwl_plot(
     clusters=["country"],
 ).fig
 ```
+
+## Read the model in plain language
+
+Every result can explain itself. `res.interpret()` gives a plain-language, **associational**
+reading of the regression above (never a causal claim unless the design supports it), and
+`res.explain()` — or `ex.explain("fixed_effects")`, with `ex.list_topics()` listing every
+topic — returns a concept explainer:
+
+```{python}
+print(res.interpret())
+```
+
+## Coefficient plot
+
+`prepare_coefficient_plot` turns a fitted result into a coefficient-with-confidence-interval
+figure — the beginner-friendly alternative to reading a table:
+
+```{python}
+ex.prepare_coefficient_plot(res).fig
+```
+
+## Modern estimators
+
+Beyond OLS, `prepare_estimation` is a single entry point for **IV / 2SLS**, **Poisson** and
+**logit / probit** fixed-effects models, richer standard errors (HC, cluster-robust,
+Newey–West, Driscoll–Kraay) and stepwise model comparison. Here, instrumental variables:
+
+```{python}
+ex.prepare_estimation(
+    df,
+    dv="gini_regional",
+    idvs=["log_gdp_pc_sq"],
+    model="iv",
+    endog=["log_gdp_pc"],
+    instruments=["log_gdp_pc_cu"],
+    cluster=["country"],
+).etable
+```
+
+## Event study & staggered difference-in-differences
+
+For treated panels, `prepare_event_study` traces the dynamic treatment effect (with a
+pre-trend check) and `prepare_panel_view` shows the treatment structure. The bundled
+`staggered_did` dataset is a ready-made example:
+
+```{python}
+from expdpy.data import load_staggered_did
+
+did = load_staggered_did()
+ex.prepare_event_study(
+    did, outcome="outcome", unit="unit", time="year", cohort="cohort", estimator="did2s"
+).fig
+```
+
+## Classic panel models
+
+With the optional `panel` extra (`pip install "expdpy[panel]"`), `prepare_panel_table`
+estimates pooled / between / fixed / random effects side by side and `prepare_hausman_test`
+chooses between fixed and random effects (shown here, not executed):
+
+```{python}
+#| eval: false
+ex.prepare_panel_table(
+    did, dv="outcome", idvs=["treated"], entity="unit", time="year"
+).etable
+```
+
+## Learn the methods — concept sandboxes
+
+The `sandbox_*` functions simulate data so you can *see* a concept and tune it — for example,
+why pooled OLS is biased when the unit effects are correlated with the regressor:
+
+```{python}
+ex.sandbox_pooled_vs_fixed_effects(unit_effect_corr=0.8).fig
+```
