@@ -1,8 +1,8 @@
 """The analysis pages and the ``st.navigation`` page set.
 
 Each page reads the active prepared sample (stashed by the sidebar) and renders the
-components assigned to it, reusing the Shiny app's Plotly compute helpers
-(:mod:`expdpy.app._components`) and the native table renderers
+components assigned to it, reusing the Plotly compute helpers
+(:mod:`expdpy.streamlit_app._components`) and the native table renderers
 (:mod:`expdpy.streamlit_app._render`). Pages whose components are all unavailable for the
 current data (e.g. time-series views on cross-sectional data) are omitted from the navigation.
 """
@@ -15,7 +15,7 @@ from typing import Any, cast
 import streamlit as st
 
 from expdpy._theme import PLOTLY_CONFIG
-from expdpy.app import _components as comp
+from expdpy.streamlit_app import _components as comp
 from expdpy.streamlit_app import _render as render
 from expdpy.streamlit_app import _widgets as w
 from expdpy.streamlit_app._sidebar import Active, get_active

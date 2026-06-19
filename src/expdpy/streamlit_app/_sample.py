@@ -6,8 +6,8 @@ from collections.abc import Sequence
 
 import pandas as pd
 
-from expdpy.app._udv import evaluate_var_def
 from expdpy.outliers import treat_outliers
+from expdpy.streamlit_app._udv import evaluate_var_def
 
 __all__ = ["apply_user_vars", "build_analysis_sample"]
 
@@ -35,7 +35,7 @@ def apply_user_vars(
         Base sample.
     var_def
         A frame with at least ``var_name`` and ``var_def`` columns. Each ``var_def`` is a
-        safe expression (see :func:`expdpy.app._udv.evaluate_var_def`).
+        safe expression (see :func:`expdpy.streamlit_app._udv.evaluate_var_def`).
     cs_id, ts_id
         Panel identifiers for ``lag``/``lead``.
 
@@ -72,7 +72,7 @@ def build_analysis_sample(
     cs_id, ts_id
         Panel identifiers.
     config
-        The app configuration (see :mod:`expdpy.app._state`).
+        The app configuration (see :mod:`expdpy.streamlit_app._state`).
 
     Returns
     -------

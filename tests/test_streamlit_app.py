@@ -15,13 +15,13 @@ pytest.importorskip("streamlit")
 
 from streamlit.testing.v1 import AppTest
 
-from expdpy.app._config_io import dump_config, load_config
-from expdpy.app._export_nb import build_export_zip
-from expdpy.app._state import parse_config
 from expdpy.streamlit_app import ExPdPy
 from expdpy.streamlit_app import _handoff as handoff
+from expdpy.streamlit_app._config_io import dump_config, load_config
+from expdpy.streamlit_app._export_nb import build_export_zip
 from expdpy.streamlit_app._pages import selected_specs
 from expdpy.streamlit_app._sidebar import Active
+from expdpy.streamlit_app._state import parse_config
 
 pytestmark = pytest.mark.streamlit
 
@@ -144,10 +144,10 @@ def test_trends_page_only_for_panel():
     assert "Overview & Data" in panel and "Overview & Data" in cross
 
 
-# --- config round-trip (interchangeable with the Shiny app) -------------------
+# --- config round-trip (framework-agnostic serializer) ------------------------
 def test_config_roundtrip_plain():
     cfg = parse_config({"reg_y": "lifeExp", "reg_x": ["gdpPercap"], "hist_var": "pop"})
-    payload = dump_config(cfg, None)  # same serializer the Shiny app uses
+    payload = dump_config(cfg, None)  # the shared config serializer
     loaded = load_config(payload, None)
     assert loaded["reg_y"] == "lifeExp"
     assert loaded["reg_x"] == ["gdpPercap"]

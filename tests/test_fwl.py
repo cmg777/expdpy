@@ -99,7 +99,7 @@ def test_fwl_missing_column_raises(sample_df):
 
 def test_fwl_export_emitter_resolves_default_focal():
     """The notebook emitter falls back to the first regressor when fwl_focal is unset."""
-    from expdpy.app._export_nb import build_blocks
+    from expdpy.streamlit_app._export_nb import build_blocks
 
     cfg = {"reg_y": "x2", "reg_x": ["x1", "x3"], "fwl_focal": "None"}
     code = "\n".join(c for _, c in build_blocks(cfg, ["fwl_plot"]))
@@ -113,7 +113,7 @@ def test_fwl_export_emitter_resolves_default_focal():
 
 def test_fwl_export_emitter_skips_without_regressors():
     """No regressors -> no FWL block emitted (mirrors the live no-op)."""
-    from expdpy.app._export_nb import build_blocks
+    from expdpy.streamlit_app._export_nb import build_blocks
 
     cfg = {"reg_y": "x2", "reg_x": [], "fwl_focal": "None"}
     code = "\n".join(c for _, c in build_blocks(cfg, ["fwl_plot"]))

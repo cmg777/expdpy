@@ -1,7 +1,7 @@
 """Small Streamlit widget helpers with safe ``session_state`` handling.
 
-Selection widgets bind to ``st.session_state`` under keys identical to the Shiny app's input
-ids (``hist_var``, ``scatter_x``, ``reg_x`` …) so that selections persist across pages and a
+Selection widgets bind to ``st.session_state`` under stable input keys
+(``hist_var``, ``scatter_x``, ``reg_x`` …) so that selections persist across pages and a
 loaded configuration round-trips for free. The helpers guarantee the stored value is always a
 valid option *before* the widget is instantiated — otherwise Streamlit raises when a loaded
 config references a column that no longer exists in the current data.
@@ -13,8 +13,7 @@ from typing import Any
 
 import streamlit as st
 
-# Reused verbatim from the Shiny app (pure helper; importing it does not load shiny).
-from expdpy.app import _cluster_vars as cluster_vars
+from expdpy.streamlit_app._appcore import _cluster_vars as cluster_vars
 
 __all__ = [
     "selectbox",
@@ -36,8 +35,8 @@ def selectbox(
 ) -> Any:
     """Render a ``st.selectbox`` whose stored value is coerced into ``options``.
 
-    When ``none`` is true a leading ``"None"`` sentinel is prepended (matching the Shiny
-    app's optional selectors).
+    When ``none`` is true a leading ``"None"`` sentinel is prepended (for optional
+    selectors).
     """
     opts = (["None", *options] if none else list(options)) or ["None"]
     if key in st.session_state:

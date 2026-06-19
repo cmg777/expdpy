@@ -8,10 +8,10 @@ title: "The ExPdPy Streamlit app"
 <a href="https://expdpy.streamlit.app/" class="btn btn-primary" target="_blank" rel="noopener" role="button">☁️ Launch ExPdPy on Streamlit Cloud →</a>
 :::
 
-`ExPdPy` also ships as a [Streamlit](https://streamlit.io/) app — the same no-code interface
-as the [Shiny version](shiny.qmd), reorganised into a **multipage layout** with native,
-sortable tables, and ready to deploy on [Streamlit Community Cloud](https://streamlit.io/cloud).
-It is provided by the `streamlit` extra:
+`ExPdPy` ships as a [Streamlit](https://streamlit.io/) app — a no-code interface to the
+library in a **multipage layout** with native, sortable tables, ready to deploy on
+[Streamlit Community Cloud](https://streamlit.io/cloud). It is provided by the `streamlit`
+extra:
 
 ```bash
 pip install "expdpy[streamlit] @ git+https://github.com/cmg777/expdpy.git"
@@ -59,7 +59,7 @@ navigation menu.
 | **Concept sandboxes** | simulated teaching demos — omitted-variable bias, pooled-vs-fixed-effects, clustering (always available) |
 
 Time-series pages and components (Trends, missing values, by-group trend) are **hidden
-automatically for cross-sectional data** — exactly as in the Shiny app.
+automatically for cross-sectional data**.
 
 ![The Correlations & Scatter page: the N-shaped Kuznets curve (regional inequality vs log GDP per capita) with a LOESS smoother.](images/streamlit-correlations.png)
 
@@ -99,14 +99,13 @@ safe expressions (column references plus `+ - * / ** %`, comparisons, `& |`, and
 analysis runs on the defined variables.
 
 ::: {.callout-note}
-Expressions are evaluated with a restricted AST walker — never `eval`/`exec` — shared with the
-Shiny app, so configurations are interchangeable between the two apps.
+Expressions are evaluated with a restricted AST walker — never `eval`/`exec` — which is
+strictly safer than R's sandboxed `eval`.
 :::
 
 ### Saving configurations and reproducible export
 
-**Save config** downloads the current selections as JSON; **Load config** restores them. The
-format is identical to the Shiny app's, so a config saved in one app loads in the other.
+**Save config** downloads the current selections as JSON; **Load config** restores them.
 **Export notebook + data** downloads a zip with the prepared sample (parquet) plus a Jupyter
 notebook and a `.py` script that recreate every displayed component with `expdpy` calls.
 
@@ -132,9 +131,8 @@ Increase it there, or pass `max_upload_size=` to `ExPdPy(...)` for a local run.
 
 ## Customizing the app
 
-The Streamlit `ExPdPy` launcher takes the same customization arguments as the
-[Shiny version](shiny.qmd) — only the import path differs
-(`from expdpy.streamlit_app import ExPdPy`).
+The `ExPdPy` launcher (`from expdpy.streamlit_app import ExPdPy`) accepts several customization
+arguments.
 
 ### Selecting components
 

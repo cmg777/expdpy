@@ -23,7 +23,6 @@ from typing import Any
 import pandas as pd
 import streamlit as st
 
-from expdpy.app._state import parse_config
 from expdpy.data import (
     load_gapminder,
     load_gapminder_data_def,
@@ -33,6 +32,7 @@ from expdpy.data import (
     load_staggered_did_data_def,
 )
 from expdpy.streamlit_app import _handoff as handoff
+from expdpy.streamlit_app._state import parse_config
 
 __all__ = ["AppContext", "DATASETS", "resolve_context"]
 

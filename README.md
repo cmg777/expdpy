@@ -29,7 +29,7 @@ It is built on the modern Python data and econometrics stack:
 - **[pyfixest](https://github.com/py-econometrics/pyfixest)** — fixed-effects, IV, GLM and difference-in-differences estimators
 - **[Great Tables](https://posit-dev.github.io/great-tables/)** — publication-quality tables
 - **[linearmodels](https://bashtage.github.io/linearmodels/)** *(optional)* — random effects, between, and the Hausman test
-- **[Streamlit](https://streamlit.io/)** and **[Shiny for Python](https://shiny.posit.co/py/)** — the two no-code `ExPdPy` apps
+- **[Streamlit](https://streamlit.io/)** — the no-code `ExPdPy` app
 
 ## Features
 
@@ -79,26 +79,23 @@ objects also expose broom-style `.tidy()` / `.glance()`. **Concept sandboxes** s
 a learner can *see* and tune a concept — `sandbox_omitted_variable_bias`,
 `sandbox_pooled_vs_fixed_effects`, and `sandbox_clustering_se`.
 
-### Two no-code apps — Streamlit & Shiny
+### A no-code app — Streamlit
 
-The same exploration workflow in two frontends: a sidebar **sample pipeline** (subset filters,
-outlier treatment), component selection and ordering, and live, point-and-click analysis —
-including dedicated **Event study & DiD**, **Panel models**, and **Concept sandboxes** views,
-plus in-app plain-language **interpretation** and **method explainers** on the regression card.
-The [Streamlit app](https://cmg777.github.io/expdpy/streamlit.html) organises the components
-into a multipage layout with native, sortable tables and deploys to
-[Streamlit Community Cloud](https://streamlit.io/cloud) in one click; the
-[Shiny app](https://cmg777.github.io/expdpy/shiny.html) stacks every component in one scrolling
-view. See [Streamlit vs Shiny](https://cmg777.github.io/expdpy/explanation/streamlit-vs-shiny.html)
-for a side-by-side comparison.
+The whole exploration workflow without writing code: a sidebar **sample pipeline** (subset
+filters, outlier treatment), component selection and ordering, and live, point-and-click
+analysis — including dedicated **Event study & DiD**, **Panel models**, and **Concept
+sandboxes** views, plus in-app plain-language **interpretation** and **method explainers** on
+the regression card. The [Streamlit app](https://cmg777.github.io/expdpy/streamlit.html)
+organises the components into a multipage layout with native, sortable tables and deploys to
+[Streamlit Community Cloud](https://streamlit.io/cloud) in one click.
 
 ### Reproducibility & safety
 
 Any in-app exploration exports to a **runnable bundle** — a Jupyter notebook, a `.py` script
 and the prepared data (parquet) — that recreates every displayed result with `expdpy` calls.
-Analysis configurations **save, load and interchange between the two apps**. New variables can
-be defined live through a **restricted-AST expression evaluator** (never `eval`/`exec`) with
-**panel-aware `lag`/`lead`** that shift within each cross-section.
+Analysis configurations **save and load** as JSON. New variables can be defined live through a
+**restricted-AST expression evaluator** (never `eval`/`exec`) with **panel-aware `lag`/`lead`**
+that shift within each cross-section.
 
 ### Bundled datasets
 
@@ -118,7 +115,6 @@ pip install expdpy
 
 # optional extras:
 pip install "expdpy[streamlit]"   # the no-code ExPdPy app (Streamlit)
-pip install "expdpy[app]"         # the no-code ExPdPy app (Shiny)
 pip install "expdpy[panel]"       # random effects + Hausman test (linearmodels)
 ```
 
@@ -126,8 +122,7 @@ Using [uv](https://docs.astral.sh/uv/):
 
 ```bash
 uv pip install expdpy
-uv pip install "expdpy[streamlit]"   # Streamlit
-uv pip install "expdpy[app]"         # Shiny
+uv pip install "expdpy[streamlit]"   # Streamlit app
 uv pip install "expdpy[panel]"       # panel models
 ```
 
@@ -140,7 +135,6 @@ pip install "git+https://github.com/cmg777/expdpy.git"
 
 # with extras:
 pip install "expdpy[streamlit] @ git+https://github.com/cmg777/expdpy.git"
-pip install "expdpy[app] @ git+https://github.com/cmg777/expdpy.git"
 pip install "expdpy[panel] @ git+https://github.com/cmg777/expdpy.git"
 ```
 
@@ -232,7 +226,7 @@ print(ex.explain("fixed_effects"))     # a concept explainer; ex.list_topics() l
 Launch the same data in the interactive app, pre-configured to open on the curve:
 
 ```python
-from expdpy.streamlit_app import ExPdPy   # or: from expdpy.app import ExPdPy
+from expdpy.streamlit_app import ExPdPy
 from expdpy.data import load_kuznets, load_kuznets_data_def, get_config
 
 ExPdPy(load_kuznets(), df_def=load_kuznets_data_def(), config_list=get_config("kuznets"))
@@ -241,8 +235,8 @@ ExPdPy(load_kuznets(), df_def=load_kuznets_data_def(), config_list=get_config("k
 Head to the [Quickstart](https://cmg777.github.io/expdpy/quickstart.html) to see every
 function in action, the
 [kuznets dataset](https://cmg777.github.io/expdpy/explanation/kuznets-dataset.html) page for
-the data dictionary, or the [Streamlit](https://cmg777.github.io/expdpy/streamlit.html) /
-[Shiny](https://cmg777.github.io/expdpy/shiny.html) guides to launch the interactive apps.
+the data dictionary, or the [Streamlit app](https://cmg777.github.io/expdpy/streamlit.html)
+guide to launch the interactive app.
 
 ## Documentation
 
@@ -254,8 +248,8 @@ Full documentation, tutorials, and the API reference live at
 expdpy began as a Python port of the excellent
 [ExPanDaR](https://github.com/trr266/ExPanDaR) package by Joachim Gassen and the
 TRR 266 Accounting for Transparency project, and its foundations remain deeply inspired by
-that work. Over time it has grown well beyond the original — two interactive frontends
-(Streamlit **and** Shiny); fixest-style estimators (IV, Poisson/logit/probit, event study and
+that work. Over time it has grown well beyond the original — a no-code **Streamlit** app;
+fixest-style estimators (IV, Poisson/logit/probit, event study and
 staggered difference-in-differences) with coefficient and Frisch–Waugh–Lovell plots; optional
 random-effects / Hausman panel models; a built-in pedagogy layer that interprets and explains
 results; a restricted-AST expression evaluator with panel-aware `lag`/`lead`; and reproducible

@@ -12,10 +12,10 @@ from typing import Any
 
 import streamlit as st
 
-from expdpy.app._state import parse_config
 from expdpy.streamlit_app._context import AppContext, resolve_context
 from expdpy.streamlit_app._pages import build_pages
 from expdpy.streamlit_app._sidebar import apply_pending_config, render_sidebar
+from expdpy.streamlit_app._state import parse_config
 
 __all__ = ["run_app"]
 

@@ -19,10 +19,8 @@ website:
         file: index.qmd
       - text: "Quickstart"
         file: quickstart.qmd
-      - text: "Streamlit app"
+      - text: "App"
         file: streamlit.qmd
-      - text: "Shiny app"
-        file: shiny.qmd
       - text: "Articles"
         menu:
           - text: "The kuznets dataset"
@@ -31,8 +29,6 @@ website:
             file: explanation/data-model.qmd
           - text: "Parity with ExPanDaR"
             file: explanation/parity.qmd
-          - text: "Streamlit vs Shiny"
-            file: explanation/streamlit-vs-shiny.qmd
       - text: "API Reference"
         menu:
           - text: "Function reference"
@@ -134,11 +130,10 @@ quartodoc:
     - title: Data preparation
       contents:
         - treat_outliers
-    - title: Interactive apps
-      desc: The no-code ExPdPy exploration apps (Streamlit and Shiny).
+    - title: Interactive app
+      desc: The no-code ExPdPy exploration app (Streamlit).
       contents:
         - streamlit_app.ExPdPy
-        - app.ExPdPy
     - title: Datasets
       package: expdpy.data
       contents:

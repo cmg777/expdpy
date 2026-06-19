@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "expdpy"
-version = "0.2.0"
+version = "0.3.0"
 description = "Explore your panel data interactively — a Python port of the ExPanDaR R package."
 readme = "README.md"
 license = { text = "MIT" }
@@ -42,13 +42,6 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-app = [
-    "shiny>=1.0",
-    "shinywidgets>=0.3",
-    "nbformat>=5.9",
-    "cryptography>=42",
-    "openpyxl>=3.1",
-]
 streamlit = [
     "streamlit>=1.40",
     "nbformat>=5.9",
@@ -136,7 +129,6 @@ addopts = "--strict-markers --strict-config"
 testpaths = ["tests"]
 markers = [
     "against_r: numerical-parity tests that require R + the ExPanDaR package via rpy2",
-    "app: tests that require the Shiny app extra",
     "streamlit: tests that require the Streamlit app extra",
     "panel: tests that require the linearmodels (panel) extra",
 ]
@@ -145,7 +137,7 @@ filterwarnings = ["ignore::DeprecationWarning"]
 [tool.coverage.run]
 source = ["expdpy"]
 branch = true
-omit = ["*/app/*", "*/streamlit_app/*"]
+omit = ["*/streamlit_app/*"]
 
 [tool.coverage.report]
 show_missing = true
@@ -159,7 +151,7 @@ channels = ["conda-forge"]
 platforms = ["linux-64", "osx-arm64", "osx-64", "win-64"]
 
 [tool.pixi.pypi-dependencies]
-expdpy = { path = ".", editable = true, extras = ["app", "streamlit"] }
+expdpy = { path = ".", editable = true, extras = ["streamlit"] }
 
 [tool.pixi.feature.test.dependencies]
 pytest = ">=8"

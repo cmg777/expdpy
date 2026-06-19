@@ -1,10 +1,9 @@
 """The ExPdPy interactive app, built with Streamlit.
 
-``ExPdPy`` is the Streamlit counterpart of :func:`expdpy.app.ExPdPy`: it builds the
-same no-code, multipage exploration UI on top of the library's ``prepare_*`` functions, with
-native Streamlit tables, an analysis-sample pipeline (subset / outlier treatment /
-user-defined variables), config save/load, and reproducible notebook export — and runs both
-locally and on Streamlit Community Cloud.
+``ExPdPy`` builds a no-code, multipage exploration UI on top of the library's ``prepare_*``
+functions, with native Streamlit tables, an analysis-sample pipeline (subset / outlier
+treatment / user-defined variables), config save/load, and reproducible notebook export — and
+runs both locally and on Streamlit Community Cloud.
 
 Because Streamlit runs as its own process, ``ExPdPy`` serializes the data you pass to
 a temporary bundle and starts ``streamlit run`` in a subprocess (see

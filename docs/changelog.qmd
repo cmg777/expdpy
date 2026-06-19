@@ -2,6 +2,16 @@
 title: "Changelog"
 ---
 
+## 0.3.0 (2026-06-19)
+
+### Removed
+
+- **The Shiny app has been removed.** Streamlit is now the sole interactive `ExPdPy` app.
+  The `expdpy[app]` install extra and the `expdpy.app` module are gone; launch the app with
+  `from expdpy.streamlit_app import ExPdPy` (or `pip install "expdpy[streamlit]"`). The
+  framework-agnostic app core (sample pipeline, the safe `var_def` evaluator, config
+  save/load, component renderers, notebook export) now lives under `expdpy.streamlit_app`.
+
 ## 0.2.0 (2026-06-19)
 
 A major feature release: modern **fixest / pyfixest** econometrics, a **panel-data**

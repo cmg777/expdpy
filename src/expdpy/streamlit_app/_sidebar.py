@@ -15,16 +15,16 @@ from dataclasses import dataclass
 import pandas as pd
 import streamlit as st
 
-from expdpy.app import _CONFIG_INPUT_KEYS
-from expdpy.app._config_io import dump_config, load_config
-from expdpy.app._export_nb import build_export_zip
-from expdpy.app._state import parse_config
-from expdpy.app._upload import read_uploaded
-from expdpy.app._varcat import VarCats
 from expdpy.streamlit_app import _handoff as handoff
 from expdpy.streamlit_app import _pipeline as pipeline
 from expdpy.streamlit_app import _widgets as w
+from expdpy.streamlit_app._appcore import _CONFIG_INPUT_KEYS
+from expdpy.streamlit_app._config_io import dump_config, load_config
 from expdpy.streamlit_app._context import DATASETS, AppContext
+from expdpy.streamlit_app._export_nb import build_export_zip
+from expdpy.streamlit_app._state import parse_config
+from expdpy.streamlit_app._upload import read_uploaded
+from expdpy.streamlit_app._varcat import VarCats
 
 __all__ = [
     "Active",
@@ -158,7 +158,7 @@ def _render_udv(active: Active, udv_error: str | None) -> None:
 
 # -------------------------------------------------------------------------- config & export ---
 def current_config(ctx: AppContext) -> dict:
-    """Snapshot the current selections as a config dict (shape-compatible with Shiny)."""
+    """Snapshot the current selections as a config dict."""
     cfg = parse_config(ctx.base_cfg)
     for key in _CONFIG_INPUT_KEYS:
         if key in st.session_state and st.session_state[key] is not None:

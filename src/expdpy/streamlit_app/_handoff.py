@@ -6,8 +6,8 @@ small *bundle* (the sample(s) as parquet plus a JSON manifest of options) to a t
 directory and points the app at it via the :data:`EXPDPY_BUNDLE_ENV` environment variable.
 The app reads the bundle exactly once on startup (see :mod:`expdpy.streamlit_app._context`).
 
-This module imports neither ``shiny`` nor ``streamlit`` — it is pure and reusable by the
-launcher (parent process) and the app (child process) alike.
+This module does not import ``streamlit`` — it is pure and reusable by the launcher (parent
+process) and the app (child process) alike.
 """
 
 from __future__ import annotations
@@ -20,9 +20,8 @@ from typing import Any
 
 import pandas as pd
 
-# The pure (framework-agnostic) sample-normalisation helpers from the Shiny app are reused
-# directly — importing them does not pull in shiny (the import is lazy there).
-from expdpy.app import (
+# Pure (framework-agnostic) sample-normalisation helpers shared across the app's modules.
+from expdpy.streamlit_app._appcore import (
     _active_components,
     _normalize_samples,
     _resolve_ids,
@@ -44,8 +43,7 @@ EXPDPY_BUNDLE_ENV = "EXPDPY_STREAMLIT_BUNDLE"
 
 _MANIFEST = "manifest.json"
 
-# Re-export the reused pure helpers under public names so the rest of the package never has
-# to reach into the Shiny app's private API.
+# Re-export the pure helpers under public names for the rest of the package.
 normalize_samples = _normalize_samples
 resolve_ids = _resolve_ids
 active_components = _active_components

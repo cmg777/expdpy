@@ -369,5 +369,5 @@ print(ex.sandbox_pooled_vs_fixed_effects(unit_effect_corr=0.8).interpret())
 
 - The [Examples](examples.qmd) page has a basic + advanced snippet for **every** function.
 - The [API reference](reference/index.qmd) documents every argument.
-- Prefer no code? Launch the [Streamlit](streamlit.qmd) or [Shiny](shiny.qmd) app — the same
-  analyses in a point-and-click interface.
+- Prefer no code? Launch the [Streamlit app](streamlit.qmd) — the same analyses in a
+  point-and-click interface.

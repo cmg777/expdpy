@@ -1,6 +1,6 @@
-"""The analysis-sample pipeline, replicated for Streamlit.
+"""The analysis-sample pipeline for the Streamlit app.
 
-Mirrors the Shiny app's reactive chain ``base_df → apply_user_vars → build_analysis_sample →
+Runs the chain ``base_df → apply_user_vars → build_analysis_sample →
 create_var_categories``. Results are memoised in ``st.session_state`` keyed on small,
 hashable tokens (the data id, the user-defined-variable expressions, and the pipeline config)
 so the (potentially large) DataFrame is never re-fingerprinted on every rerun and the sample
@@ -12,12 +12,12 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
-from expdpy.app._sample import apply_user_vars, build_analysis_sample
-from expdpy.app._varcat import VarCats, create_var_categories
+from expdpy.streamlit_app._sample import apply_user_vars, build_analysis_sample
+from expdpy.streamlit_app._varcat import VarCats, create_var_categories
 
 __all__ = ["OUTLIER_CHOICES", "pipeline_cfg", "udv_records", "analysis"]
 
-#: Outlier-treatment radio value → label (mirrors the Shiny app's ``_OUTLIER_CHOICES``).
+#: Outlier-treatment radio value → label.
 OUTLIER_CHOICES = {
     "1": "None",
     "2": "Winsorize 1%",

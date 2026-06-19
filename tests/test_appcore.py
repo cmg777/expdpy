@@ -1,4 +1,9 @@
-"""Tests for the ExPdPy app: pipeline, varcats, UDV safety, config IO, export, build."""
+"""Tests for the app core: pipeline, varcats, UDV safety, config IO, export, components.
+
+These exercise the framework-agnostic modules under :mod:`expdpy.streamlit_app` that power the
+interactive Streamlit app (sample pipeline, variable categorization, the safe ``var_def``
+evaluator, config save/load, notebook export, and the Plotly/Great-Tables component helpers).
+"""
 
 from __future__ import annotations
 
@@ -6,25 +11,18 @@ import numpy as np
 import pandas as pd
 import pytest
 
-pytest.importorskip("shiny")
-
-from shiny import App
-
-from expdpy.app import ExPdPy
-from expdpy.app import _components as comp
-from expdpy.app._config_io import dump_config, load_config
-from expdpy.app._export_nb import (
+from expdpy.streamlit_app import _components as comp
+from expdpy.streamlit_app._config_io import dump_config, load_config
+from expdpy.streamlit_app._export_nb import (
     build_export_zip,
     build_notebook,
     build_script,
 )
-from expdpy.app._sample import build_analysis_sample
-from expdpy.app._state import DEFAULT_CONFIG, parse_config
-from expdpy.app._udv import UDVError, evaluate_var_def
-from expdpy.app._upload import read_uploaded
-from expdpy.app._varcat import create_var_categories
-
-pytestmark = pytest.mark.app
+from expdpy.streamlit_app._sample import build_analysis_sample
+from expdpy.streamlit_app._state import DEFAULT_CONFIG, parse_config
+from expdpy.streamlit_app._udv import UDVError, evaluate_var_def
+from expdpy.streamlit_app._upload import read_uploaded
+from expdpy.streamlit_app._varcat import create_var_categories
 
 
 # --- variable categorization --------------------------------------------------
@@ -105,6 +103,8 @@ def test_config_roundtrip_plain():
 
 
 def test_config_roundtrip_encrypted():
+    # Optional config encryption (only when the `cryptography` package is installed).
+    pytest.importorskip("cryptography")
     from cryptography.fernet import InvalidToken
 
     cfg = parse_config({"sample": "x"})
@@ -188,23 +188,3 @@ def test_event_study_and_panel_helpers():
     # incomplete selections no-op
     assert comp.event_study(df, "None", "unit", "year", "cohort", "did2s") is None
     assert comp.panel_models(df, "outcome", [], "unit", "year") is None
-
-
-# --- app construction ---------------------------------------------------------
-def test_expand_builds_app(kuznets):
-    app = ExPdPy(kuznets, cs_id=["country"], ts_id="year", run=False)
-    assert isinstance(app, App)
-
-
-def test_expand_upload_mode_builds():
-    assert isinstance(ExPdPy(run=False), App)
-
-
-def test_expand_serves_http(kuznets):
-    pytest.importorskip("httpx")
-    starlette_test = pytest.importorskip("starlette.testclient")
-    app = ExPdPy(kuznets, cs_id=["country"], ts_id="year", run=False)
-    client = starlette_test.TestClient(app)
-    resp = client.get("/")
-    assert resp.status_code == 200
-    assert "ExPdPy" in resp.text

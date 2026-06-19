@@ -23,7 +23,7 @@ If you prefer `uv`:
 
 ```bash
 uv venv --python 3.12
-uv pip install -e ".[app,streamlit]" pytest pytest-cov hypothesis ruff mypy pandas-stubs
+uv pip install -e ".[streamlit]" pytest pytest-cov hypothesis ruff mypy pandas-stubs
 uv run pytest -m "not against_r"
 ```
 
