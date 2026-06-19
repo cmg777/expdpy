@@ -17,14 +17,61 @@
 <!-- badges: end -->
 
 **expdpy** is a Python library for interactive, exploratory analysis of **panel and
-cross-sectional data**. It helps you explore your data through a set of composable
-analytical functions and two interactive, no-code `ExPdPy` web apps (Streamlit and Shiny) —
-built on the modern Python data/econometrics stack:
+cross-sectional data**. It pairs a set of composable analytical functions — that return
+interactive [Plotly](https://plotly.com/python/) figures and publication-quality
+[Great Tables](https://posit-dev.github.io/great-tables/) — with **two no-code `ExPdPy` web
+apps** that bring the same workflow to the browser, no code required.
 
-- **[Plotly](https://plotly.com/python/)** for interactive figures
-- **[pyfixest](https://github.com/py-econometrics/pyfixest)** for fixed-effects / clustered regressions
-- **[Great Tables](https://posit-dev.github.io/great-tables/)** for publication-quality tables
-- **[Streamlit](https://streamlit.io/)** and **[Shiny for Python](https://shiny.posit.co/py/)** for the two no-code `ExPdPy` apps
+It is built on the modern Python data and econometrics stack:
+
+- **[Plotly](https://plotly.com/python/)** — interactive figures
+- **[pyfixest](https://github.com/py-econometrics/pyfixest)** — fixed-effects / clustered regressions
+- **[Great Tables](https://posit-dev.github.io/great-tables/)** — publication-quality tables
+- **[Streamlit](https://streamlit.io/)** and **[Shiny for Python](https://shiny.posit.co/py/)** — the two no-code `ExPdPy` apps
+
+## Features
+
+### Composable analytical functions
+
+Descriptive, correlation and extreme-observation tables; histograms and category bar charts;
+time trends and quantile trends; by-group bar, violin and trend views; scatter plots with an
+optional LOESS smoother; and a missing-value heatmap across the panel. Each function takes a
+`pandas` DataFrame and returns an interactive Plotly figure or a Great Tables object you can
+drop straight into a notebook or report.
+
+### Panel-aware econometrics
+
+OLS with **multi-way fixed effects** and **clustered standard errors** via
+[pyfixest](https://github.com/py-econometrics/pyfixest), publication-ready coefficient tables,
+and **Frisch–Waugh–Lovell** partial-regression plots that show a single coefficient net of all
+controls and fixed effects. Winsorize or truncate outliers with `treat_outliers`.
+
+### Two no-code apps — Streamlit & Shiny
+
+The same exploration workflow in two frontends: a sidebar **sample pipeline** (subset filters,
+outlier treatment), component selection and ordering, and live, point-and-click analysis. The
+[Streamlit app](https://cmg777.github.io/expdpy/streamlit.html) organises the components into a
+multipage layout with native, sortable tables and deploys to
+[Streamlit Community Cloud](https://streamlit.io/cloud) in one click; the
+[Shiny app](https://cmg777.github.io/expdpy/shiny.html) stacks every component in one scrolling
+view. See [Streamlit vs Shiny](https://cmg777.github.io/expdpy/explanation/streamlit-vs-shiny.html)
+for a side-by-side comparison.
+
+### Reproducibility & safety
+
+Any in-app exploration exports to a **runnable bundle** — a Jupyter notebook, a `.py` script
+and the prepared data (parquet) — that recreates every displayed result with `expdpy` calls.
+Analysis configurations **save, load and interchange between the two apps**. New variables can
+be defined live through a **restricted-AST expression evaluator** (never `eval`/`exec`) with
+**panel-aware `lag`/`lead`** that shift within each cross-section.
+
+### Bundled panel datasets
+
+`expdpy.data` ships ready-to-explore panels — **`kuznets`** (the flagship N-shaped
+Kuznets-curve demo) and `gapminder` — with `kuznets` shipping a preset configuration that
+opens an app directly on the worked example. See the
+[kuznets dataset](https://cmg777.github.io/expdpy/explanation/kuznets-dataset.html) page for
+the data dictionary.
 
 ## Installation
 
@@ -59,110 +106,38 @@ pip install "git+https://github.com/cmg777/expdpy.git@main"
 > **Coming soon (PyPI):** once published, `pip install expdpy` /
 > `pip install "expdpy[streamlit]"` / `pip install "expdpy[app]"` will work directly.
 
-## Quickstart
+## At a glance
+
+The lead example throughout the docs is the bundled `kuznets` panel (80 countries ×
+2015–2025): a synthetic dataset, rich in control variables, whose regional inequality traces
+an **N-shaped Kuznets curve** in income — it rises, falls, then rises again at very high
+income.
 
 ```python
 import expdpy as ex
 from expdpy.data import load_kuznets
 
-df = load_kuznets()  # 80 countries x 2015-2025; an N-shaped regional Kuznets curve
-
-# Descriptive statistics (returns a DataFrame + a Great Tables object)
-desc = ex.prepare_descriptive_table(df[["gini_regional", "gdp_pc", "school_enrollment"]])
-desc.gt  # renders in a notebook
-
-# Winsorize outliers at the 1st/99th percentile
-clean = ex.treat_outliers(df[["gini_regional", "gdp_pc", "population", "area"]], percentile=0.01)
-
-# Correlation table (Pearson above, Spearman below the diagonal)
-corr = ex.prepare_correlation_table(clean)
-corr.gt
-
-# Time trend of a variable across the panel
-ex.prepare_trend_graph(df, ts_id="year", var=["gini_regional"]).fig.show()
-
-# The N-shaped Kuznets curve: regional inequality vs (log) GDP per capita
+df = load_kuznets()
+# The N-shaped regional Kuznets curve: regional inequality vs (log) GDP per capita
 ex.prepare_scatter_plot(
     df, x="log_gdp_pc", y="gini_regional", color="continent", size="population", loess=1
-).show()
-
-# Cubic regression recovers the N (significant positive cubic term), controlling for
-# country and year (two-way) fixed effects, with SEs clustered by country
-reg = ex.prepare_regression_table(
-    df,
-    dvs="gini_regional",
-    idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"],
-    feffects=["country", "year"],
-    clusters=["country"],
 )
-reg.etable
-
-# Frisch-Waugh-Lovell plot: the partial relationship between gini and log GDP per capita,
-# net of the other terms AND the country and year fixed effects (the fitted slope equals
-# the coefficient)
-ex.prepare_fwl_plot(
-    df,
-    dv="gini_regional",
-    var="log_gdp_pc",
-    controls=["log_gdp_pc_sq", "log_gdp_pc_cu"],
-    feffects=["country", "year"],
-    clusters=["country"],
-).fig.show()
 ```
 
-Launch the interactive app — **Streamlit** — pre-configured to open on the N-shaped curve
-(multipage UI with native tables):
+Launch the same data in the interactive app, pre-configured to open on the curve:
 
 ```python
-from expdpy.streamlit_app import ExPdPy
+from expdpy.streamlit_app import ExPdPy   # or: from expdpy.app import ExPdPy
 from expdpy.data import load_kuznets, load_kuznets_data_def, get_config
 
 ExPdPy(load_kuznets(), df_def=load_kuznets_data_def(), config_list=get_config("kuznets"))
 ```
 
-…or the **Shiny** version (same data, a single-window card stack):
-
-```python
-from expdpy.app import ExPdPy
-from expdpy.data import load_kuznets, load_kuznets_data_def, get_config
-
-ExPdPy(load_kuznets(), df_def=load_kuznets_data_def(), config_list=get_config("kuznets"))
-```
-
-To deploy on [Streamlit Community Cloud](https://streamlit.io/cloud) (or run it without
-passing data), point Streamlit at the bundled entry script — it starts with a dataset picker
-(defaulting to Kuznets) and an upload box:
-
-```bash
-streamlit run streamlit_app.py
-```
-
-## Example datasets
-
-`expdpy.data` ships several panel datasets for teaching and demos:
-
-| Loader | Panel | Notes |
-|---|---|---|
-| `load_kuznets` | 80 countries × 2015–2025 | **The default showcase.** Synthetic; rich in control variables; regional inequality traces an **N-shaped** Kuznets curve in income (rises, falls, then rises again at very high income). Built to exercise every feature and ships a preset config (`get_config("kuznets")`) that opens the app directly on the curve. |
-| `load_gapminder` | country × year | Life expectancy, population, GDP per capita. |
-
-## Functions
-
-| Function | Purpose |
-|---|---|
-| `prepare_descriptive_table` | Summary statistics (N, mean, sd, quartiles) |
-| `prepare_correlation_table` / `prepare_correlation_graph` | Pearson/Spearman correlations (table / heatmap) |
-| `prepare_ext_obs_table` | Extreme (top/bottom) observations |
-| `prepare_trend_graph` / `prepare_quantile_trend_graph` | Variable means / quantiles over time |
-| `prepare_by_group_bar_graph` / `_trend_graph` / `_violin_graph` | Statistics by group |
-| `prepare_histogram` / `prepare_bar_chart` | Distribution / category counts |
-| `prepare_missing_values_graph` | Missing-value heatmap across the panel |
-| `prepare_scatter_plot` | Scatter with optional size/color/LOESS |
-| `prepare_regression_table` | OLS with fixed effects + clustered SEs (pyfixest) |
-| `prepare_fwl_plot` | Frisch-Waugh-Lovell partial-regression plot (residualized on controls + fixed effects) |
-| `treat_outliers` | Winsorize or truncate outliers |
-| `expdpy.streamlit_app.ExPdPy` | Interactive Streamlit exploration app (multipage, native tables) |
-| `expdpy.app.ExPdPy` | Interactive Shiny-for-Python exploration app |
+Head to the [Quickstart](https://cmg777.github.io/expdpy/quickstart.html) to see every
+function in action, the
+[kuznets dataset](https://cmg777.github.io/expdpy/explanation/kuznets-dataset.html) page for
+the data dictionary, or the [Streamlit](https://cmg777.github.io/expdpy/streamlit.html) /
+[Shiny](https://cmg777.github.io/expdpy/shiny.html) guides to launch the interactive apps.
 
 ## Documentation
 
