@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "expdpy"
-version = "0.1.0.dev0"
+version = "0.2.0"
 description = "Explore your panel data interactively — a Python port of the ExPanDaR R package."
 readme = "README.md"
 license = { text = "MIT" }
@@ -35,7 +35,7 @@ dependencies = [
     "numpy>=1.24",
     "scipy>=1.10",
     "plotly>=5.18",
-    "pyfixest>=0.18",
+    "pyfixest>=0.60",
     "great-tables>=0.9",
     "statsmodels>=0.14",
     "pyarrow>=14",
@@ -53,6 +53,9 @@ streamlit = [
     "streamlit>=1.40",
     "nbformat>=5.9",
     "openpyxl>=3.1",
+]
+panel = [
+    "linearmodels>=6",
 ]
 
 [project.scripts]
@@ -135,6 +138,7 @@ markers = [
     "against_r: numerical-parity tests that require R + the ExPanDaR package via rpy2",
     "app: tests that require the Shiny app extra",
     "streamlit: tests that require the Streamlit app extra",
+    "panel: tests that require the linearmodels (panel) extra",
 ]
 filterwarnings = ["ignore::DeprecationWarning"]
 

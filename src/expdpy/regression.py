@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import contextlib
-import io
 from collections.abc import Sequence
 from typing import Any, Literal
 
@@ -11,22 +9,25 @@ import pandas as pd
 import pyfixest as pf
 from pandas.api import types as pdt
 
+from expdpy._estimation import (
+    SSC,
+    ModelSpec,
+    VCovSpec,
+    as_list,
+    capture_stdout,
+    fit_model,
+    tidy_model,
+)
 from expdpy._types import RegressionTableResult
 from expdpy._validation import ensure_dataframe
 
 __all__ = ["prepare_regression_table"]
 
-# Stata 'reghdfe'-consistent small-sample correction (matches lfe::felm cmethod='reghdfe').
-_SSC = pf.ssc(k_adj=True, G_adj=True)
-
-
-def _as_list(value: Any) -> list[str]:
-    """Normalize ``None``/``""``/str/sequence into a flat list of non-empty strings."""
-    if value is None or value == "":
-        return []
-    if isinstance(value, str):
-        return [value]
-    return [v for v in value if v]
+# Backwards-compatible aliases re-exported for expdpy.fwl (the FWL plot reuses the same
+# small-sample correction and list-normalization to stay numerically consistent).
+_SSC = SSC
+_as_list = as_list
+_tidy = tidy_model
 
 
 def _fit_one(
@@ -47,20 +48,9 @@ def _fit_one(
     for fe in feffects:
         data[fe] = data[fe].astype("category")
 
-    fml = f"{dv} ~ {' + '.join(idvs)}"
-    if feffects:
-        fml += " | " + " + ".join(feffects)
-    vcov: Any = {"CRV1": " + ".join(clusters)} if clusters else "iid"
-    return pf.feols(fml, data=data, vcov=vcov, ssc=_SSC)
-
-
-def _tidy(model: Any, model_id: int, byvalue: str | None) -> pd.DataFrame:
-    out = model.tidy().reset_index()
-    out = out.rename(columns={out.columns[0]: "term"})
-    out.insert(0, "model", model_id)
-    if byvalue is not None:
-        out["byvalue"] = byvalue
-    return out
+    vcov = VCovSpec(kind="CRV1", cluster=tuple(clusters)) if clusters else VCovSpec()
+    spec = ModelSpec(dv=(dv,), idvs=tuple(idvs), feffects=tuple(feffects), vcov=vcov)
+    return fit_model(data, spec)
 
 
 def prepare_regression_table(
@@ -199,8 +189,7 @@ def prepare_regression_table(
     etable_type = "gt" if format == "html" else format
     if etable_type == "md":
         # pyfixest prints markdown to stdout and returns None; capture it.
-        buf = io.StringIO()
-        with contextlib.redirect_stdout(buf):
+        with capture_stdout() as buf:
             pf.etable(models, type="md")
         etable: Any = buf.getvalue()
     else:

@@ -164,6 +164,23 @@ def test_component_helpers(kuznets):
     assert comp.scatter(sample, "None", "None", None, None, False) is None
 
 
+def test_event_study_and_panel_helpers():
+    from expdpy.data import load_staggered_did
+
+    df = load_staggered_did()
+    fig = comp.event_study(df, "outcome", "unit", "year", "cohort", "did2s")
+    assert fig is not None
+    notes = comp.event_study_notes(df, "outcome", "unit", "year", "cohort", "did2s")
+    assert notes is not None and len(notes) == 2
+    html = comp.panel_models(df, "outcome", ["treated"], "unit", "year")
+    assert html and "<" in html
+    pnotes = comp.panel_models_notes(df, "outcome", ["treated"], "unit", "year")
+    assert pnotes is not None and len(pnotes) == 2
+    # incomplete selections no-op
+    assert comp.event_study(df, "None", "unit", "year", "cohort", "did2s") is None
+    assert comp.panel_models(df, "outcome", [], "unit", "year") is None
+
+
 # --- app construction ---------------------------------------------------------
 def test_expand_builds_app(kuznets):
     app = ExPdPy(kuznets, cs_id=["country"], ts_id="year", run=False)

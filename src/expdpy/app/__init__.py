@@ -358,7 +358,7 @@ def ExPdPy(
         def t_regression():
             xs = _g(inp, "reg_x", []) or []
             xs = list(xs) if isinstance(xs, (list, tuple)) else [xs]
-            html = comp.regression(
+            args = (
                 analysis_sample(),
                 _g(inp, "reg_y"),
                 xs,
@@ -367,7 +367,26 @@ def ExPdPy(
                     _g(inp, "cluster", 1), _g(inp, "reg_fe1"), _g(inp, "reg_fe2")
                 ),
             )
-            return ui.HTML(html or "")
+            html = comp.regression(*args)
+            if not html:
+                return ui.HTML("")
+            blocks = [ui.HTML(html)]
+            notes = comp.regression_notes(*args)
+            if notes:
+                interp_md, explain_md = notes
+                blocks.append(
+                    ui.tags.details(
+                        ui.tags.summary("📝 Plain-language interpretation"),
+                        ui.markdown(interp_md),
+                    )
+                )
+                blocks.append(
+                    ui.tags.details(
+                        ui.tags.summary("❓ What is this? (method explainer)"),
+                        ui.markdown(explain_md),
+                    )
+                )
+            return ui.TagList(*blocks)
 
         @render_plotly
         def w_corrplot():
@@ -426,6 +445,72 @@ def ExPdPy(
             )
             req(fig is not None)
             return fig
+
+        @render_plotly
+        def w_event_study():
+            unit = cs_list[0] if cs_list else None
+            fig = comp.event_study(
+                analysis_sample(),
+                _g(inp, "es_outcome"),
+                unit,
+                ts,
+                _g(inp, "es_cohort"),
+                _g(inp, "es_estimator", "did2s"),
+            )
+            req(fig is not None)
+            return fig
+
+        @render.ui
+        def t_event_study_notes():
+            unit = cs_list[0] if cs_list else None
+            notes = comp.event_study_notes(
+                analysis_sample(),
+                _g(inp, "es_outcome"),
+                unit,
+                ts,
+                _g(inp, "es_cohort"),
+                _g(inp, "es_estimator", "did2s"),
+            )
+            if not notes:
+                return ui.HTML("")
+            interp_md, explain_md = notes
+            return ui.TagList(
+                ui.tags.details(
+                    ui.tags.summary("📝 Plain-language interpretation"),
+                    ui.markdown(interp_md),
+                ),
+                ui.tags.details(
+                    ui.tags.summary("❓ What is this? (method explainer)"),
+                    ui.markdown(explain_md),
+                ),
+            )
+
+        @render.ui
+        def t_panel_models():
+            entity = cs_list[0] if cs_list else None
+            idvs = _g(inp, "pm_idvs", []) or []
+            idvs = list(idvs) if isinstance(idvs, (list, tuple)) else [idvs]
+            args = (analysis_sample(), _g(inp, "pm_dv"), idvs, entity, ts)
+            html = comp.panel_models(*args)
+            if not html:
+                return ui.HTML("")
+            blocks = [ui.HTML(html)]
+            notes = comp.panel_models_notes(*args)
+            if notes:
+                panel_md, hausman_md = notes
+                blocks.append(
+                    ui.tags.details(
+                        ui.tags.summary("📝 Plain-language interpretation"),
+                        ui.markdown(panel_md),
+                    )
+                )
+                blocks.append(
+                    ui.tags.details(
+                        ui.tags.summary("🔬 Hausman test (fixed vs random effects)"),
+                        ui.markdown(hausman_md),
+                    )
+                )
+            return ui.TagList(*blocks)
 
         @render_plotly
         def w_trend_graph():
@@ -523,6 +608,11 @@ _CONFIG_INPUT_KEYS = [
     "reg_fe2",
     "cluster",
     "fwl_focal",
+    "es_outcome",
+    "es_cohort",
+    "es_estimator",
+    "pm_dv",
+    "pm_idvs",
 ]
 
 
@@ -637,6 +727,40 @@ def _component_card(name: str, vc, cfg: dict, ts: str | None) -> Any:
                 "slope equals the focal coefficient in that regression."
             ),
             ui.output_ui("fwl_focal_ui"),
+        ]
+    elif name == "event_study":
+        controls = [
+            _sel("es_outcome", "Outcome", numeric, cfg),
+            _sel("es_cohort", "Cohort (first-treated period)", factors, cfg),
+            ui.input_select(
+                "es_estimator",
+                "Estimator",
+                choices={
+                    "did2s": "Gardner (did2s)",
+                    "twfe": "Two-way FE",
+                    "saturated": "Sun-Abraham",
+                    "lpdid": "Local projections",
+                },
+                selected=str(cfg.get("es_estimator", "did2s")),
+            ),
+        ]
+        # A plotly card plus an interpretation/explainer block beneath the figure.
+        return ui.card(
+            ui.card_header("Event Study"),
+            *controls,
+            out,
+            ui.output_ui("t_event_study_notes"),
+        )
+    elif name == "panel_models":
+        controls = [
+            _sel("pm_dv", "Dependent", numeric, cfg),
+            ui.input_selectize(
+                "pm_idvs",
+                "Independent",
+                choices=numeric,
+                multiple=True,
+                selected=[c for c in (cfg.get("pm_idvs") or []) if c in numeric],
+            ),
         ]
     # descriptive_table, corrplot, missing_values need no selectors.
     return ui.card(ui.card_header(name.replace("_", " ").title()), *controls, out)

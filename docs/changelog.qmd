@@ -2,6 +2,64 @@
 title: "Changelog"
 ---
 
+## 0.2.0 (2026-06-19)
+
+A major feature release: modern **fixest / pyfixest** econometrics, a **panel-data**
+toolkit, and a **pedagogy** layer for teaching — all surfaced through the interactive apps.
+Requires `pyfixest>=0.60`; adds an optional `panel` extra (`linearmodels`).
+
+### New estimators
+
+- `prepare_estimation` — a unified estimator adding **IV / 2SLS**, **Poisson** (`fepois`)
+  and **logit / probit** (`feglm`) to OLS; a wider choice of standard errors
+  (heteroskedastic HC1–HC3, cluster-robust CRV1 / CRV3, and the serial-correlation-robust
+  Newey–West and Driscoll–Kraay); and **stepwise / multiple-outcome model comparison**
+  (`sw()` / `csw()`, multiple left-hand sides) for watching estimates move as the
+  specification changes.
+- Post-estimation helpers: `prepare_fixef_plot` (visualize the estimated fixed effects),
+  `prepare_predictions`, and `prepare_joint_test` (a Wald joint-significance test).
+- `prepare_robust_inference` — randomization inference (and the wild cluster bootstrap when
+  the optional `wildboottest` package is installed), for credible inference with few clusters.
+
+### Event study & staggered difference-in-differences
+
+- `prepare_event_study` wrapping the modern estimators — Gardner's two-stage `did2s`,
+  Sun–Abraham (`saturated`), local-projections DiD (`lpdid`) and dynamic two-way fixed
+  effects (`twfe`) — returning a themed Plotly event-study plot with a pre-trend diagnostic.
+- `prepare_panel_view` — a Plotly reimplementation of `panelview` that derives the binary
+  treatment indicator from a first-treatment **cohort** column for you.
+- A bundled `load_staggered_did()` teaching dataset.
+
+### Panel models (optional `panel` extra, via `linearmodels`)
+
+- `prepare_panel_table` — pooled OLS, between, fixed-effects and random-effects estimates
+  side by side (the fixed-effects estimate matches the pyfixest path).
+- `prepare_hausman_test` — the classic fixed-vs-random-effects specification test.
+
+### Visualization
+
+- `prepare_coefficient_plot` — coefficient plots with confidence intervals for one or several
+  models (a beginner-friendly alternative to reading a coefficient table).
+- A dark Plotly theme variant (`apply_default_layout(fig, dark=True)`).
+
+### Pedagogy
+
+- A concept-explainer registry — `explain(topic)` and `list_topics()` — covering fixed
+  effects, clustering, IV, GLMs, event studies, parallel trends, omitted-variable bias,
+  winsorizing vs truncating, Pearson vs Spearman, and more.
+- Result objects gain `.interpret()` (plain-language, strictly *associational* — never causal
+  unless an FE/IV design is present), `.explain()`, and broom-style `.tidy()` / `.glance()`.
+- Concept sandboxes that simulate data so a concept can be seen and tuned:
+  `sandbox_omitted_variable_bias`, `sandbox_pooled_vs_fixed_effects`, `sandbox_clustering_se`.
+
+### Interactive apps
+
+- Both the Streamlit and Shiny apps now show a plain-language **interpretation** and a
+  **method explainer** on the regression card, plus a **coefficient plot**.
+- New pages / cards in both apps: **Event study & DiD** and **Panel models** (shown for panel
+  data); the Streamlit app also gains a data-free **Concept sandboxes** page. The
+  **Staggered DiD** dataset is available in the picker.
+
 ## 0.1.0 (unreleased)
 
 Initial release — a Python port of ExPanDaR.

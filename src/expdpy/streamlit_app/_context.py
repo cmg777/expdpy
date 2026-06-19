@@ -29,6 +29,8 @@ from expdpy.data import (
     load_gapminder_data_def,
     load_kuznets,
     load_kuznets_data_def,
+    load_staggered_did,
+    load_staggered_did_data_def,
 )
 from expdpy.streamlit_app import _handoff as handoff
 
@@ -39,6 +41,7 @@ __all__ = ["AppContext", "DATASETS", "resolve_context"]
 DATASETS: dict[str, tuple[Callable[[], pd.DataFrame], Callable[[], pd.DataFrame]]] = {
     "Kuznets": (load_kuznets, load_kuznets_data_def),
     "Gapminder": (load_gapminder, load_gapminder_data_def),
+    "Staggered DiD": (load_staggered_did, load_staggered_did_data_def),
 }
 
 _DEFAULT_TITLE = "ExPdPy — Explore your data!"

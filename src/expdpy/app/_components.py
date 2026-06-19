@@ -16,10 +16,13 @@ from expdpy import (
     prepare_by_group_violin_graph,
     prepare_correlation_graph,
     prepare_descriptive_table,
+    prepare_event_study,
     prepare_ext_obs_table,
     prepare_fwl_plot,
+    prepare_hausman_test,
     prepare_histogram,
     prepare_missing_values_graph,
+    prepare_panel_table,
     prepare_quantile_trend_graph,
     prepare_regression_table,
     prepare_scatter_plot,
@@ -46,6 +49,8 @@ COMPONENT_ORDER = [
     "scatter_plot",
     "regression",
     "fwl_plot",
+    "event_study",
+    "panel_models",
 ]
 
 # Components that only need the panel's time dimension.
@@ -54,6 +59,8 @@ TS_COMPONENTS = {
     "trend_graph",
     "quantile_trend_graph",
     "by_group_trend_graph",
+    "event_study",
+    "panel_models",
 }
 
 # Components rendered as a card with controls + output ("plotly" or "gt"); others are
@@ -73,6 +80,8 @@ COMPONENT_KIND = {
     "scatter_plot": "plotly",
     "regression": "gt",
     "fwl_plot": "plotly",
+    "event_study": "plotly",
+    "panel_models": "gt",
 }
 
 
@@ -184,6 +193,22 @@ def regression(sample, y, xs, fes, clusters):
     return res.etable.as_raw_html()
 
 
+def regression_notes(sample, y, xs, fes, clusters):
+    """Return ``(interpretation, method_explainer)`` markdown for the regression card.
+
+    Returns ``None`` when the selection is incomplete (mirroring :func:`regression`).
+    """
+    xs = [x for x in xs if _ok(x)]
+    if not (_ok(y) and xs):
+        return None
+    fes = [f for f in fes if _ok(f)]
+    clusters = [c for c in clusters if _ok(c)]
+    res = prepare_regression_table(
+        sample, dvs=y, idvs=xs, feffects=fes, clusters=clusters, format="gt"
+    )
+    return res.interpret(), res.explain().to_markdown()
+
+
 def fwl_plot(sample, y, xs, focal, fes, clusters):
     """Frisch-Waugh-Lovell plot for the focal regressor, reusing the regression inputs."""
     xs = [x for x in xs if _ok(x)]
@@ -195,3 +220,63 @@ def fwl_plot(sample, y, xs, focal, fes, clusters):
     return prepare_fwl_plot(
         sample, dv=y, var=focal, controls=controls, feffects=fes, clusters=clusters
     ).fig
+
+
+def event_study(sample, outcome, unit, time, cohort, estimator):
+    """Event-study / staggered-DiD plot for a treated panel (Plotly figure)."""
+    if not (_ok(outcome) and _ok(unit) and _ok(time) and _ok(cohort)):
+        return None
+    return prepare_event_study(
+        sample,
+        outcome=outcome,
+        unit=unit,
+        time=time,
+        cohort=cohort,
+        estimator=estimator or "did2s",
+    ).fig
+
+
+def event_study_notes(sample, outcome, unit, time, cohort, estimator):
+    """Return (interpretation, method-explainer) markdown for the event-study card."""
+    if not (_ok(outcome) and _ok(unit) and _ok(time) and _ok(cohort)):
+        return None
+    res = prepare_event_study(
+        sample,
+        outcome=outcome,
+        unit=unit,
+        time=time,
+        cohort=cohort,
+        estimator=estimator or "did2s",
+    )
+    return res.interpret(), res.explain().to_markdown()
+
+
+def panel_models(sample, dv, idvs, entity, time):
+    """Pooled/between/FE/RE comparison HTML, or a friendly message if linearmodels is absent."""
+    idvs = [x for x in idvs if _ok(x)]
+    if not (_ok(dv) and idvs and _ok(entity) and _ok(time)):
+        return None
+    try:
+        res = prepare_panel_table(
+            sample, dv=dv, idvs=idvs, entity=entity, time=time, format="html"
+        )
+    except ImportError as exc:
+        return f"<p><em>{exc}</em></p>"
+    return res.etable
+
+
+def panel_models_notes(sample, dv, idvs, entity, time):
+    """Return (panel-table interpretation, Hausman-test markdown), or ``None``."""
+    idvs = [x for x in idvs if _ok(x)]
+    if not (_ok(dv) and idvs and _ok(entity) and _ok(time)):
+        return None
+    try:
+        panel = prepare_panel_table(
+            sample, dv=dv, idvs=idvs, entity=entity, time=time, format="df"
+        )
+        hausman = prepare_hausman_test(
+            sample, dv=dv, idvs=idvs, entity=entity, time=time
+        )
+    except ImportError:
+        return None
+    return panel.interpret(), hausman.interpret()

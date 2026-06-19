@@ -29,6 +29,7 @@ __all__ = [
     "PLOTLY_CONFIG",
     "SEQUENTIAL_SCALE",
     "TEMPLATE_NAME",
+    "TEMPLATE_NAME_DARK",
     "apply_default_layout",
     "color_for",
     "diverging_color",
@@ -83,6 +84,7 @@ FONT_SIZE_TITLE: int = 22
 FONT_SIZE_LEGEND: int = 15
 
 TEMPLATE_NAME: str = "expdpy"
+TEMPLATE_NAME_DARK: str = "expdpy_dark"
 
 # Modebar / export config: emit crisp 2x PNGs suitable for slides.
 PLOTLY_CONFIG: dict[str, object] = {
@@ -95,49 +97,52 @@ PLOTLY_CONFIG: dict[str, object] = {
 }
 
 
-def _build_template() -> go.layout.Template:
-    """Construct the ``expdpy`` Plotly template (layered on ``plotly_white``)."""
+def _build_template(*, dark: bool = False) -> go.layout.Template:
+    """Construct an ``expdpy`` Plotly template (light by default, dark when ``dark=True``)."""
+    font_color = "#e6e6e6" if dark else "#2a2a2a"
+    grid = "rgba(255,255,255,0.12)" if dark else "rgba(0,0,0,0.08)"
+    zeroline = "rgba(255,255,255,0.25)" if dark else "rgba(0,0,0,0.15)"
+    legend_bg = "rgba(0,0,0,0.35)" if dark else "rgba(255,255,255,0.6)"
+    axis = {
+        "title": {"font": {"family": FONT_FAMILY, "size": FONT_SIZE_AXIS_TITLE}},
+        "tickfont": {"family": FONT_FAMILY, "size": FONT_SIZE_TICK},
+        "automargin": True,
+        "gridcolor": grid,
+        "zerolinecolor": zeroline,
+    }
     template = go.layout.Template()
     template.layout = go.Layout(
-        font={"family": FONT_FAMILY, "size": FONT_SIZE_BASE, "color": "#2a2a2a"},
+        font={"family": FONT_FAMILY, "size": FONT_SIZE_BASE, "color": font_color},
         title={"font": {"family": FONT_FAMILY, "size": FONT_SIZE_TITLE}, "x": 0.02},
         colorway=COLOR_SEQUENCE,
         colorscale={"sequential": SEQUENTIAL_SCALE, "diverging": DIVERGING_SCALE},
         margin={"l": 70, "r": 30, "t": 60, "b": 60},
         legend={
-            "bgcolor": "rgba(255,255,255,0.6)",
+            "bgcolor": legend_bg,
             "font": {"family": FONT_FAMILY, "size": FONT_SIZE_LEGEND},
             "title": {"font": {"family": FONT_FAMILY, "size": FONT_SIZE_LEGEND}},
         },
         hoverlabel={"font": {"family": FONT_FAMILY, "size": FONT_SIZE_TICK}},
-        xaxis={
-            "title": {"font": {"family": FONT_FAMILY, "size": FONT_SIZE_AXIS_TITLE}},
-            "tickfont": {"family": FONT_FAMILY, "size": FONT_SIZE_TICK},
-            "automargin": True,
-            "gridcolor": "rgba(0,0,0,0.08)",
-            "zerolinecolor": "rgba(0,0,0,0.15)",
-        },
-        yaxis={
-            "title": {"font": {"family": FONT_FAMILY, "size": FONT_SIZE_AXIS_TITLE}},
-            "tickfont": {"family": FONT_FAMILY, "size": FONT_SIZE_TICK},
-            "automargin": True,
-            "gridcolor": "rgba(0,0,0,0.08)",
-            "zerolinecolor": "rgba(0,0,0,0.15)",
-        },
+        xaxis=dict(axis),
+        yaxis=dict(axis),
     )
     return template
 
 
-# Register the template and make ``plotly_white + expdpy`` the process-wide default so
-# even figures that bypass ``apply_default_layout`` pick up the expdpy look.
+# Register the light + dark templates and make ``plotly_white + expdpy`` the process-wide
+# default so even figures that bypass ``apply_default_layout`` pick up the expdpy look.
 pio.templates[TEMPLATE_NAME] = _build_template()
+pio.templates[TEMPLATE_NAME_DARK] = _build_template(dark=True)
 pio.templates.default = f"plotly_white+{TEMPLATE_NAME}"
 
-# The combined template string applied to every figure for belt-and-suspenders styling.
+# The combined template strings applied to every figure for belt-and-suspenders styling.
 _COMBINED_TEMPLATE = f"plotly_white+{TEMPLATE_NAME}"
+_COMBINED_TEMPLATE_DARK = f"plotly_dark+{TEMPLATE_NAME_DARK}"
 
 
-def apply_default_layout(fig: go.Figure, **layout_kwargs: object) -> go.Figure:
+def apply_default_layout(
+    fig: go.Figure, *, dark: bool = False, **layout_kwargs: object
+) -> go.Figure:
     """Apply expdpy's default layout (Tableau theme, presentation fonts) to ``fig``.
 
     The expdpy template carries the palette, continuous scales, fonts and sizes; this
@@ -149,11 +154,13 @@ def apply_default_layout(fig: go.Figure, **layout_kwargs: object) -> go.Figure:
     ----------
     fig
         The figure to style (modified in place and returned).
+    dark
+        Apply the dark template (``plotly_dark`` base) instead of the light one.
     **layout_kwargs
         Extra keyword arguments forwarded to
         :meth:`plotly.graph_objects.Figure.update_layout`.
     """
-    fig.update_layout(template=_COMBINED_TEMPLATE)
+    fig.update_layout(template=_COMBINED_TEMPLATE_DARK if dark else _COMBINED_TEMPLATE)
     if layout_kwargs:
         fig.update_layout(**layout_kwargs)
     return fig

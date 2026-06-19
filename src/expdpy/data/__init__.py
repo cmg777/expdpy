@@ -20,6 +20,8 @@ __all__ = [
     "load_gapminder_data_def",
     "load_kuznets",
     "load_kuznets_data_def",
+    "load_staggered_did",
+    "load_staggered_did_data_def",
 ]
 
 _CONFIGS = {
@@ -58,6 +60,21 @@ def load_kuznets() -> pd.DataFrame:
 def load_kuznets_data_def() -> pd.DataFrame:
     """Return variable definitions for :func:`load_kuznets`."""
     return _normalize_def(_read_parquet("kuznets_data_def"))
+
+
+def load_staggered_did() -> pd.DataFrame:
+    """Load the synthetic staggered difference-in-differences dataset.
+
+    A balanced unit-year panel with several treatment cohorts (and a never-treated control
+    group, ``cohort == 0``) and a known *dynamic* treatment effect — for teaching event-study
+    and staggered-DiD methods via :func:`expdpy.prepare_event_study`.
+    """
+    return _read_parquet("staggered_did")
+
+
+def load_staggered_did_data_def() -> pd.DataFrame:
+    """Return variable definitions for :func:`load_staggered_did`."""
+    return _normalize_def(_read_parquet("staggered_did_data_def"))
 
 
 @cache

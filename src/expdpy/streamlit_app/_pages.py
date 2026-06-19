@@ -9,14 +9,23 @@ current data (e.g. time-series views on cross-sectional data) are omitted from t
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from typing import Any, cast
+
 import streamlit as st
 
+from expdpy._theme import PLOTLY_CONFIG
 from expdpy.app import _components as comp
 from expdpy.streamlit_app import _render as render
 from expdpy.streamlit_app import _widgets as w
 from expdpy.streamlit_app._sidebar import Active, get_active
 
 __all__ = ["build_pages", "selected_specs"]
+
+# A page spec is (title, icon, url, render_fn, gate). The gate is None (always shown),
+# a list of component names, or a callable ``(active) -> bool`` (e.g. panel-structure pages).
+PageGate = list[str] | Callable[[Active], bool] | None
+PageSpec = tuple[str, str, str, Callable[[], None], PageGate]
 
 
 def _active_or_stop() -> Active:
@@ -210,7 +219,7 @@ def page_regression() -> None:
 
 # ----------------------------------------------------------------------------- navigation ---
 # (title, icon, url_path, function, components that justify showing the page)
-_PAGE_SPECS = [
+_PAGE_SPECS: list[PageSpec] = [
     ("Overview & Data", "🏠", "overview", page_overview, None),
     (
         "Distributions",
@@ -238,13 +247,173 @@ _PAGE_SPECS = [
 ]
 
 
+def page_sandboxes() -> None:
+    """Interactive teaching demos that simulate data — no dataset required."""
+    from expdpy import (
+        sandbox_clustering_se,
+        sandbox_omitted_variable_bias,
+        sandbox_pooled_vs_fixed_effects,
+    )
+
+    st.header("Concept sandboxes")
+    st.caption(
+        "Simulated demonstrations — turn the knobs to see each concept in action. "
+        "These need no dataset."
+    )
+    tabs = st.tabs(
+        [
+            "Omitted-variable bias",
+            "Pooled vs fixed effects",
+            "Clustered standard errors",
+        ]
+    )
+    with tabs[0]:
+        corr = st.slider(
+            "Correlation between x and the omitted z", 0.0, 0.95, 0.6, 0.05
+        )
+        bz = st.slider("Effect of the omitted z", -2.0, 2.0, 1.0, 0.25)
+        res = sandbox_omitted_variable_bias(corr_xz=corr, beta_z=bz)
+        st.plotly_chart(res.fig, width="stretch", config=PLOTLY_CONFIG)
+        st.markdown(res.interpret())
+        with st.expander("❓ What is this?"):
+            st.markdown(res.explain().to_markdown())
+    with tabs[1]:
+        uc = st.slider(
+            "Correlation between x and the unit effect", 0.0, 0.95, 0.8, 0.05
+        )
+        res = sandbox_pooled_vs_fixed_effects(unit_effect_corr=uc)
+        st.plotly_chart(res.fig, width="stretch", config=PLOTLY_CONFIG)
+        st.markdown(res.interpret())
+        with st.expander("❓ What is this?"):
+            st.markdown(res.explain().to_markdown())
+    with tabs[2]:
+        icc = st.slider("Intra-cluster correlation (ICC)", 0.0, 0.9, 0.3, 0.05)
+        res = sandbox_clustering_se(icc=icc)
+        st.plotly_chart(res.fig, width="stretch", config=PLOTLY_CONFIG)
+        st.markdown(res.interpret())
+        with st.expander("❓ What is this?"):
+            st.markdown(res.explain().to_markdown())
+
+
+def _is_panel(active: Active) -> bool:
+    """Return ``True`` when the data has both a cross-section id and a time dimension."""
+    return bool(active.ts and active.cs_list)
+
+
+def page_event_study() -> None:
+    """Event study / staggered difference-in-differences for a treated panel."""
+    from expdpy import prepare_event_study
+
+    active = _active_or_stop()
+    st.header("Event study & staggered DiD")
+    if not _is_panel(active):
+        st.info("Event studies need a panel: a cross-section id and a time dimension.")
+        return
+    factors = active.var_cats.factor or []
+    if not factors:
+        st.info(
+            "Need a *cohort* column giving each unit's first-treated period "
+            "(0 = never treated)."
+        )
+        return
+    assert active.ts is not None  # narrowed by _is_panel
+    unit, time = active.cs_list[0], active.ts
+    st.caption(f"Unit: **{unit}** · Time: **{time}**")
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        outcome = st.selectbox("Outcome", _numeric(active), key="es_outcome")
+    with c2:
+        cohort = st.selectbox("First-treatment cohort", factors, key="es_cohort")
+    with c3:
+        estimator = st.selectbox(
+            "Estimator", ["did2s", "twfe", "saturated", "lpdid"], key="es_estimator"
+        )
+    try:
+        res = prepare_event_study(
+            active.sample,
+            outcome=outcome,
+            unit=unit,
+            time=time,
+            cohort=cohort,
+            estimator=cast(Any, estimator),
+        )
+    except Exception as exc:  # surface the message, keep the page alive
+        st.info(str(exc))
+        return
+    st.plotly_chart(res.fig, width="stretch", config=PLOTLY_CONFIG)
+    st.markdown(res.interpret())
+    with st.expander("❓ What is this? (method explainer)"):
+        st.markdown(res.explain().to_markdown())
+
+
+def page_panel_models() -> None:
+    """Pooled / between / fixed / random-effects comparison and the Hausman test."""
+    from expdpy import prepare_hausman_test, prepare_panel_table
+
+    active = _active_or_stop()
+    st.header("Panel models")
+    if not _is_panel(active):
+        st.info("Panel models need a cross-section id and a time dimension.")
+        return
+    assert active.ts is not None  # narrowed by _is_panel
+    entity, time = active.cs_list[0], active.ts
+    st.caption(f"Entity: **{entity}** · Time: **{time}**")
+    dv = st.selectbox("Dependent variable", _numeric(active), key="pm_dv")
+    xs = st.multiselect("Independent variables", _numeric(active), key="pm_xs")
+    if not (dv and xs):
+        st.info("Choose a dependent variable and at least one independent variable.")
+        return
+    try:
+        res = prepare_panel_table(
+            active.sample, dv=dv, idvs=xs, entity=entity, time=time, format="md"
+        )
+    except ImportError as exc:  # linearmodels not installed
+        st.warning(str(exc))
+        return
+    except Exception as exc:  # surface the message, keep the page alive
+        st.info(str(exc))
+        return
+    st.text(res.etable)  # the linearmodels side-by-side comparison
+    st.markdown(res.interpret())
+
+    st.subheader("Hausman test (fixed vs random effects)")
+    try:
+        hausman = prepare_hausman_test(
+            active.sample, dv=dv, idvs=xs, entity=entity, time=time
+        )
+    except Exception as exc:  # surface the message, keep the page alive
+        st.info(str(exc))
+        return
+    st.markdown(hausman.interpret())
+    with st.expander("❓ What is this? (method explainer)"):
+        st.markdown(hausman.explain().to_markdown())
+
+
+# Extra pages appended after the data-driven ones. Event study and panel models need a
+# panel structure (callable gate); the sandboxes page is always available (gate == None).
+_PAGE_SPECS.append(
+    ("Event study & DiD", "🎯", "event_study", page_event_study, _is_panel)
+)
+_PAGE_SPECS.append(("Panel models", "🪧", "panel_models", page_panel_models, _is_panel))
+_PAGE_SPECS.append(("Concept sandboxes", "🧪", "sandboxes", page_sandboxes, None))
+
+
+def _spec_available(gate: PageGate, active: Active) -> bool:
+    """Whether a page spec's gate admits ``active``.
+
+    ``gate`` is ``None`` (always shown), a callable ``(active) -> bool`` (custom condition,
+    e.g. panel structure), or a list of component names (shown when any are available).
+    """
+    if gate is None:
+        return True
+    if callable(gate):
+        return bool(gate(active))
+    return bool(set(gate) & set(active.active_components))
+
+
 def selected_specs(active: Active) -> list[tuple]:
     """Return the page specs whose components are available for ``active`` (pure)."""
-    return [
-        spec
-        for spec in _PAGE_SPECS
-        if spec[4] is None or (set(spec[4]) & set(active.active_components))
-    ]
+    return [spec for spec in _PAGE_SPECS if _spec_available(spec[4], active)]
 
 
 def build_pages(active: Active) -> list:

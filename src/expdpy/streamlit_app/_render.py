@@ -12,6 +12,7 @@ import pandas as pd
 import streamlit as st
 
 from expdpy import (
+    prepare_coefficient_plot,
     prepare_correlation_graph,
     prepare_correlation_table,
     prepare_descriptive_table,
@@ -204,3 +205,17 @@ def render_regression(
     if hasattr(res.etable, "as_raw_html"):
         with st.expander("Publication-quality table (pyfixest etable)"):
             st.html(res.etable.as_raw_html())
+
+    with st.expander("📊 Coefficient plot"):
+        try:
+            st.plotly_chart(
+                prepare_coefficient_plot(res).fig,
+                width="stretch",
+                config=PLOTLY_CONFIG,
+            )
+        except Exception as exc:
+            st.info(str(exc))
+    with st.expander("📝 Plain-language interpretation"):
+        st.markdown(res.interpret())
+    with st.expander("❓ What is this? (method explainer)"):
+        st.markdown(res.explain().to_markdown())

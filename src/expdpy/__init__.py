@@ -13,14 +13,24 @@ from expdpy._types import (
     BarChartResult,
     ByGroupBarGraphResult,
     ByGroupTrendGraphResult,
+    CoefficientPlotResult,
     CorrelationGraphResult,
     CorrelationTableResult,
     DescriptiveTableResult,
+    EstimationResult,
+    EventStudyResult,
     ExtObsTableResult,
+    FixefPlotResult,
     FWLPlotResult,
+    HausmanTestResult,
     HistogramResult,
+    JointTestResult,
+    PanelViewResult,
+    PredictionResult,
     QuantileTrendGraphResult,
     RegressionTableResult,
+    RobustInferenceResult,
+    SandboxResult,
     TrendGraphResult,
 )
 from expdpy.by_group import (
@@ -28,12 +38,28 @@ from expdpy.by_group import (
     prepare_by_group_trend_graph,
     prepare_by_group_violin_graph,
 )
+from expdpy.coefplot import prepare_coefficient_plot
 from expdpy.correlation import prepare_correlation_graph
+from expdpy.did import prepare_event_study, prepare_panel_view
 from expdpy.distributions import prepare_bar_chart, prepare_histogram
+from expdpy.estimation import prepare_estimation
 from expdpy.fwl import prepare_fwl_plot
+from expdpy.inference import prepare_robust_inference
 from expdpy.missing import prepare_missing_values_graph
 from expdpy.outliers import treat_outliers
+from expdpy.panel_models import prepare_hausman_test, prepare_panel_table
+from expdpy.pedagogy import Explainer, explain, list_topics
+from expdpy.postestimation import (
+    prepare_fixef_plot,
+    prepare_joint_test,
+    prepare_predictions,
+)
 from expdpy.regression import prepare_regression_table
+from expdpy.sandbox import (
+    sandbox_clustering_se,
+    sandbox_omitted_variable_bias,
+    sandbox_pooled_vs_fixed_effects,
+)
 from expdpy.scatter import prepare_scatter_plot
 from expdpy.tables import (
     prepare_correlation_table,
@@ -42,7 +68,7 @@ from expdpy.tables import (
 )
 from expdpy.trends import prepare_quantile_trend_graph, prepare_trend_graph
 
-__version__ = "0.1.0.dev0"
+__version__ = "0.2.0"
 
 __all__ = [
     # outliers
@@ -69,8 +95,32 @@ __all__ = [
     "prepare_scatter_plot",
     # regression
     "prepare_regression_table",
+    # estimation (IV / Poisson / GLM / model comparison)
+    "prepare_estimation",
+    # post-estimation
+    "prepare_fixef_plot",
+    "prepare_predictions",
+    "prepare_joint_test",
+    # robust inference
+    "prepare_robust_inference",
     # fwl plot
     "prepare_fwl_plot",
+    # coefficient plot
+    "prepare_coefficient_plot",
+    # event study / staggered DiD
+    "prepare_event_study",
+    "prepare_panel_view",
+    # concept sandboxes
+    "sandbox_omitted_variable_bias",
+    "sandbox_pooled_vs_fixed_effects",
+    "sandbox_clustering_se",
+    # panel models (linearmodels)
+    "prepare_panel_table",
+    "prepare_hausman_test",
+    # pedagogy
+    "explain",
+    "list_topics",
+    "Explainer",
     # result types
     "DescriptiveTableResult",
     "CorrelationTableResult",
@@ -84,4 +134,14 @@ __all__ = [
     "BarChartResult",
     "RegressionTableResult",
     "FWLPlotResult",
+    "CoefficientPlotResult",
+    "EstimationResult",
+    "FixefPlotResult",
+    "PredictionResult",
+    "JointTestResult",
+    "RobustInferenceResult",
+    "EventStudyResult",
+    "PanelViewResult",
+    "SandboxResult",
+    "HausmanTestResult",
 ]
