@@ -55,3 +55,26 @@ def test_clustering_se_grows_with_icc():
     low = ex.sandbox_clustering_se(icc=0.1, seed=2).summary["se_ratio"]
     high = ex.sandbox_clustering_se(icc=0.5, seed=2).summary["se_ratio"]
     assert high > low
+
+
+def test_first_differences_matches_within_at_two_periods():
+    res = ex.sandbox_first_differences(n_units=150, n_periods=2, beta=2.0, seed=0)
+    assert isinstance(res, SandboxResult)
+    assert isinstance(res.fig, go.Figure)
+    s = res.summary
+    assert s["fd_within_gap"] < 1e-6  # FD == within at T=2
+    assert abs(s["fd_coef"] - s["true_beta"]) < 0.25  # both recover beta
+    assert abs(s["pooled_coef"] - s["true_beta"]) > abs(s["fd_coef"] - s["true_beta"])
+    assert res.topic == "first_differences"
+    assert "differenc" in res.interpret().lower()
+    assert res.explain().topic == "first_differences"
+
+
+def test_within_equals_lsdv_for_many_periods():
+    res = ex.sandbox_within_vs_lsdv(n_units=30, n_periods=6, beta=2.0, seed=1)
+    s = res.summary
+    assert s["within_lsdv_gap"] < 1e-6  # within == LSDV for any T
+    assert abs(s["within_coef"] - s["true_beta"]) < 0.25
+    assert res.topic == "within_transformation"
+    assert res.explain().topic == "within_transformation"
+    assert "lsdv" in res.interpret().lower() or "dummy" in res.interpret().lower()

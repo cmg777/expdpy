@@ -76,14 +76,14 @@ ex.prepare_regression_table(
 
 ## Launching the app on kuznets
 
-The dataset ships a preset configuration that opens the app directly on the curve:
+The dataset ships a preset configuration that opens an app directly on the curve:
 
 ```python
-from expdpy.streamlit_app import ExPdPy
+from expdpy.streamlit_app import ExploreApp
 from expdpy.data import load_kuznets, load_kuznets_data_def, get_config
 
-ExPdPy(load_kuznets(), df_def=load_kuznets_data_def(), config_list=get_config("kuznets"))
+ExploreApp(load_kuznets(), df_def=load_kuznets_data_def(), config_list=get_config("kuznets"))
 ```
 
-When launched without data, the bundled [Streamlit app](../streamlit.qmd)
-defaults to this dataset in its picker.
+When launched without data, the bundled [Streamlit apps](../streamlit.qmd)
+default to this dataset in their picker.

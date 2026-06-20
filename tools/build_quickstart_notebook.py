@@ -1,17 +1,16 @@
 #!/usr/bin/env python
-"""Build the Google Colab notebook from the Quickstart page.
+"""Build the Google Colab notebooks from the three module pages.
 
-The Quickstart docs page (``docs/quickstart.qmd``) is the single source of truth for the
-code-along walkthrough. This script regenerates ``notebooks/quickstart.ipynb`` from it so the
-two never drift: the "Run the Quick Start in Google Colab" button on the docs site opens that
-notebook straight from GitHub (https://colab.research.google.com/github/cmg777/expdpy/blob/main/notebooks/quickstart.ipynb).
+The module docs pages (``docs/explore.qmd``, ``docs/analyze.qmd``, ``docs/learn.qmd``) are the
+single source of truth for the code-along walkthroughs. This script regenerates one notebook
+per module under ``notebooks/`` so the two never drift — each can be opened straight from
+GitHub in Google Colab.
 
 The conversion is ``quarto convert`` (the canonical ``.qmd`` -> ``.ipynb`` mapping: prose ->
 markdown cells, ``{python}`` blocks -> code cells) followed by light post-processing with
-``nbformat``: the YAML front-matter cell is dropped and three cells are prepended — a title
-cell, a GitHub ``pip install`` (with the ``panel`` extra) so the notebook is runnable from a
-cold Colab runtime, and a setup cell that forces Plotly's ``colab`` renderer so every figure
-draws.
+``nbformat``: the YAML front-matter is stripped and three cells are prepended — a title cell,
+a GitHub ``pip install`` so the notebook is runnable from a cold Colab runtime, and a setup
+cell that forces Plotly's ``colab`` renderer so every figure draws.
 
 ``quarto`` lives in the pixi ``docs`` environment, so run this from there::
 
@@ -34,24 +33,26 @@ import nbformat
 from nbformat.v4 import new_code_cell, new_markdown_cell
 
 REPO = Path(__file__).resolve().parents[1]
-SRC_QMD = REPO / "docs" / "quickstart.qmd"
-OUT_IPYNB = REPO / "notebooks" / "quickstart.ipynb"
 
-# Install with the optional ``panel`` extra (linearmodels) so the classic panel-model and
-# Hausman cells run live in Colab; the rest of the toolkit comes with the core install. The
-# second line force-refreshes *only* the expdpy code to the latest ``main`` commit — pip skips
-# a git reinstall when the version string is unchanged, so a re-run on a warm runtime would
-# otherwise keep stale code. ``--no-deps`` keeps it fast (re-fetches just the expdpy wheel).
+# The three module pages, each producing a self-contained Colab notebook.
+MODULES = [
+    {"slug": "explore", "title": "Explore"},
+    {"slug": "analyze", "title": "Analyze"},
+    {"slug": "learn", "title": "Learn"},
+]
+
+# linearmodels (random/correlated random effects, the Hausman test) ships with the core
+# install now, so a plain ``expdpy`` install runs every cell. The second line force-refreshes
+# only the expdpy code to the latest ``main`` commit (pip skips a git reinstall when the version
+# string is unchanged, so a warm runtime would otherwise keep stale code).
 INSTALL_CELL = (
-    '!pip install -q "expdpy[panel] @ git+https://github.com/cmg777/expdpy.git"\n'
+    '!pip install -q "expdpy @ git+https://github.com/cmg777/expdpy.git"\n'
     "!pip install -q --force-reinstall --no-deps "
     '"expdpy @ git+https://github.com/cmg777/expdpy.git"'
 )
 
 # Colab does not always pick a Plotly renderer that draws figures returned as the last cell
-# expression, so force the dedicated "colab" renderer there. This is a no-op in Jupyter /
-# nbclient (where the default renderer already produces a rich mimebundle) and is injected
-# into the notebook only — the docs site keeps Quarto's own Plotly handling.
+# expression, so force the dedicated "colab" renderer there. This is a no-op in Jupyter.
 SETUP_CELL = (
     "# Ensure Plotly figures render in Google Colab (a no-op in other notebook frontends).\n"
     "import plotly.io as pio\n"
@@ -64,38 +65,34 @@ SETUP_CELL = (
     "    pass"
 )
 
-TITLE_CELL = (
-    "# expdpy — Quickstart\n"
+TITLE_TEMPLATE = (
+    "# expdpy — {title} panel data\n"
     "\n"
     "_Notebook version: built {{BUILD_STAMP}} — re-open this notebook from GitHub if yours is "
     "older, to get the latest version._\n"
     "\n"
-    "A cloud-runnable walkthrough of [expdpy](https://github.com/cmg777/expdpy) on the bundled "
-    "`kuznets` panel. Run the install cell below first, then run the rest top to bottom.\n"
+    "A cloud-runnable walkthrough of the **{title}** module of "
+    "[expdpy](https://github.com/cmg777/expdpy) on the bundled `kuznets` panel. Run the install "
+    "cell below first, then run the rest top to bottom.\n"
     "\n"
-    "> If Colab prompts you to **restart the runtime** after the install, do so, then "
-    "continue from the setup cell.\n"
+    "> If Colab prompts you to **restart the runtime** after the install, do so, then continue "
+    "from the setup cell.\n"
     "\n"
-    "This notebook mirrors the [Quickstart page](https://cmg777.github.io/expdpy/quickstart.html) "
-    "of the docs."
+    "This notebook mirrors the [{title} page](https://cmg777.github.io/expdpy/{slug}.html) of "
+    "the docs."
 )
 
 KERNELSPEC = {"display_name": "Python 3", "language": "python", "name": "python3"}
 
 
 def _strip_front_matter(source: str) -> str:
-    """Remove a leading ``---\\n...\\n---`` YAML block, keeping any prose after it.
-
-    quarto convert keeps the ``.qmd`` front matter *and* the intro paragraph that follows it
-    in the same first cell, so dropping the whole cell would lose the intro. This strips only
-    the YAML block.
-    """
+    """Remove a leading ``---\\n...\\n---`` YAML block, keeping any prose after it."""
     match = re.match(r"\s*---\n.*?\n---\n?", source, flags=re.DOTALL)
     return source[match.end() :].lstrip("\n") if match else source
 
 
 def _strip_raw_html(source: str) -> str:
-    """Remove ```` ```{=html} ... ``` ```` raw blocks (site-only, e.g. the Colab banner)."""
+    """Remove ```` ```{=html} ... ``` ```` raw blocks (site-only)."""
     return re.sub(r"```\{=html\}\n.*?\n```\n?", "", source, flags=re.DOTALL).lstrip(
         "\n"
     )
@@ -110,45 +107,41 @@ def convert_with_quarto(qmd: Path, dest: Path) -> None:
             "    pixi run -e docs python tools/build_quickstart_notebook.py\n"
             "(or: pixi run build-quickstart-notebook)"
         )
-    subprocess.run(
-        [quarto, "convert", str(qmd), "--output", str(dest)],
-        check=True,
-    )
+    subprocess.run([quarto, "convert", str(qmd), "--output", str(dest)], check=True)
 
 
-def build() -> None:
-    """Generate ``notebooks/quickstart.ipynb`` from ``docs/quickstart.qmd``."""
+def build_one(slug: str, title: str, build_stamp: str) -> Path:
+    """Generate ``notebooks/<slug>.ipynb`` from ``docs/<slug>.qmd``."""
+    src_qmd = REPO / "docs" / f"{slug}.qmd"
+    out_ipynb = REPO / "notebooks" / f"{slug}.ipynb"
     with tempfile.TemporaryDirectory() as tmp:
-        converted = Path(tmp) / "quickstart.ipynb"
-        convert_with_quarto(SRC_QMD, converted)
+        converted = Path(tmp) / f"{slug}.ipynb"
+        convert_with_quarto(src_qmd, converted)
         nb = nbformat.read(converted, as_version=4)
 
     cells = list(nb.cells)
-    # The first cell shares the YAML front matter with the intro prose — strip just the YAML.
     if cells and cells[0].source.lstrip().startswith("---"):
         cells[0]["cell_type"] = "markdown"
         cells[0]["source"] = _strip_front_matter(cells[0].source)
-    # Drop site-only raw-HTML blocks (the Colab banner) and any markdown cell left empty.
     for cell in cells:
         if cell.cell_type == "markdown":
             cell["source"] = _strip_raw_html(cell.source)
     cells = [c for c in cells if c.cell_type != "markdown" or c.source.strip()]
 
-    build_stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    title = new_markdown_cell(TITLE_CELL.replace("{{BUILD_STAMP}}", build_stamp))
+    title_md = TITLE_TEMPLATE.format(title=title, slug=slug).replace(
+        "{{BUILD_STAMP}}", build_stamp
+    )
+    title_cell = new_markdown_cell(title_md)
     install = new_code_cell(INSTALL_CELL)
     setup = new_code_cell(SETUP_CELL)
-    nb.cells = [title, install, setup, *cells]
+    nb.cells = [title_cell, install, setup, *cells]
 
-    # Reconcile cell ids with the nbformat minor version quarto emitted: ids are required from
-    # 4.5+ and forbidden before it. Use fixed ids for our cells so re-runs stay byte-stable.
     if nb.nbformat_minor >= 5:
-        title["id"], install["id"], setup["id"] = "title", "install", "setup"
+        title_cell["id"], install["id"], setup["id"] = "title", "install", "setup"
     else:
         for cell in nb.cells:
             cell.pop("id", None)
 
-    # A clean, Colab-friendly kernel; strip any execution counts/outputs from the conversion.
     nb.metadata["kernelspec"] = KERNELSPEC
     for cell in nb.cells:
         if cell.cell_type == "code":
@@ -156,9 +149,17 @@ def build() -> None:
             cell.execution_count = None
 
     nbformat.validate(nb)
-    OUT_IPYNB.parent.mkdir(parents=True, exist_ok=True)
-    nbformat.write(nb, OUT_IPYNB)
-    print(f"wrote {OUT_IPYNB.relative_to(REPO)}  ({len(nb.cells)} cells)")
+    out_ipynb.parent.mkdir(parents=True, exist_ok=True)
+    nbformat.write(nb, out_ipynb)
+    print(f"wrote {out_ipynb.relative_to(REPO)}  ({len(nb.cells)} cells)")
+    return out_ipynb
+
+
+def build() -> None:
+    """Generate one Colab notebook per module from its docs page."""
+    build_stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    for module in MODULES:
+        build_one(module["slug"], module["title"], build_stamp)
 
 
 if __name__ == "__main__":

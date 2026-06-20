@@ -2,6 +2,48 @@
 title: "Changelog"
 ---
 
+## 0.4.0 (2026-06-20)
+
+A reorganization release. expdpy is now structured around three conceptual modules —
+**Explore**, **Analyze** and **Learn** — across the public API, the documentation site, and the
+apps. The estimator surface is focused on linear panel methods. **This is a breaking change.**
+
+### Removed (breaking)
+
+- **IV / 2SLS, Poisson, and logit / probit estimators are gone.** `prepare_estimation` no
+  longer accepts `model="iv"` / `"poisson"` / `"logit"` / `"probit"` (nor the `endog` /
+  `instruments` arguments); it now covers **OLS** with stepwise / multiple-outcome comparison,
+  serial-correlation-robust standard errors (Newey–West, Driscoll–Kraay) and weights. Migrate
+  IV / GLM code to OLS-based or other panel methods.
+- The `iv` and `glm` concept-explainer topics were removed from `explain()` / `list_topics()`.
+- **The single combined `ExPdPy` app and the `expdpy-streamlit` console script are gone**,
+  replaced by three module apps (see below).
+
+### Added
+
+- `prepare_cre_table` — a **correlated-random-effects (Mundlak)** estimator that brings
+  FE-consistent within estimates into a random-effects frame, alongside `prepare_panel_table`
+  and `prepare_hausman_test`. A joint test on its unit-mean terms is the regression-form
+  Hausman test.
+- Two **Learn** sandboxes — `sandbox_first_differences` and `sandbox_within_vs_lsdv` (first
+  differences ≈ demeaning ≈ least-squares dummy variables) — plus matching explainer topics
+  (`first_differences`, `within_transformation` / `demeaning`, `dummy_variables` / `lsdv`,
+  `correlated_random_effects` / `mundlak`).
+- **Three no-code apps** — `ExploreApp`, `AnalyzeApp`, `LearnApp` (console scripts
+  `expdpy-explore`, `expdpy-analyze`, `expdpy-learn`; deploy scripts `app_explore.py`,
+  `app_analyze.py`, `app_learn.py`). They share the common shell and differ only in which pages
+  they expose; the Learn app adds an in-app concept-explainer browser.
+
+### Changed
+
+- **`linearmodels` is now a required dependency** (previously the optional `panel` extra).
+  Pooled / between / fixed / random effects, CRE and the Hausman test work out of the box;
+  `pip install "expdpy[panel]"` is kept as a no-op alias for compatibility.
+- **Reorganized into three modules.** The public `__all__`, the README, the documentation
+  reference, and the app navigation are grouped under **Explore** / **Analyze** / **Learn**. The
+  docs site now has one page per module (folding in the old Quickstart and Examples gallery),
+  and the home page leads with three module cards. No import paths change for retained functions.
+
 ## 0.3.0 (2026-06-19)
 
 ### Removed

@@ -46,6 +46,25 @@ def test_explain_alias_resolves():
     assert explain("clustering").topic == "clustered_se"
 
 
+def test_new_module_topics_and_aliases_resolve():
+    # Analyze: correlated random effects (Mundlak)
+    assert explain("mundlak").topic == "correlated_random_effects"
+    assert explain("cre").topic == "correlated_random_effects"
+    # Learn: the core panel-data identities
+    assert explain("demeaning").topic == "within_transformation"
+    assert explain("fd").topic == "first_differences"
+    assert explain("lsdv").topic == "dummy_variables"
+
+
+def test_removed_iv_glm_topics_are_gone():
+    topics = set(list_topics())
+    assert "iv" not in topics
+    assert "glm" not in topics
+    for alias in ("2sls", "poisson", "logit", "probit"):
+        with pytest.raises(KeyError):
+            explain(alias)
+
+
 def test_explain_unknown_raises_with_available():
     with pytest.raises(KeyError) as excinfo:
         explain("not_a_topic")

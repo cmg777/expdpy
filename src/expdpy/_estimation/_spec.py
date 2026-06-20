@@ -11,7 +11,6 @@ from dataclasses import dataclass
 from typing import Any, Literal
 
 __all__ = [
-    "ModelKind",
     "ModelSpec",
     "Stepwise",
     "VCovKind",
@@ -20,7 +19,6 @@ __all__ = [
 ]
 
 VCovKind = Literal["iid", "hetero", "HC1", "HC2", "HC3", "CRV1", "CRV3", "NW", "DK"]
-ModelKind = Literal["ols", "iv", "poisson", "logit", "probit"]
 Stepwise = Literal["sw", "sw0", "csw", "csw0"]
 
 
@@ -73,22 +71,16 @@ class VCovSpec:
 
 @dataclass(frozen=True)
 class ModelSpec:
-    """A normalized specification of a single (or stepwise/multi-outcome) model.
+    """A normalized specification of a single (or stepwise/multi-outcome) OLS model.
 
     Parameters
     ----------
     dv
         Dependent-variable name(s). More than one name builds a multi-outcome formula.
     idvs
-        Independent (exogenous) regressor names.
+        Independent regressor names.
     feffects
         Fixed-effect variable names absorbed by pyfixest.
-    endog
-        Endogenous regressors (instrumental-variables models only).
-    instruments
-        Excluded instruments (instrumental-variables models only).
-    model
-        Estimator family: ``"ols"``, ``"iv"``, ``"poisson"``, ``"logit"`` or ``"probit"``.
     stepwise
         Optional stepwise wrapper (``"sw"``, ``"sw0"``, ``"csw"`` or ``"csw0"``) applied to
         ``idvs`` to estimate a sequence of nested models in one call.
@@ -96,17 +88,11 @@ class ModelSpec:
         The variance-covariance specification.
     weights
         Optional weights column name.
-    offset
-        Optional offset column name (Poisson models).
     """
 
     dv: tuple[str, ...]
     idvs: tuple[str, ...]
     feffects: tuple[str, ...] = ()
-    endog: tuple[str, ...] = ()
-    instruments: tuple[str, ...] = ()
-    model: ModelKind = "ols"
     stepwise: Stepwise | None = None
     vcov: VCovSpec = VCovSpec()
     weights: str | None = None
-    offset: str | None = None

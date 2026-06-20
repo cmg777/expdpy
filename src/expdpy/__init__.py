@@ -1,10 +1,19 @@
-"""expdpy — Explore your panel data interactively.
+"""expdpy — Explore, Analyze and Learn panel data.
 
-A Python port of the ExPanDaR R package (Joachim Gassen, TRR 266). Provides a set
-of analytical functions for exploratory analysis of panel and cross-sectional data
-(descriptive tables, correlations, time trends, scatter plots, regression tables)
-returning interactive Plotly figures and Great Tables / pyfixest output, plus the
-``ExPdPy`` interactive app (Streamlit).
+A Python port of the ExPanDaR R package (Joachim Gassen, TRR 266), organized around three
+conceptual modules:
+
+* **Explore** — exploratory analysis of panel and cross-sectional data: descriptive and
+  correlation tables, distributions, time trends, group comparisons, missing-value maps and
+  scatter plots, returning interactive Plotly figures and Great Tables output.
+* **Analyze** — panel estimators: OLS / fixed effects, random effects, correlated random
+  effects (Mundlak), the Frisch-Waugh-Lovell plot, pooled / between models, the Hausman test,
+  post-estimation, robust inference and event-study / difference-in-differences.
+* **Learn** — a teaching layer: concept explainers (``explain`` / ``list_topics``),
+  plain-language ``.interpret()`` on every result, and runnable concept sandboxes.
+
+Three no-code ``ExPdPy`` apps (one per module) build on the same functions — see
+:mod:`expdpy.streamlit_app`.
 """
 
 from __future__ import annotations
@@ -16,6 +25,7 @@ from expdpy._types import (
     CoefficientPlotResult,
     CorrelationGraphResult,
     CorrelationTableResult,
+    CRETableResult,
     DescriptiveTableResult,
     EstimationResult,
     EventStudyResult,
@@ -40,6 +50,7 @@ from expdpy.by_group import (
 )
 from expdpy.coefplot import prepare_coefficient_plot
 from expdpy.correlation import prepare_correlation_graph
+from expdpy.cre import prepare_cre_table
 from expdpy.did import prepare_event_study, prepare_panel_view
 from expdpy.distributions import prepare_bar_chart, prepare_histogram
 from expdpy.estimation import prepare_estimation
@@ -57,8 +68,10 @@ from expdpy.postestimation import (
 from expdpy.regression import prepare_regression_table
 from expdpy.sandbox import (
     sandbox_clustering_se,
+    sandbox_first_differences,
     sandbox_omitted_variable_bias,
     sandbox_pooled_vs_fixed_effects,
+    sandbox_within_vs_lsdv,
 )
 from expdpy.scatter import prepare_scatter_plot
 from expdpy.tables import (
@@ -68,15 +81,19 @@ from expdpy.tables import (
 )
 from expdpy.trends import prepare_quantile_trend_graph, prepare_trend_graph
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 __all__ = [
-    # outliers
+    # ===== EXPLORE =====
+    # outlier treatment
     "treat_outliers",
     # tables
     "prepare_descriptive_table",
     "prepare_correlation_table",
     "prepare_ext_obs_table",
+    # distributions
+    "prepare_histogram",
+    "prepare_bar_chart",
     # correlation graph
     "prepare_correlation_graph",
     # trends
@@ -86,62 +103,67 @@ __all__ = [
     "prepare_by_group_bar_graph",
     "prepare_by_group_trend_graph",
     "prepare_by_group_violin_graph",
-    # distributions
-    "prepare_histogram",
-    "prepare_bar_chart",
-    # missing
+    # missing values
     "prepare_missing_values_graph",
     # scatter
     "prepare_scatter_plot",
-    # regression
+    # ===== ANALYZE =====
+    # regression table (OLS / fixed effects / clustered SEs)
     "prepare_regression_table",
-    # estimation (IV / Poisson / GLM / model comparison)
+    # estimation (OLS + stepwise + Newey-West / Driscoll-Kraay + weights)
     "prepare_estimation",
+    # diagnostic plots
+    "prepare_fwl_plot",
+    "prepare_coefficient_plot",
+    # panel models (pooled / between / fixed / random effects, CRE) + Hausman
+    "prepare_panel_table",
+    "prepare_cre_table",
+    "prepare_hausman_test",
     # post-estimation
     "prepare_fixef_plot",
     "prepare_predictions",
     "prepare_joint_test",
     # robust inference
     "prepare_robust_inference",
-    # fwl plot
-    "prepare_fwl_plot",
-    # coefficient plot
-    "prepare_coefficient_plot",
     # event study / staggered DiD
     "prepare_event_study",
     "prepare_panel_view",
+    # ===== LEARN =====
     # concept sandboxes
     "sandbox_omitted_variable_bias",
     "sandbox_pooled_vs_fixed_effects",
     "sandbox_clustering_se",
-    # panel models (linearmodels)
-    "prepare_panel_table",
-    "prepare_hausman_test",
+    "sandbox_first_differences",
+    "sandbox_within_vs_lsdv",
     # pedagogy
     "explain",
     "list_topics",
     "Explainer",
-    # result types
+    # ===== RESULT TYPES =====
+    # explore
     "DescriptiveTableResult",
     "CorrelationTableResult",
-    "CorrelationGraphResult",
     "ExtObsTableResult",
+    "HistogramResult",
+    "BarChartResult",
+    "CorrelationGraphResult",
     "TrendGraphResult",
     "QuantileTrendGraphResult",
     "ByGroupBarGraphResult",
     "ByGroupTrendGraphResult",
-    "HistogramResult",
-    "BarChartResult",
+    # analyze
     "RegressionTableResult",
+    "EstimationResult",
     "FWLPlotResult",
     "CoefficientPlotResult",
-    "EstimationResult",
+    "CRETableResult",
+    "HausmanTestResult",
     "FixefPlotResult",
     "PredictionResult",
     "JointTestResult",
     "RobustInferenceResult",
     "EventStudyResult",
     "PanelViewResult",
+    # learn
     "SandboxResult",
-    "HausmanTestResult",
 ]

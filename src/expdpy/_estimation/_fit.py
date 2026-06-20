@@ -18,11 +18,10 @@ SSC = pf.ssc(k_adj=True, G_adj=True)
 
 
 def fit_model(data: pd.DataFrame, spec: ModelSpec, *, ssc: Any = SSC) -> Any:
-    """Fit ``spec`` on ``data`` via the appropriate pyfixest estimator.
+    """Fit ``spec`` on ``data`` via ``pyfixest.feols``.
 
-    Dispatches OLS/IV to ``feols``, ``"poisson"`` to ``fepois`` and ``"logit"``/``"probit"``
-    to ``feglm``. The caller is responsible for column selection, NA handling and casting
-    fixed effects to ``category`` (so behavior matches the historical implementation).
+    The caller is responsible for column selection, NA handling and casting fixed effects to
+    ``category`` (so behavior matches the historical implementation).
 
     Parameters
     ----------
@@ -36,8 +35,8 @@ def fit_model(data: pd.DataFrame, spec: ModelSpec, *, ssc: Any = SSC) -> Any:
     Returns
     -------
     Any
-        A fitted pyfixest model (``Feols`` / ``Fepois`` / ``Feglm``), or a ``FixestMulti``
-        when ``spec`` requests stepwise or multiple outcomes.
+        A fitted pyfixest ``Feols`` model, or a ``FixestMulti`` when ``spec`` requests
+        stepwise or multiple outcomes.
     """
     fml = build_formula(spec)
     vcov, vcov_kwargs = build_vcov(spec.vcov)
@@ -47,10 +46,4 @@ def fit_model(data: pd.DataFrame, spec: ModelSpec, *, ssc: Any = SSC) -> Any:
     if spec.weights:
         kwargs["weights"] = spec.weights
 
-    if spec.model in ("ols", "iv"):
-        return pf.feols(fml, data=data, **kwargs)
-    if spec.model == "poisson":
-        return pf.fepois(fml, data=data, **kwargs)
-    if spec.model in ("logit", "probit"):
-        return pf.feglm(fml, data=data, family=spec.model, **kwargs)
-    raise ValueError(f"unknown model kind: {spec.model!r}")  # pragma: no cover
+    return pf.feols(fml, data=data, **kwargs)

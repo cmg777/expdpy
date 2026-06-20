@@ -1,7 +1,8 @@
 """In-memory → subprocess data handoff for the Streamlit ExPdPy app.
 
-Streamlit runs as a separate process, so :func:`expdpy.streamlit_app.ExPdPy`
-cannot hand a live DataFrame to the running app directly. Instead the launcher writes a
+Streamlit runs as a separate process, so the module launchers
+(:func:`expdpy.streamlit_app.ExploreApp` and friends) cannot hand a live DataFrame to the
+running app directly. Instead the launcher writes a
 small *bundle* (the sample(s) as parquet plus a JSON manifest of options) to a temporary
 directory and points the app at it via the :data:`EXPDPY_BUNDLE_ENV` environment variable.
 The app reads the bundle exactly once on startup (see :mod:`expdpy.streamlit_app._context`).
@@ -29,6 +30,7 @@ from expdpy.streamlit_app._appcore import (
 
 __all__ = [
     "EXPDPY_BUNDLE_ENV",
+    "EXPDPY_MODULE_ENV",
     "Bundle",
     "write_bundle",
     "read_bundle",
@@ -40,6 +42,8 @@ __all__ = [
 
 #: Environment variable holding the path to a serialized :class:`Bundle`.
 EXPDPY_BUNDLE_ENV = "EXPDPY_STREAMLIT_BUNDLE"
+#: Environment variable naming which module's app to render (explore / analyze / learn).
+EXPDPY_MODULE_ENV = "EXPDPY_MODULE"
 
 _MANIFEST = "manifest.json"
 

@@ -1,11 +1,11 @@
-"""The unified estimator: OLS, IV/2SLS, Poisson and logit/probit, with model comparison.
+"""The OLS estimator with model comparison and panel-friendly standard errors.
 
 ``prepare_estimation`` is the home for everything beyond the classic OLS table that
-``prepare_regression_table`` provides: instrumental variables, count/binary outcomes,
-richer standard errors (heteroskedastic, cluster-robust, Newey-West / Driscoll-Kraay) and
-stepwise / multi-outcome comparison (estimate a sequence of nested models in one call and
-read them side by side). It builds on the shared :mod:`expdpy._estimation` engine, so its
-numbers stay consistent with the rest of the library.
+``prepare_regression_table`` provides: richer standard errors (heteroskedastic,
+cluster-robust, Newey-West / Driscoll-Kraay), weights, and stepwise / multi-outcome
+comparison (estimate a sequence of nested models in one call and read them side by side).
+It builds on the shared :mod:`expdpy._estimation` engine, so its numbers stay consistent
+with the rest of the library.
 """
 
 from __future__ import annotations
@@ -60,22 +60,20 @@ def _resolve_vcov(
     )
 
 
-def _fit_stats(models: list[Any], model_kind: str) -> pd.DataFrame:
-    """Build a one-row-per-model fit-statistics frame (kind-aware: R² vs pseudo-R²)."""
+def _fit_stats(models: list[Any]) -> pd.DataFrame:
+    """Build a one-row-per-model fit-statistics frame (N, R², within-R²)."""
     rows = []
     for i, m in enumerate(models):
-        row: dict[str, Any] = {
-            "model": i + 1,
-            "depvar": getattr(m, "_depvar", None),
-            "N": int(getattr(m, "_N", 0)),
-            "has_fe": bool(getattr(m, "_has_fixef", False)),
-        }
-        if model_kind in ("poisson", "logit", "probit"):
-            row["pseudo_r2"] = float(getattr(m, "_pseudo_r2", float("nan")))
-        else:
-            row["r2"] = float(getattr(m, "_r2", float("nan")))
-            row["r2_within"] = float(getattr(m, "_r2_within", float("nan")))
-        rows.append(row)
+        rows.append(
+            {
+                "model": i + 1,
+                "depvar": getattr(m, "_depvar", None),
+                "N": int(getattr(m, "_N", 0)),
+                "has_fe": bool(getattr(m, "_has_fixef", False)),
+                "r2": float(getattr(m, "_r2", float("nan"))),
+                "r2_within": float(getattr(m, "_r2_within", float("nan"))),
+            }
+        )
     return pd.DataFrame(rows)
 
 
@@ -84,10 +82,7 @@ def prepare_estimation(
     dv: Sequence[str] | str,
     idvs: Sequence[str] | str | None = None,
     *,
-    model: Literal["ols", "iv", "poisson", "logit", "probit"] = "ols",
     feffects: Sequence[str] | str | None = None,
-    endog: Sequence[str] | str | None = None,
-    instruments: Sequence[str] | str | None = None,
     stepwise: Stepwise | None = None,
     vcov: str | Mapping[str, str] | VCovSpec | None = None,
     cluster: Sequence[str] | str | None = None,
@@ -98,7 +93,11 @@ def prepare_estimation(
     ssc: Any | None = None,
     format: Literal["gt", "tex", "md", "df", "html"] = "gt",
 ) -> EstimationResult:
-    """Estimate an OLS, IV, Poisson or logit/probit model (optionally several at once).
+    """Estimate an OLS model, optionally several nested or multi-outcome models at once.
+
+    A richer companion to :func:`expdpy.prepare_regression_table`: same OLS/fixed-effects
+    core, but with stepwise nested-model comparison, serial-correlation-robust standard
+    errors (Newey-West / Driscoll-Kraay), multiple outcomes and weights.
 
     Parameters
     ----------
@@ -108,14 +107,9 @@ def prepare_estimation(
         Dependent-variable name, or several names to estimate the same right-hand side for
         each outcome side by side.
     idvs
-        Independent (exogenous) regressor name(s). Optional for a pure IV model.
-    model
-        Estimator: ``"ols"`` (default), ``"iv"`` (2SLS), ``"poisson"`` (counts), or
-        ``"logit"`` / ``"probit"`` (binary outcomes).
+        Independent regressor name(s).
     feffects
         Fixed-effect variable name(s) absorbed during estimation.
-    endog, instruments
-        For ``model="iv"``: the endogenous regressor(s) and the excluded instrument(s).
     stepwise
         Wrap ``idvs`` in a stepwise sequence — ``"sw"``/``"sw0"`` (separate) or
         ``"csw"``/``"csw0"`` (cumulative) — to estimate nested models in one call and read
@@ -145,7 +139,7 @@ def prepare_estimation(
 
     Examples
     --------
-    Basic — instrumental variables (2SLS):
+    Basic — a single OLS regression with heteroskedastic standard errors:
 
     ```python
     import expdpy as ex
@@ -155,11 +149,8 @@ def prepare_estimation(
     ex.prepare_estimation(
         df,
         dv="gini_regional",
-        idvs=["log_gdp_pc_sq"],
-        model="iv",
-        endog=["log_gdp_pc"],
-        instruments=["log_gdp_pc_cu"],
-        cluster=["country"],
+        idvs=["log_gdp_pc", "log_gdp_pc_sq"],
+        vcov="hetero",
     ).etable
     ```
 
@@ -182,13 +173,9 @@ def prepare_estimation(
     dv_list = as_list(dv)
     idv_list = as_list(idvs)
     fe_list = as_list(feffects)
-    endog_list = as_list(endog)
-    instr_list = as_list(instruments)
 
     if not dv_list:
         raise ValueError("at least one dependent variable is required")
-    if model == "iv" and (not endog_list or not instr_list):
-        raise ValueError("model='iv' requires both 'endog' and 'instruments'")
 
     vspec = _resolve_vcov(vcov, cluster, time_id, panel_id, lag)
     extra = [c for c in (vspec.time_id, vspec.panel_id, weights) if c]
@@ -198,8 +185,6 @@ def prepare_estimation(
                 *dv_list,
                 *idv_list,
                 *fe_list,
-                *endog_list,
-                *instr_list,
                 *vspec.cluster,
                 *extra,
             ]
@@ -224,9 +209,6 @@ def prepare_estimation(
         dv=tuple(dv_list),
         idvs=tuple(idv_list),
         feffects=tuple(fe_list),
-        endog=tuple(endog_list),
-        instruments=tuple(instr_list),
-        model=model,
         stepwise=stepwise,
         vcov=vspec,
         weights=weights,
@@ -237,7 +219,7 @@ def prepare_estimation(
     tidy_df = pd.concat(
         [tidy_model(m, i + 1) for i, m in enumerate(models)], ignore_index=True
     )
-    fit_stats = _fit_stats(models, model)
+    fit_stats = _fit_stats(models)
 
     notes: list[str] = []
     if vspec.kind in ("CRV1", "CRV3") and vspec.cluster:
@@ -247,20 +229,6 @@ def prepare_estimation(
                 f"Only {n_groups} clusters: cluster-robust inference is unreliable with few "
                 "clusters — consider a wild cluster bootstrap via prepare_robust_inference()."
             )
-    if model in ("poisson", "logit", "probit"):
-        for i, m in enumerate(models, start=1):
-            tag = f"Model {i}: " if len(models) > 1 else ""
-            n_sep = int(getattr(m, "n_separation_na", 0) or 0)
-            if n_sep:
-                notes.append(
-                    f"{tag}{n_sep} observation(s) dropped because a fixed effect perfectly "
-                    "predicted the outcome (separation)."
-                )
-            if not bool(getattr(m, "_convergence", True)):
-                notes.append(
-                    f"{tag}the estimation algorithm did not fully converge — "
-                    "interpret with caution."
-                )
 
     etable_type = "gt" if format == "html" else format
     if etable_type == "md":
@@ -276,7 +244,7 @@ def prepare_estimation(
         models=models,
         etable=etable,
         df=tidy_df,
-        model_kind=model,
+        model_kind="ols",
         fit_stats=fit_stats,
         notes=tuple(notes),
     )

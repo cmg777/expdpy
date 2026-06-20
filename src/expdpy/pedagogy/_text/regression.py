@@ -147,35 +147,6 @@ register_topic(
 
 register_topic(
     Explainer(
-        topic="iv",
-        title="Instrumental variables (IV / 2SLS)",
-        what=(
-            "When a regressor is correlated with the error term (so OLS is biased), "
-            "instrumental variables use a *third* variable — an instrument — that shifts the "
-            "endogenous regressor but affects the outcome only through it. Two-stage least "
-            "squares first predicts the endogenous regressor from the instruments, then uses "
-            "that prediction in place of the original."
-        ),
-        when_to_use=(
-            "To address endogeneity from simultaneity, omitted variables or measurement error "
-            "— when you have an instrument that is *relevant* (predicts the regressor) and "
-            "*excludable* (affects the outcome only through that regressor)."
-        ),
-        caveats=(
-            "Weak instruments (low first-stage F, rule of thumb < 10) give badly biased, "
-            "imprecise estimates — always check the first-stage strength.",
-            "The exclusion restriction cannot be tested; it must be argued from context.",
-            "IV recovers a *local* average treatment effect for the units the instrument "
-            "moves, not the population average.",
-        ),
-        see_also=("ols", "fixed_effects"),
-        references=("Angrist & Pischke, Mostly Harmless Econometrics, ch. 4",),
-    ),
-    aliases=("2sls", "instrumental_variables"),
-)
-
-register_topic(
-    Explainer(
         topic="random_effects",
         title="Random effects",
         what=(
@@ -224,34 +195,4 @@ register_topic(
         see_also=("fixed_effects", "random_effects"),
         references=("Hausman (1978); Wooldridge, Introductory Econometrics, ch. 14",),
     )
-)
-
-register_topic(
-    Explainer(
-        topic="glm",
-        title="Nonlinear models with fixed effects (Poisson, logit, probit)",
-        what=(
-            "Generalized linear models fit non-continuous outcomes through a link function: "
-            "Poisson for counts (log link), logit/probit for binary outcomes. Coefficients "
-            "live on the link scale, so they are not read as plain changes in the outcome — a "
-            "Poisson coefficient is a semi-elasticity (percent change), a logit coefficient a "
-            "log-odds change (its exponent is an odds ratio)."
-        ),
-        when_to_use=(
-            "Poisson for count or non-negative outcomes (and, robustly, for log-link models "
-            "generally); logit/probit for binary outcomes. All support fixed effects via "
-            "pyfixest."
-        ),
-        caveats=(
-            "Coefficients need transformation to be interpretable — odds ratios for logit, "
-            "percent changes for Poisson, or average marginal effects.",
-            "Separation (a fixed effect perfectly predicting the outcome) silently drops "
-            "observations; check the reported sample size.",
-            "Poisson assumes the mean equals the variance; over-dispersion calls for "
-            "cluster-robust standard errors (the default here) or a different model.",
-        ),
-        see_also=("ols", "fixed_effects", "clustered_se"),
-        references=("Wooldridge, Introductory Econometrics, ch. 17",),
-    ),
-    aliases=("poisson", "logit", "probit"),
 )

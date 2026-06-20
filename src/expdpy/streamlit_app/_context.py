@@ -2,9 +2,11 @@
 
 Three startup paths are supported, in priority order:
 
-1. **Launch bundle** — :func:`expdpy.streamlit_app.ExPdPy` wrote a bundle and pointed
-   us at it via :data:`expdpy.streamlit_app._handoff.EXPDPY_BUNDLE_ENV`. The bundle is read
-   exactly once (its temp directory may be cleaned up afterwards).
+1. **Launch bundle** — a module launcher (:func:`expdpy.streamlit_app.ExploreApp` /
+   :func:`~expdpy.streamlit_app.AnalyzeApp` / :func:`~expdpy.streamlit_app.LearnApp`) wrote a
+   bundle and pointed us at it via
+   :data:`expdpy.streamlit_app._handoff.EXPDPY_BUNDLE_ENV`. The bundle is read exactly once
+   (its temp directory may be cleaned up afterwards).
 2. **Bundled-dataset picker** — no bundle (e.g. on Streamlit Community Cloud): the user picks
    one of the example datasets shipped with the package.
 3. **Upload** — the user uploads their own file, which overrides the selected dataset.

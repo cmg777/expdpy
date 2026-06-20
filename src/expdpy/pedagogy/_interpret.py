@@ -18,12 +18,12 @@ from typing import Any
 from expdpy.pedagogy._format import (
     direction_word,
     fmt_num,
-    sign_word,
     significance_phrase,
 )
 
 __all__ = [
     "interpret_correlation",
+    "interpret_cre",
     "interpret_descriptive",
     "interpret_estimation",
     "interpret_event_study",
@@ -89,25 +89,8 @@ def interpret_regression(result: Any, *, lang: str = "en") -> str:
     return "\n".join(parts)
 
 
-def _coef_phrase(model_kind: str, term: str, est: float, dv: str) -> str:
-    """Return the model-kind-appropriate plain-language phrase for one coefficient."""
-    if model_kind == "poisson":
-        pct = (math.exp(est) - 1) * 100
-        return (
-            f"each one-unit increase is associated with about a {fmt_num(pct)}% "
-            f"change in {dv}"
-        )
-    if model_kind == "logit":
-        return (
-            f"each one-unit increase multiplies the odds of {dv} by "
-            f"{fmt_num(math.exp(est))} (odds ratio)"
-        )
-    if model_kind == "probit":
-        return (
-            f"has a {sign_word(est)} association with the latent index for {dv} "
-            "(an average marginal effect needs separate computation)"
-        )
-    # ols / iv
+def _coef_phrase(term: str, est: float, dv: str) -> str:
+    """Return the plain-language phrase for one OLS coefficient."""
     return (
         f"each one-unit increase is associated with {dv} that is "
         f"{fmt_num(abs(est))} {direction_word(est)}"
@@ -115,26 +98,17 @@ def _coef_phrase(model_kind: str, term: str, est: float, dv: str) -> str:
 
 
 def interpret_estimation(result: Any, *, lang: str = "en") -> str:
-    """Interpret an :class:`~expdpy.EstimationResult` (OLS, IV, Poisson, logit, probit)."""
-    kind = result.model_kind
+    """Interpret an :class:`~expdpy.EstimationResult` (OLS)."""
     model = result.models[0]
     df = result.df
     dv = str(getattr(model, "_depvar", "the outcome"))
     has_fe = bool(getattr(model, "_has_fixef", False))
     clustered = bool(getattr(model, "_is_clustered", False))
 
-    kind_label = {
-        "ols": "OLS",
-        "iv": "instrumental-variables (2SLS)",
-        "poisson": "Poisson",
-        "logit": "logit",
-        "probit": "probit",
-    }.get(kind, kind)
-
     first_id = df["model"].iloc[0]
     sub = df[df["model"] == first_id]
 
-    head = [f"This {kind_label} model relates **{dv}** to its regressors."]
+    head = [f"This OLS model relates **{dv}** to its regressors."]
     if has_fe:
         head.append(
             f"Fixed effects for *{getattr(model, '_fixef', '')}* absorb time-invariant "
@@ -145,27 +119,64 @@ def interpret_estimation(result: Any, *, lang: str = "en") -> str:
         head.append(f"Standard errors are clustered by *{cl}*.")
 
     bullets = []
-    endog = set(getattr(model, "_endogvars", []) or [])
     for _, row in sub.iterrows():
         term = str(row["term"])
         if term.lower() == "intercept":
             continue
-        phrase = _coef_phrase(kind, term, float(row["Estimate"]), dv)
-        tag = " *(instrumented)*" if term in endog else ""
+        phrase = _coef_phrase(term, float(row["Estimate"]), dv)
         bullets.append(
-            f"- **{term}**{tag}: {phrase} "
-            f"({significance_phrase(float(row['Pr(>|t|)']))})."
+            f"- **{term}**: {phrase} ({significance_phrase(float(row['Pr(>|t|)']))})."
         )
 
-    parts = [" ".join(head), "", *bullets]
-    if kind == "iv":
-        parts += [
-            "",
-            "_IV identifies a local average treatment effect only if the instruments are "
-            "relevant (strong first stage) and excludable._",
-        ]
-    parts += ["", _ASSOC_NOTE]
+    parts = [" ".join(head), "", *bullets, "", _ASSOC_NOTE]
     return "\n".join(parts)
+
+
+def interpret_cre(result: Any, *, lang: str = "en") -> str:
+    """Interpret a Correlated Random Effects (Mundlak) model: within estimates + FE-vs-RE."""
+    model = result.models[0]
+    df = result.df
+    dv = str(getattr(model, "_depvar", "the outcome"))
+    means = set(getattr(model, "_cre_means", []))
+    stat = float(getattr(model, "_cre_mundlak_stat", math.nan))
+    p = float(getattr(model, "_cre_mundlak_p", math.nan))
+    k = int(getattr(model, "_cre_mundlak_df", len(means)))
+
+    lines = [
+        f"This Correlated Random Effects (Mundlak) model relates **{dv}** to its regressors "
+        "*and* their unit (entity) means. By the Mundlak equivalence the coefficient on each "
+        "original regressor equals its **within (fixed-effects)** estimate, while the "
+        "coefficient on the mean is the gap between the between- and within-unit "
+        "associations.",
+        "",
+    ]
+    first_id = df["model"].iloc[0]
+    sub = df[df["model"] == first_id]
+    for _, row in sub.iterrows():
+        term = str(row["term"])
+        if term.lower() == "intercept" or term in means:
+            continue
+        est = float(row["Estimate"])
+        lines.append(
+            f"- **{term}** (within estimate): a one-unit increase is associated with {dv} "
+            f"that is {fmt_num(abs(est))} {direction_word(est)} "
+            f"({significance_phrase(float(row['Pr(>|t|)']))})."
+        )
+    if not math.isnan(p):
+        verdict = (
+            "differ from zero, so the unit effects are correlated with the regressors — "
+            "**prefer fixed effects** (random effects would be biased)"
+            if p < 0.05
+            else "are indistinguishable from zero, so **random effects is admissible** "
+            "(and more efficient than fixed effects)"
+        )
+        lines += [
+            "",
+            f"Joint test that the {k} mean coefficient(s) are zero — the regression-form "
+            f"Hausman test — χ²({k}) = {fmt_num(stat)}, p = {fmt_num(p)}: this {verdict}.",
+        ]
+    lines += ["", _ASSOC_NOTE]
+    return "\n".join(lines)
 
 
 def interpret_event_study(result: Any, *, lang: str = "en") -> str:
@@ -239,6 +250,22 @@ def interpret_sandbox(result: Any, *, lang: str = "en") -> str:
             f"changes only the standard error, from {fmt_num(s['iid_se'])} (iid) to "
             f"{fmt_num(s['clustered_se'])} (clustered), a {fmt_num(s['se_ratio'])}x increase. "
             "Ignoring within-cluster correlation overstates precision."
+        )
+    if topic == "first_differences":
+        return (
+            f"Pooled OLS estimates {fmt_num(s['pooled_coef'])}, biased by the unit effects. "
+            f"First differencing gives {fmt_num(s['fd_coef'])} and the within (demeaning) "
+            f"estimator {fmt_num(s['within_coef'])} — both recover the true "
+            f"{fmt_num(s['true_beta'])}, because differencing and demeaning each cancel the "
+            "unit effect. On this two-period panel they coincide (gap "
+            f"{fmt_num(s['fd_within_gap'])})."
+        )
+    if topic == "within_transformation":
+        return (
+            f"The within (demeaning) estimator gives {fmt_num(s['within_coef'])} and "
+            f"least-squares dummy variables {fmt_num(s['lsdv_coef'])} — the same slope (gap "
+            f"{fmt_num(s['within_lsdv_gap'])}) versus the true {fmt_num(s['true_beta'])}. "
+            "Demeaning and a dummy per unit do the same job (Frisch-Waugh-Lovell)."
         )
     return "Sandbox demonstration."  # pragma: no cover - defensive
 

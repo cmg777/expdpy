@@ -19,6 +19,7 @@ from expdpy.pedagogy import Interpretable
 from expdpy.pedagogy import explain as _explain
 from expdpy.pedagogy._interpret import (
     interpret_correlation,
+    interpret_cre,
     interpret_descriptive,
     interpret_estimation,
     interpret_event_study,
@@ -39,6 +40,7 @@ __all__ = [
     "BarChartResult",
     "ByGroupBarGraphResult",
     "ByGroupTrendGraphResult",
+    "CRETableResult",
     "CoefficientPlotResult",
     "CorrelationGraphResult",
     "CorrelationTableResult",
@@ -248,6 +250,25 @@ class RegressionTableResult(Interpretable):
 
 
 @dataclass(frozen=True)
+class CRETableResult(RegressionTableResult):
+    """Result of :func:`expdpy.prepare_cre_table`.
+
+    A :class:`RegressionTableResult` carrying a single fitted Correlated Random Effects
+    (Mundlak) model. ``models[0]`` additionally exposes ``_cre_means`` (the entity-mean
+    regressors) and the Mundlak Wald test (``_cre_mundlak_stat`` / ``_cre_mundlak_df`` /
+    ``_cre_mundlak_p``) — the regression-form Hausman test.
+    """
+
+    def interpret(self, *, lang: str = "en") -> str:
+        """Plain-language Mundlak reading: within estimates plus the FE-vs-RE verdict."""
+        return interpret_cre(self, lang=lang)
+
+    def explain(self, *, lang: str = "en") -> Explainer:
+        """Concept explainer for correlated random effects (the Mundlak device)."""
+        return _explain("correlated_random_effects", lang=lang)
+
+
+@dataclass(frozen=True)
 class FWLPlotResult(Interpretable):
     """Result of :func:`expdpy.prepare_fwl_plot`.
 
@@ -301,9 +322,8 @@ class EstimationResult(Interpretable):
     """Result of :func:`expdpy.prepare_estimation`.
 
     ``models`` are the fitted pyfixest model(s), ``etable`` the rendered table, ``df`` the
-    tidy coefficient frame, ``model_kind`` the estimator (``"ols"``/``"iv"``/``"poisson"``/
-    ``"logit"``/``"probit"``), ``fit_stats`` a one-row-per-model summary, and ``notes`` any
-    advisory messages raised during estimation.
+    tidy coefficient frame, ``model_kind`` the estimator (always ``"ols"``), ``fit_stats`` a
+    one-row-per-model summary, and ``notes`` any advisory messages raised during estimation.
     """
 
     models: list[Any]
@@ -314,23 +334,18 @@ class EstimationResult(Interpretable):
     notes: tuple[str, ...] = ()
 
     def interpret(self, *, lang: str = "en") -> str:
-        """Model-kind-aware plain-language reading of the coefficients."""
+        """Plain-language reading of the OLS coefficients."""
         return interpret_estimation(self, lang=lang)
 
     def explain(self, *, lang: str = "en") -> Explainer:
-        """Concept explainer keyed to the estimator and design."""
-        if self.model_kind == "iv":
-            topic = "iv"
-        elif self.model_kind in ("poisson", "logit", "probit"):
-            topic = "glm"
+        """Concept explainer keyed to the design (OLS / fixed effects / clustered SEs)."""
+        model = self.models[0]
+        if bool(getattr(model, "_has_fixef", False)):
+            topic = "fixed_effects"
+        elif bool(getattr(model, "_is_clustered", False)):
+            topic = "clustered_se"
         else:
-            model = self.models[0]
-            if bool(getattr(model, "_has_fixef", False)):
-                topic = "fixed_effects"
-            elif bool(getattr(model, "_is_clustered", False)):
-                topic = "clustered_se"
-            else:
-                topic = "ols"
+            topic = "ols"
         return _explain(topic, lang=lang)
 
     def tidy(self) -> pd.DataFrame:

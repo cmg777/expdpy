@@ -6,6 +6,22 @@ Importing this package registers every shipped topic into the
 
 from __future__ import annotations
 
-from expdpy.pedagogy._text import causal, correlation, outliers, regression, tables
+from expdpy.pedagogy._text import (
+    causal,
+    correlation,
+    cre,
+    learn,
+    outliers,
+    regression,
+    tables,
+)
 
-__all__ = ["causal", "correlation", "outliers", "regression", "tables"]
+__all__ = [
+    "causal",
+    "correlation",
+    "cre",
+    "learn",
+    "outliers",
+    "regression",
+    "tables",
+]

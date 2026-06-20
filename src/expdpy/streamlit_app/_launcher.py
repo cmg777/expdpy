@@ -63,14 +63,22 @@ def launch(
     export_nb_option: bool,
     save_settings_option: bool,
     base_cfg: dict,
+    module: str | None = None,
     run: bool = True,
     **run_kwargs: Any,
 ) -> subprocess.Popen | list[str]:
     """Write the data bundle (if any) and start (or describe) the Streamlit process.
 
+    ``module`` (``"explore"`` / ``"analyze"`` / ``"learn"``) is handed to the subprocess via
+    the :data:`~expdpy.streamlit_app._handoff.EXPDPY_MODULE_ENV` environment variable so the
+    app renders only that module's pages.
+
     Returns the :class:`subprocess.Popen` when ``run`` is true, or the command list when
     ``run`` is false (used by the test-suite to assert the invocation without spawning).
     """
+    if module:
+        os.environ[handoff.EXPDPY_MODULE_ENV] = module
+
     bundle: str | None = None
     if samples:
         bundle = handoff.write_bundle(

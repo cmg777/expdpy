@@ -11,8 +11,6 @@ The builder tests exercise the pure ``_formula`` / ``_vcov`` helpers directly.
 
 from __future__ import annotations
 
-import numpy as np
-import pandas as pd
 import pytest
 
 from expdpy import prepare_regression_table
@@ -21,7 +19,6 @@ from expdpy._estimation import (
     VCovSpec,
     build_formula,
     build_vcov,
-    fit_model,
 )
 
 # Golden values captured from the pre-refactor implementation (pyfixest 0.60.0).
@@ -125,25 +122,6 @@ def test_build_formula_stepwise():
     assert build_formula(spec) == "y ~ csw(x1, x2, x3)"
 
 
-def test_build_formula_iv_with_and_without_fe():
-    base = {
-        "dv": ("y",),
-        "idvs": ("x",),
-        "model": "iv",
-        "endog": ("d",),
-        "instruments": ("z1", "z2"),
-    }
-    assert build_formula(ModelSpec(**base)) == "y ~ x | d ~ z1 + z2"
-    assert build_formula(ModelSpec(**base, feffects=("firm",))) == (
-        "y ~ x | firm | d ~ z1 + z2"
-    )
-
-
-def test_build_formula_iv_requires_endog_and_instruments():
-    with pytest.raises(ValueError, match="endog"):
-        build_formula(ModelSpec(dv=("y",), idvs=("x",), model="iv"))
-
-
 def test_build_vcov_variants():
     assert build_vcov(VCovSpec(kind="iid")) == ("iid", None)
     assert build_vcov(VCovSpec(kind="HC1")) == ("HC1", None)
@@ -161,43 +139,3 @@ def test_build_vcov_errors():
         build_vcov(VCovSpec(kind="CRV1"))
     with pytest.raises(ValueError, match="time_id"):
         build_vcov(VCovSpec(kind="DK", time_id="t"))
-
-
-# --- fit dispatch (the Round 2 estimator foundation) ---------------------------------
-
-
-@pytest.fixture(scope="module")
-def synth() -> pd.DataFrame:
-    rng = np.random.default_rng(1)
-    n = 600
-    z1, z2 = rng.normal(size=n), rng.normal(size=n)
-    d = 0.7 * z1 + 0.3 * z2 + rng.normal(size=n)  # endogenous
-    y = 1.5 * d + rng.normal(size=n)  # true effect of d == 1.5
-    x = rng.normal(size=n)
-    return pd.DataFrame(
-        {
-            "y": y,
-            "d": d,
-            "z1": z1,
-            "z2": z2,
-            "x": x,
-            "firm": rng.integers(0, 20, n),
-            "count": rng.poisson(np.exp(0.2 + 0.3 * x)),
-            "binary": (x + rng.normal(size=n) > 0).astype(int),
-        }
-    )
-
-
-def test_fit_model_iv_recovers_effect(synth):
-    spec = ModelSpec(
-        dv=("y",), idvs=(), model="iv", endog=("d",), instruments=("z1", "z2")
-    )
-    model = fit_model(synth, spec)
-    assert float(model.coef()["d"]) == pytest.approx(1.5, abs=0.1)
-
-
-def test_fit_model_poisson_and_logit(synth):
-    pois = fit_model(synth, ModelSpec(dv=("count",), idvs=("x",), model="poisson"))
-    assert "x" in pois.coef().index
-    logit = fit_model(synth, ModelSpec(dv=("binary",), idvs=("x",), model="logit"))
-    assert float(logit.coef()["x"]) > 0  # x drives the binary outcome

@@ -5,12 +5,13 @@ This private package holds the building blocks that every estimator plugs into:
 * :mod:`._spec` — the normalized :class:`ModelSpec` / :class:`VCovSpec` dataclasses,
 * :mod:`._formula` — a pure pyfixest-formula builder,
 * :mod:`._vcov` — a pure ``(vcov, vcov_kwargs)`` builder,
-* :mod:`._fit` — dispatch to ``feols`` / ``fepois`` / ``feglm`` (+ the SSC default),
+* :mod:`._fit` — the ``feols`` fit wrapper (+ the SSC default),
 * :mod:`._tidy` — the tidy-coefficient-frame helper,
 * :mod:`._capture` — a stdout-capture context manager.
 
-``expdpy.regression`` is a thin adapter over this engine; keeping the engine separate
-lets future estimators (IV, Poisson, GLM, model comparison) reuse one tested core.
+``expdpy.regression`` and ``expdpy.estimation`` are thin adapters over this engine; keeping
+it separate lets the OLS table, stepwise/multi-outcome comparison and FWL plot reuse one
+tested core.
 """
 
 from __future__ import annotations

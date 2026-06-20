@@ -8,11 +8,13 @@ injected through ``_ctx`` to bypass the bundle/dataset resolution in tests.
 
 from __future__ import annotations
 
+import os
 from typing import Any
 
 import streamlit as st
 
 from expdpy.streamlit_app._context import AppContext, resolve_context
+from expdpy.streamlit_app._handoff import EXPDPY_MODULE_ENV
 from expdpy.streamlit_app._pages import build_pages
 from expdpy.streamlit_app._sidebar import apply_pending_config, render_sidebar
 from expdpy.streamlit_app._state import parse_config
@@ -36,8 +38,17 @@ def _page_icon() -> Any:
         return _EMOJI_ICON
 
 
-def run_app(_ctx: AppContext | None = None) -> None:
-    """Resolve the data source, render the sidebar, and run the multipage navigation."""
+def run_app(_ctx: AppContext | None = None, module: str | None = None) -> None:
+    """Resolve the data source, render the sidebar, and run the multipage navigation.
+
+    ``module`` selects which module's pages to show — ``"explore"``, ``"analyze"`` or
+    ``"learn"`` — so a single shell powers three apps. When ``None`` it falls back to the
+    ``EXPDPY_MODULE`` environment variable (set by the launcher for the subprocess), and if
+    that is unset shows every page (the combined navigation).
+    """
+    if module is None:
+        module = os.environ.get(EXPDPY_MODULE_ENV) or None
+
     if _ctx is not None:
         st.session_state["_ctx"] = _ctx
         ctx = _ctx
@@ -54,4 +65,4 @@ def run_app(_ctx: AppContext | None = None) -> None:
             st.session_state.setdefault("_pending_cfg", parse_config(ctx.base_cfg))
     apply_pending_config(ctx)
     active = render_sidebar(ctx)
-    st.navigation(build_pages(active)).run()
+    st.navigation(build_pages(active, module)).run()

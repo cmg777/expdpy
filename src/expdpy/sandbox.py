@@ -23,8 +23,10 @@ from expdpy.regression import prepare_regression_table
 
 __all__ = [
     "sandbox_clustering_se",
+    "sandbox_first_differences",
     "sandbox_omitted_variable_bias",
     "sandbox_pooled_vs_fixed_effects",
+    "sandbox_within_vs_lsdv",
 ]
 
 
@@ -305,3 +307,217 @@ def sandbox_clustering_se(
     )
     fig.update_layout(title="Clustering and standard errors")
     return SandboxResult(df=df, fig=fig, summary=summary, topic="clustered_se")
+
+
+def _panel_with_unit_effects(
+    rng: np.random.Generator,
+    *,
+    n_units: int,
+    n_periods: int,
+    beta: float,
+    unit_effect_corr: float,
+    noise_sd: float,
+) -> pd.DataFrame:
+    """Simulate a balanced panel ``y = beta*x + alpha_i + e`` with x correlated with alpha."""
+    alpha = rng.normal(size=n_units)  # unit fixed effects
+    rows = []
+    for i in range(n_units):
+        x = unit_effect_corr * alpha[i] + math.sqrt(
+            max(0.0, 1.0 - unit_effect_corr**2)
+        ) * rng.normal(size=n_periods)
+        y = beta * x + alpha[i] + rng.normal(0.0, noise_sd, size=n_periods)
+        for t in range(n_periods):
+            rows.append((i, t, float(x[t]), float(y[t])))
+    return pd.DataFrame(rows, columns=["unit", "period", "x", "y"])
+
+
+def sandbox_first_differences(
+    *,
+    n_units: int = 150,
+    n_periods: int = 2,
+    beta: float = 2.0,
+    unit_effect_corr: float = 0.8,
+    noise_sd: float = 0.5,
+    seed: int = 0,
+) -> SandboxResult:
+    """Show that first differencing removes the unit effect — matching the within estimator.
+
+    Simulates a balanced panel ``y_it = beta * x_it + alpha_i + e_it`` where the regressor
+    ``x`` is correlated with each unit's fixed effect ``alpha_i`` (so pooled OLS is biased).
+    Differencing (``Δy`` on ``Δx``) cancels ``alpha_i``; on a two-period panel the first-
+    differences estimate equals the within (demeaning) estimate, and both recover ``beta``.
+
+    Parameters
+    ----------
+    n_units, n_periods
+        Panel dimensions. With ``n_periods=2`` first differences and the within estimator
+        coincide exactly; for more periods they differ slightly in finite samples.
+    beta
+        True within-unit slope.
+    unit_effect_corr
+        Correlation between ``x`` and the unit effect (drives the pooled bias).
+    noise_sd
+        Idiosyncratic noise standard deviation.
+    seed
+        Random seed.
+
+    Returns
+    -------
+    SandboxResult
+        ``df`` (pooled vs first differences vs within vs true slope), ``fig``, ``summary``
+        and ``topic``.
+    """
+    rng = np.random.default_rng(seed)
+    data = _panel_with_unit_effects(
+        rng,
+        n_units=n_units,
+        n_periods=n_periods,
+        beta=beta,
+        unit_effect_corr=unit_effect_corr,
+        noise_sd=noise_sd,
+    )
+
+    pooled_b = float(
+        prepare_regression_table(data, dvs="y", idvs=["x"]).models[0].coef()["x"]
+    )
+    within_b = float(
+        prepare_regression_table(data, dvs="y", idvs=["x"], feffects=["unit"])
+        .models[0]
+        .coef()["x"]
+    )
+    d = data.sort_values(["unit", "period"])
+    d = d.assign(
+        dx=d.groupby("unit")["x"].diff(), dy=d.groupby("unit")["y"].diff()
+    ).dropna(subset=["dx", "dy"])
+    fd_b = float(sm.OLS(d["dy"].to_numpy(), d[["dx"]].to_numpy()).fit().params[0])
+
+    df = pd.DataFrame(
+        {
+            "method": [
+                "pooled OLS",
+                "first differences",
+                "within (demeaning)",
+                "true value",
+            ],
+            "slope": [pooled_b, fd_b, within_b, float(beta)],
+        }
+    )
+    summary = {
+        "true_beta": float(beta),
+        "pooled_coef": pooled_b,
+        "fd_coef": fd_b,
+        "within_coef": within_b,
+        "fd_within_gap": abs(fd_b - within_b),
+        "n_periods": float(n_periods),
+    }
+
+    fig = go.Figure(
+        go.Bar(
+            x=df["method"],
+            y=df["slope"],
+            marker={"color": [color_for(9), color_for(0), color_for(2), color_for(4)]},
+        )
+    )
+    fig.add_hline(
+        y=float(beta),
+        line_dash="dash",
+        line_color="rgba(0,0,0,0.5)",
+        annotation_text="true slope",
+    )
+    apply_default_layout(
+        fig, xaxis={"title": ""}, yaxis={"title": "Estimated slope on x"}
+    )
+    fig.update_layout(title="First differences vs the within estimator")
+    return SandboxResult(df=df, fig=fig, summary=summary, topic="first_differences")
+
+
+def sandbox_within_vs_lsdv(
+    *,
+    n_units: int = 30,
+    n_periods: int = 6,
+    beta: float = 2.0,
+    unit_effect_corr: float = 0.8,
+    noise_sd: float = 0.5,
+    seed: int = 0,
+) -> SandboxResult:
+    """Show that within (demeaning) and least-squares dummy variables give the same slope.
+
+    Simulates a panel with a unit fixed effect and recovers the slope two ways: the within
+    transformation (demeaning, via absorbed fixed effects) and least-squares dummy variables
+    (one dummy per unit in OLS). By the Frisch-Waugh-Lovell theorem the two slopes are
+    identical for any number of periods — demeaning and unit dummies do the same job.
+
+    Parameters
+    ----------
+    n_units, n_periods
+        Panel dimensions (kept modest so LSDV's one-dummy-per-unit design stays cheap).
+    beta
+        True within-unit slope.
+    unit_effect_corr
+        Correlation between ``x`` and the unit effect.
+    noise_sd
+        Idiosyncratic noise standard deviation.
+    seed
+        Random seed.
+
+    Returns
+    -------
+    SandboxResult
+        ``df`` (within vs LSDV vs true slope), ``fig``, ``summary`` and ``topic``.
+    """
+    rng = np.random.default_rng(seed)
+    data = _panel_with_unit_effects(
+        rng,
+        n_units=n_units,
+        n_periods=n_periods,
+        beta=beta,
+        unit_effect_corr=unit_effect_corr,
+        noise_sd=noise_sd,
+    )
+
+    within_b = float(
+        prepare_regression_table(data, dvs="y", idvs=["x"], feffects=["unit"])
+        .models[0]
+        .coef()["x"]
+    )
+    dummies = pd.get_dummies(data["unit"], prefix="u", drop_first=True).astype(float)
+    exog = sm.add_constant(
+        pd.concat(
+            [data[["x"]].reset_index(drop=True), dummies.reset_index(drop=True)],
+            axis=1,
+        )
+    )
+    lsdv_b = float(sm.OLS(data["y"].to_numpy(), exog).fit().params["x"])
+
+    df = pd.DataFrame(
+        {
+            "method": ["within (demeaning)", "LSDV (unit dummies)", "true value"],
+            "slope": [within_b, lsdv_b, float(beta)],
+        }
+    )
+    summary = {
+        "true_beta": float(beta),
+        "within_coef": within_b,
+        "lsdv_coef": lsdv_b,
+        "within_lsdv_gap": abs(within_b - lsdv_b),
+        "n_periods": float(n_periods),
+    }
+
+    fig = go.Figure(
+        go.Bar(
+            x=df["method"],
+            y=df["slope"],
+            marker={"color": [color_for(2), color_for(0), color_for(4)]},
+        )
+    )
+    fig.add_hline(
+        y=float(beta),
+        line_dash="dash",
+        line_color="rgba(0,0,0,0.5)",
+        annotation_text="true slope",
+    )
+    apply_default_layout(
+        fig, xaxis={"title": ""}, yaxis={"title": "Estimated slope on x"}
+    )
+    fig.update_layout(title="Within transformation vs LSDV")
+    return SandboxResult(df=df, fig=fig, summary=summary, topic="within_transformation")

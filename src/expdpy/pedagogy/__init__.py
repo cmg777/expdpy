@@ -15,6 +15,7 @@ from __future__ import annotations
 from expdpy.pedagogy import _text  # noqa: F401  (import registers the explainer topics)
 from expdpy.pedagogy._interpret import (
     interpret_correlation,
+    interpret_cre,
     interpret_descriptive,
     interpret_estimation,
     interpret_event_study,
@@ -31,6 +32,7 @@ __all__ = [
     "Interpretable",
     "explain",
     "interpret_correlation",
+    "interpret_cre",
     "interpret_descriptive",
     "interpret_estimation",
     "interpret_event_study",

@@ -1,0 +1,168 @@
+---
+title: "Learn panel data"
+jupyter: python3
+---
+
+The **Learn** module is the teaching layer. Every result speaks plain language through
+`.interpret()` and `.explain()`; **concept sandboxes** simulate data so you can *see* and tune
+an idea; and **concept explainers** give a what / when / caveats summary for every method.
+
+This page is a short guided tour of the core panel-data ideas — first differences, demeaning
+and dummy variables, and the fixed-vs-random-effects choice — followed by the full sandbox
+and explainer galleries.
+
+```{python}
+import expdpy as ex
+from expdpy.data import load_kuznets
+
+df = load_kuznets()
+```
+
+## Read a model in plain language
+
+Fit a model anywhere in [Analyze](analyze.qmd), then ask it to explain itself. `.interpret()`
+gives an **associational** reading (never a causal claim unless the design supports it):
+
+```{python}
+res = ex.prepare_regression_table(
+    df,
+    dvs="gini_regional",
+    idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"],
+    feffects=["country", "year"],
+    clusters=["country"],
+)
+print(res.interpret())
+```
+
+`.explain()` — or `ex.explain(topic)` — returns a concept explainer; `ex.list_topics()` lists
+every topic:
+
+```{python}
+ex.explain("fixed_effects")
+```
+
+## The core identity: first differences ≈ demeaning ≈ dummy variables
+
+A unit fixed effect is anything constant within a unit over time. Three transformations all
+**remove** it and recover the same within-unit slope:
+
+- **First differences** subtract each unit's previous-period value (Δy on Δx).
+- **The within transformation (demeaning)** subtracts each unit's time-average.
+- **Least-squares dummy variables (LSDV)** add one dummy per unit to an OLS regression.
+
+`sandbox_first_differences` simulates a panel where the regressor is correlated with the unit
+effect (so pooled OLS is biased) and recovers the slope by first differences and by demeaning.
+On a two-period panel the two coincide exactly, and both recover the truth:
+
+```{python}
+fd = ex.sandbox_first_differences(n_periods=2)
+print(fd.interpret())
+fd.fig
+```
+
+`sandbox_within_vs_lsdv` shows that demeaning and unit dummies give the **identical** slope —
+the Frisch–Waugh–Lovell theorem at work — for any number of periods:
+
+```{python}
+wl = ex.sandbox_within_vs_lsdv(n_periods=6)
+print(wl.interpret())
+wl.fig
+```
+
+The matching explainers spell out when to reach for each:
+
+```{python}
+ex.explain("first_differences")
+```
+
+```{python}
+ex.explain("dummy_variables")
+```
+
+## Fixed vs random effects, and the Mundlak bridge
+
+Pooled OLS is biased when the unit effects are correlated with the regressor; fixed effects
+fix it by using only within-unit variation:
+
+```{python}
+pf = ex.sandbox_pooled_vs_fixed_effects(unit_effect_corr=0.8)
+print(pf.interpret())
+pf.fig
+```
+
+The **correlated random effects (Mundlak)** estimator builds a bridge between the two — see
+its explainer, and `prepare_cre_table` in [Analyze](analyze.qmd):
+
+```{python}
+ex.explain("correlated_random_effects")
+```
+
+## Two more classics
+
+**Omitted-variable bias** — what happens to a coefficient when a correlated confounder is left
+out:
+
+```{python}
+ex.sandbox_omitted_variable_bias(corr_xz=0.6).fig
+```
+
+**Clustered standard errors** — why ignoring within-cluster correlation understates
+uncertainty:
+
+```{python}
+ex.sandbox_clustering_se(icc=0.3).fig
+```
+
+## Explainer index
+
+`ex.list_topics()` returns every registered concept explainer; pass any of them (or an alias)
+to `ex.explain(...)`:
+
+```{python}
+ex.list_topics()
+```
+
+```{python}
+print(ex.explain("clustered_se"))
+```
+
+## Sandbox gallery
+
+Every sandbox returns a figure, a small comparison table (`.df`), a `summary` of the facts it
+turns on, and a plain-language `.interpret()`.
+
+### `sandbox_omitted_variable_bias`
+
+```{python}
+ex.sandbox_omitted_variable_bias(corr_xz=0.6).fig
+```
+
+### `sandbox_pooled_vs_fixed_effects`
+
+```{python}
+ex.sandbox_pooled_vs_fixed_effects(unit_effect_corr=0.8).fig
+```
+
+### `sandbox_clustering_se`
+
+```{python}
+ex.sandbox_clustering_se(icc=0.4).fig
+```
+
+### `sandbox_first_differences`
+
+```{python}
+ex.sandbox_first_differences(n_periods=2).fig
+```
+
+### `sandbox_within_vs_lsdv`
+
+```{python}
+ex.sandbox_within_vs_lsdv(n_periods=6).fig
+```
+
+## Where to go next
+
+- [Explore panel data](explore.qmd) — describe your data first.
+- [Analyze panel data](analyze.qmd) — the estimators these ideas underpin.
+- Prefer no code? Launch the [Learn app](streamlit.qmd) — the sandboxes and explainers, interactive.

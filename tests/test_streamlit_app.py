@@ -15,7 +15,7 @@ pytest.importorskip("streamlit")
 
 from streamlit.testing.v1 import AppTest
 
-from expdpy.streamlit_app import ExPdPy
+from expdpy.streamlit_app import AnalyzeApp, ExploreApp, LearnApp
 from expdpy.streamlit_app import _handoff as handoff
 from expdpy.streamlit_app._config_io import dump_config, load_config
 from expdpy.streamlit_app._export_nb import build_export_zip
@@ -44,8 +44,9 @@ getattr(_pages, "page_" + st.session_state.get("_test_page", "overview"))()
 
 @pytest.fixture(autouse=True)
 def _no_bundle(monkeypatch):
-    """Default every test to standalone mode (bundled-dataset picker)."""
+    """Default every test to standalone mode (bundled-dataset picker, combined nav)."""
     monkeypatch.delenv(handoff.EXPDPY_BUNDLE_ENV, raising=False)
+    monkeypatch.delenv(handoff.EXPDPY_MODULE_ENV, raising=False)
 
 
 def _page(name: str, **timeout) -> AppTest:
@@ -121,14 +122,30 @@ def test_regression_renders_table():
     assert len(at.dataframe) >= 1  # coefficient table
 
 
+def test_sandboxes_page_renders_all_tabs():
+    at = _page("sandboxes")
+    assert not at.exception
+    assert (
+        len(at.tabs) == 5
+    )  # OVB, pooled-vs-FE, clustering, first differences, within-vs-LSDV
+
+
+def test_explainers_page_lists_topics():
+    at = _page("explainers")
+    assert not at.exception
+    topic = at.selectbox(key="explainer_topic")
+    assert "fixed_effects" in topic.options
+    assert "correlated_random_effects" in topic.options
+
+
 # --- time-series component hiding --------------------------------------------
-def _active(ts: str | None) -> Active:
+def _active(ts: str | None, cs_list: list[str] | None = None) -> Active:
     return Active(
         source_name="x",
         data_id="x",
         base_df=None,
         df_def=None,
-        cs_list=[],
+        cs_list=cs_list or [],
         ts=ts,
         sample=None,
         var_cats=None,
@@ -142,6 +159,24 @@ def test_trends_page_only_for_panel():
     assert "Trends" in panel
     assert "Trends" not in cross
     assert "Overview & Data" in panel and "Overview & Data" in cross
+
+
+# --- per-module page filtering ------------------------------------------------
+def test_each_module_shows_only_its_pages():
+    active = _active("year", cs_list=["country"])  # a true panel: all gates pass
+    explore = {spec[0] for spec in selected_specs(active, module="explore")}
+    analyze = {spec[0] for spec in selected_specs(active, module="analyze")}
+    learn = {spec[0] for spec in selected_specs(active, module="learn")}
+
+    assert "Overview & Data" in explore and "Trends" in explore
+    assert "Regression" in analyze and "Panel models" in analyze
+    assert "Concept sandboxes" in learn and "Concept explainers" in learn
+    # The three modules partition the pages — no page appears in two of them.
+    assert explore.isdisjoint(analyze) and analyze.isdisjoint(learn)
+    assert explore.isdisjoint(learn)
+    # Learn pages are data-free, so they show even on cross-sectional data.
+    cross_learn = {spec[0] for spec in selected_specs(_active(None), module="learn")}
+    assert cross_learn == learn
 
 
 # --- config round-trip (framework-agnostic serializer) ------------------------
@@ -175,7 +210,7 @@ def test_export_zip_contents():
 def test_launcher_command_and_bundle(monkeypatch):
     from expdpy.data import load_kuznets
 
-    cmd = ExPdPy(
+    cmd = ExploreApp(
         load_kuznets(),
         cs_id=["country"],
         ts_id="year",
@@ -186,6 +221,8 @@ def test_launcher_command_and_bundle(monkeypatch):
     assert "streamlit" in cmd and "run" in cmd
     assert cmd[-3].endswith("_run.py") or any(c.endswith("_run.py") for c in cmd)
     assert "--server.port" in cmd and "8765" in cmd
+    # The Explore launcher tags the subprocess with its module via the environment.
+    assert os.environ[handoff.EXPDPY_MODULE_ENV] == "explore"
 
     bundle = os.environ[handoff.EXPDPY_BUNDLE_ENV]
     try:
@@ -196,3 +233,16 @@ def test_launcher_command_and_bundle(monkeypatch):
     finally:
         handoff.cleanup_bundle(bundle)
         monkeypatch.delenv(handoff.EXPDPY_BUNDLE_ENV, raising=False)
+
+
+@pytest.mark.parametrize(
+    ("launch", "module"),
+    [(ExploreApp, "explore"), (AnalyzeApp, "analyze"), (LearnApp, "learn")],
+)
+def test_module_launchers_tag_the_module(monkeypatch, launch, module):
+    from expdpy.data import load_kuznets
+
+    monkeypatch.delenv(handoff.EXPDPY_MODULE_ENV, raising=False)
+    launch(load_kuznets(), cs_id=["country"], ts_id="year", run=False)
+    assert os.environ[handoff.EXPDPY_MODULE_ENV] == module
+    monkeypatch.delenv(handoff.EXPDPY_BUNDLE_ENV, raising=False)

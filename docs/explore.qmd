@@ -1,0 +1,358 @@
+---
+title: "Explore panel data"
+jupyter: python3
+---
+
+The **Explore** module is the first look at your data: descriptive and correlation tables,
+distributions, missing-value maps, time trends, group comparisons and scatter plots. Every
+function takes a `pandas` DataFrame and returns an interactive
+[Plotly](https://plotly.com/python/) figure or a publication-quality
+[Great Tables](https://posit-dev.github.io/great-tables/) object.
+
+The lead dataset throughout is the bundled `kuznets` panel (80 countries × 2015–2025) — a
+synthetic dataset whose regional inequality (`gini_regional`) traces an **N-shaped Kuznets
+curve** in income.
+
+```{python}
+import numpy as np
+
+import expdpy as ex
+from expdpy.data import load_kuznets
+
+df = load_kuznets()
+df[["country", "continent", "year", "gini_regional", "gdp_pc", "log_gdp_pc"]].head()
+```
+
+## Guided tour
+
+### Treat outliers
+
+Winsorize the (skewed) numeric variables at the 1st/99th percentile:
+
+```{python}
+analysis = ex.treat_outliers(
+    df[["gini_regional", "gdp_pc", "school_enrollment", "resource_rents"]],
+    percentile=0.01,
+).dropna()
+analysis.describe().round(3)
+```
+
+### Describe the data
+
+```{python}
+ex.prepare_descriptive_table(analysis).gt
+```
+
+`prepare_histogram` summarizes a numeric variable; `prepare_bar_chart` counts the levels of a
+categorical one:
+
+```{python}
+ex.prepare_histogram(df, "gini_regional").fig
+```
+
+```{python}
+ex.prepare_bar_chart(df, "continent").fig
+```
+
+A heatmap of where data is missing across the panel — essential before you model:
+
+```{python}
+ex.prepare_missing_values_graph(df, ts_id="year")
+```
+
+### Relationships between variables
+
+Pearson correlations appear above, Spearman below the diagonal; significant cells are bold.
+
+```{python}
+ex.prepare_correlation_table(analysis).gt
+```
+
+```{python}
+ex.prepare_correlation_graph(analysis).fig
+```
+
+The most extreme observations of a variable:
+
+```{python}
+ex.prepare_ext_obs_table(
+    df, n=5, cs_id=["country"], ts_id="year", var="gini_regional"
+).gt
+```
+
+### Trends over time
+
+```{python}
+ex.prepare_trend_graph(df, ts_id="year", var=["gini_regional"]).fig
+```
+
+```{python}
+ex.prepare_quantile_trend_graph(df, ts_id="year", var="gini_regional").fig
+```
+
+### Comparing groups
+
+```{python}
+ex.prepare_by_group_bar_graph(df, "continent", "gini_regional", np.nanmedian).fig
+```
+
+```{python}
+ex.prepare_by_group_violin_graph(df, "continent", "gini_regional")
+```
+
+```{python}
+ex.prepare_by_group_trend_graph(
+    df, ts_id="year", group_var="continent", var="gini_regional"
+).fig
+```
+
+### Scatter plot with LOESS
+
+The **N-shaped Kuznets curve** — regional inequality against (log) GDP per capita, sized by
+population and colored by continent. The LOESS smoother traces the rise–fall–rise:
+
+```{python}
+ex.prepare_scatter_plot(
+    df, x="log_gdp_pc", y="gini_regional", color="continent", size="population", loess=1
+)
+```
+
+## Examples
+
+A **basic** (minimal call) and **advanced** (full options) example for every Explore
+function.
+
+### `treat_outliers`
+
+Basic — winsorize a single variable at the 1st/99th percentile:
+
+```{python}
+ex.treat_outliers(df["gdp_pc"], percentile=0.01).describe()
+```
+
+Advanced — winsorize several columns at the 5th/95th percentile, with cut-offs computed
+within each continent:
+
+```{python}
+ex.treat_outliers(
+    df[["gini_regional", "gdp_pc"]], percentile=0.05, by=df["continent"]
+).describe()
+```
+
+### `prepare_descriptive_table`
+
+Basic:
+
+```{python}
+ex.prepare_descriptive_table(df).gt
+```
+
+Advanced — set the decimals per statistic (`None` drops that column) and a caption:
+
+```{python}
+ex.prepare_descriptive_table(
+    df,
+    digits=(0, 2, 2, None, None, 2, None, None),
+    caption="Kuznets panel",
+).gt
+```
+
+### `prepare_correlation_table`
+
+Basic:
+
+```{python}
+ex.prepare_correlation_table(df[["gini_regional", "gdp_pc", "log_gdp_pc"]]).gt
+```
+
+Advanced — more decimals, a stricter bold threshold, and a caption:
+
+```{python}
+ex.prepare_correlation_table(
+    df[["gini_regional", "gdp_pc", "log_gdp_pc", "trade_share"]],
+    digits=3,
+    bold=0.01,
+    caption="Correlations (kuznets)",
+).gt
+```
+
+### `prepare_ext_obs_table`
+
+Basic:
+
+```{python}
+ex.prepare_ext_obs_table(df, n=5).gt
+```
+
+Advanced — the ten most extreme observations of a chosen variable:
+
+```{python}
+ex.prepare_ext_obs_table(
+    df, n=10, cs_id=["country"], ts_id="year", var="gini_regional"
+).gt
+```
+
+### `prepare_correlation_graph`
+
+Basic — a correlation heatmap:
+
+```{python}
+ex.prepare_correlation_graph(df[["gini_regional", "gdp_pc", "log_gdp_pc"]]).fig
+```
+
+Advanced — the ellipse style (R `corrplot` look):
+
+```{python}
+ex.prepare_correlation_graph(
+    df[["gini_regional", "gdp_pc", "log_gdp_pc", "trade_share"]],
+    style="ellipse",
+).fig
+```
+
+### `prepare_trend_graph`
+
+Basic — the mean of one variable over time, with standard-error bars:
+
+```{python}
+ex.prepare_trend_graph(df, ts_id="year", var=["gini_regional"]).fig
+```
+
+Advanced — several variables on one chart:
+
+```{python}
+ex.prepare_trend_graph(df, ts_id="year", var=["gini_regional", "trade_share"]).fig
+```
+
+### `prepare_quantile_trend_graph`
+
+Basic — the default quantiles of a variable over time:
+
+```{python}
+ex.prepare_quantile_trend_graph(df, ts_id="year", var="gini_regional").fig
+```
+
+Advanced — custom quantile levels and no per-observation points:
+
+```{python}
+ex.prepare_quantile_trend_graph(
+    df, ts_id="year", var="gini_regional", quantiles=(0.1, 0.5, 0.9), points=False
+).fig
+```
+
+### `prepare_by_group_bar_graph`
+
+Basic — the group mean of a variable:
+
+```{python}
+ex.prepare_by_group_bar_graph(df, "continent", "gini_regional").fig
+```
+
+Advanced — a different statistic, bars ordered by it, and a custom color:
+
+```{python}
+ex.prepare_by_group_bar_graph(
+    df, "continent", "gini_regional",
+    stat_fun=np.nanmedian, order_by_stat=True, color="#4682b4",
+).fig
+```
+
+### `prepare_by_group_trend_graph`
+
+Basic — one line per group over time:
+
+```{python}
+ex.prepare_by_group_trend_graph(
+    df, ts_id="year", group_var="continent", var="gini_regional"
+).fig
+```
+
+Advanced — add standard-error bars and drop the markers:
+
+```{python}
+ex.prepare_by_group_trend_graph(
+    df, ts_id="year", group_var="continent", var="gini_regional",
+    error_bars=True, points=False,
+).fig
+```
+
+### `prepare_by_group_violin_graph`
+
+Basic — the distribution of a variable across groups:
+
+```{python}
+ex.prepare_by_group_violin_graph(df, "continent", "gini_regional")
+```
+
+Advanced — order groups by mean and orient the violins vertically:
+
+```{python}
+ex.prepare_by_group_violin_graph(
+    df, "continent", "gini_regional", order_by_mean=True, group_on_y=False
+)
+```
+
+### `prepare_histogram`
+
+Basic — a 30-bin histogram:
+
+```{python}
+ex.prepare_histogram(df, "gini_regional").fig
+```
+
+Advanced — finer bins on another variable:
+
+```{python}
+ex.prepare_histogram(df, "gdp_pc", bins=50).fig
+```
+
+### `prepare_bar_chart`
+
+Basic — category counts:
+
+```{python}
+ex.prepare_bar_chart(df, "continent").fig
+```
+
+Advanced — order bars by descending count and set a custom color:
+
+```{python}
+ex.prepare_bar_chart(df, "continent", order_by_count=True, color="red").fig
+```
+
+### `prepare_missing_values_graph`
+
+Basic — the fraction of missing values by variable and year:
+
+```{python}
+ex.prepare_missing_values_graph(df, ts_id="year")
+```
+
+Advanced — restrict to numeric variables and show only whether values are missing:
+
+```{python}
+ex.prepare_missing_values_graph(df, ts_id="year", no_factors=True, binary=True)
+```
+
+### `prepare_scatter_plot`
+
+Basic — a plain scatter of two variables:
+
+```{python}
+ex.prepare_scatter_plot(df, x="log_gdp_pc", y="gini_regional")
+```
+
+Advanced — map color and size to other columns and add a size-weighted LOESS smoother:
+
+```{python}
+ex.prepare_scatter_plot(
+    df, x="log_gdp_pc", y="gini_regional",
+    color="continent", size="population", loess=2, alpha=0.6,
+)
+```
+
+## Where to go next
+
+- [Analyze panel data](analyze.qmd) — turn these patterns into estimates (fixed effects,
+  random effects, CRE, event studies).
+- [Learn panel data](learn.qmd) — the ideas behind the methods, with runnable sandboxes.
+- Prefer no code? Launch the [Explore app](streamlit.qmd).

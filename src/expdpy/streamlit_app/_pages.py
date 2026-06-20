@@ -251,8 +251,10 @@ def page_sandboxes() -> None:
     """Interactive teaching demos that simulate data — no dataset required."""
     from expdpy import (
         sandbox_clustering_se,
+        sandbox_first_differences,
         sandbox_omitted_variable_bias,
         sandbox_pooled_vs_fixed_effects,
+        sandbox_within_vs_lsdv,
     )
 
     st.header("Concept sandboxes")
@@ -265,6 +267,8 @@ def page_sandboxes() -> None:
             "Omitted-variable bias",
             "Pooled vs fixed effects",
             "Clustered standard errors",
+            "First differences",
+            "Within vs LSDV",
         ]
     )
     with tabs[0]:
@@ -289,6 +293,20 @@ def page_sandboxes() -> None:
     with tabs[2]:
         icc = st.slider("Intra-cluster correlation (ICC)", 0.0, 0.9, 0.3, 0.05)
         res = sandbox_clustering_se(icc=icc)
+        st.plotly_chart(res.fig, width="stretch", config=PLOTLY_CONFIG)
+        st.markdown(res.interpret())
+        with st.expander("❓ What is this?"):
+            st.markdown(res.explain().to_markdown())
+    with tabs[3]:
+        periods = st.slider("Periods per unit", 2, 8, 2, 1, key="fd_periods")
+        res = sandbox_first_differences(n_periods=int(periods))
+        st.plotly_chart(res.fig, width="stretch", config=PLOTLY_CONFIG)
+        st.markdown(res.interpret())
+        with st.expander("❓ What is this?"):
+            st.markdown(res.explain().to_markdown())
+    with tabs[4]:
+        periods = st.slider("Periods per unit", 2, 12, 6, 1, key="wl_periods")
+        res = sandbox_within_vs_lsdv(n_periods=int(periods))
         st.plotly_chart(res.fig, width="stretch", config=PLOTLY_CONFIG)
         st.markdown(res.interpret())
         with st.expander("❓ What is this?"):
@@ -347,8 +365,8 @@ def page_event_study() -> None:
 
 
 def page_panel_models() -> None:
-    """Pooled / between / fixed / random-effects comparison and the Hausman test."""
-    from expdpy import prepare_hausman_test, prepare_panel_table
+    """Pooled / between / fixed / random-effects comparison, Hausman, and CRE (Mundlak)."""
+    from expdpy import prepare_cre_table, prepare_hausman_test, prepare_panel_table
 
     active = _active_or_stop()
     st.header("Panel models")
@@ -388,14 +406,63 @@ def page_panel_models() -> None:
     with st.expander("❓ What is this? (method explainer)"):
         st.markdown(hausman.explain().to_markdown())
 
+    st.subheader("Correlated random effects (Mundlak)")
+    st.caption(
+        "A random-effects model augmented with each regressor's unit mean. The coefficient "
+        "on the regressor equals its fixed-effects (within) estimate; a joint test on the "
+        "mean terms is the regression-form Hausman test."
+    )
+    try:
+        cre = prepare_cre_table(
+            active.sample, dv=dv, idvs=xs, entity=entity, time=time, format="md"
+        )
+    except Exception as exc:  # surface the message, keep the page alive
+        st.info(str(exc))
+        return
+    st.text(cre.etable)
+    st.markdown(cre.interpret())
+    with st.expander("❓ What is this? (method explainer)"):
+        st.markdown(cre.explain().to_markdown())
+
+
+def page_explainers() -> None:
+    """Browse the concept explainers — the Learn module's topic index."""
+    from expdpy import explain, list_topics
+
+    st.header("Concept explainers")
+    st.caption(
+        "Plain-language explainers for every method and idea in expdpy — what it is, when "
+        "to use it, and the caveats. These need no dataset."
+    )
+    topics = list_topics()
+    topic = st.selectbox("Topic", topics, key="explainer_topic")
+    if topic:
+        st.markdown(explain(topic).to_markdown())
+
 
 # Extra pages appended after the data-driven ones. Event study and panel models need a
-# panel structure (callable gate); the sandboxes page is always available (gate == None).
+# panel structure (callable gate); the sandboxes and explainers pages are always available.
 _PAGE_SPECS.append(
     ("Event study & DiD", "🎯", "event_study", page_event_study, _is_panel)
 )
 _PAGE_SPECS.append(("Panel models", "🪧", "panel_models", page_panel_models, _is_panel))
 _PAGE_SPECS.append(("Concept sandboxes", "🧪", "sandboxes", page_sandboxes, None))
+_PAGE_SPECS.append(("Concept explainers", "📚", "explainers", page_explainers, None))
+
+# Which module each page belongs to. The three apps (Explore / Analyze / Learn) each render
+# only the pages mapped to their module; the combined nav (module=None) shows them all.
+_MODULE: dict[str, str] = {
+    "overview": "explore",
+    "distributions": "explore",
+    "by_group": "explore",
+    "trends": "explore",
+    "correlations": "explore",
+    "regression": "analyze",
+    "event_study": "analyze",
+    "panel_models": "analyze",
+    "sandboxes": "learn",
+    "explainers": "learn",
+}
 
 
 def _spec_available(gate: PageGate, active: Active) -> bool:
@@ -411,14 +478,23 @@ def _spec_available(gate: PageGate, active: Active) -> bool:
     return bool(set(gate) & set(active.active_components))
 
 
-def selected_specs(active: Active) -> list[tuple]:
-    """Return the page specs whose components are available for ``active`` (pure)."""
-    return [spec for spec in _PAGE_SPECS if _spec_available(spec[4], active)]
+def selected_specs(active: Active, module: str | None = None) -> list[tuple]:
+    """Return the page specs available for ``active``, optionally limited to one ``module``.
+
+    ``module`` is ``"explore"``, ``"analyze"``, ``"learn"`` (one app's pages) or ``None``
+    (every page, the combined navigation).
+    """
+    return [
+        spec
+        for spec in _PAGE_SPECS
+        if (module is None or _MODULE.get(spec[2]) == module)
+        and _spec_available(spec[4], active)
+    ]
 
 
-def build_pages(active: Active) -> list:
-    """Return the ``st.Page`` list for the components available in ``active``."""
+def build_pages(active: Active, module: str | None = None) -> list:
+    """Return the ``st.Page`` list for ``active``, limited to ``module`` when given."""
     return [
         st.Page(func, title=title, icon=icon, url_path=url)
-        for title, icon, url, func, _ in selected_specs(active)
+        for title, icon, url, func, _ in selected_specs(active, module)
     ]

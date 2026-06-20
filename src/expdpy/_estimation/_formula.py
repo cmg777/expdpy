@@ -10,10 +10,8 @@ __all__ = ["build_formula"]
 def build_formula(spec: ModelSpec) -> str:
     """Return the pyfixest formula string for ``spec``.
 
-    Handles plain OLS/GLM (``"dv ~ x1 + x2"``), fixed effects (``"| f1 + f2"``), stepwise
-    sequences (``"csw(x1, x2, x3)"``), multiple outcomes (``"y1 + y2 ~ ..."``) and the
-    instrumental-variables third part (``"| endog ~ instr"``), which pyfixest expects after
-    the fixed-effect block.
+    Handles plain OLS (``"dv ~ x1 + x2"``), fixed effects (``"| f1 + f2"``), stepwise
+    sequences (``"csw(x1, x2, x3)"``) and multiple outcomes (``"y1 + y2 ~ ..."``).
 
     Parameters
     ----------
@@ -23,7 +21,7 @@ def build_formula(spec: ModelSpec) -> str:
     Returns
     -------
     str
-        A formula string accepted by ``pyfixest.feols`` / ``fepois`` / ``feglm``.
+        A formula string accepted by ``pyfixest.feols``.
 
     Examples
     --------
@@ -41,10 +39,4 @@ def build_formula(spec: ModelSpec) -> str:
     fml = f"{lhs} ~ {rhs}"
     if spec.feffects:
         fml += " | " + " + ".join(spec.feffects)
-    if spec.model == "iv":
-        if not spec.endog or not spec.instruments:
-            raise ValueError(
-                "instrumental-variables models require both 'endog' and 'instruments'"
-            )
-        fml += f" | {' + '.join(spec.endog)} ~ {' + '.join(spec.instruments)}"
     return fml

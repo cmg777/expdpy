@@ -17,8 +17,12 @@ website:
     left:
       - text: "Home"
         file: index.qmd
-      - text: "Quickstart"
-        file: quickstart.qmd
+      - text: "Explore"
+        file: explore.qmd
+      - text: "Analyze"
+        file: analyze.qmd
+      - text: "Learn"
+        file: learn.qmd
       - text: "App"
         file: streamlit.qmd
       - text: "Articles"
@@ -29,12 +33,8 @@ website:
             file: explanation/data-model.qmd
           - text: "Parity with ExPanDaR"
             file: explanation/parity.qmd
-      - text: "API Reference"
-        menu:
-          - text: "Function reference"
-            file: reference/index.qmd
-          - text: "Examples gallery"
-            file: examples.qmd
+      - text: "Reference"
+        file: reference/index.qmd
       - text: "Changelog"
         file: changelog.qmd
     right:
@@ -63,77 +63,66 @@ quartodoc:
   dir: reference
   render_interlinks: true
   sections:
-    - title: Tables
-      desc: Descriptive, correlation and extreme-observation tables.
+    - title: Explore
+      desc: >-
+        Exploratory analysis — descriptive / correlation / extreme-observation tables,
+        distributions, time trends, group comparisons, missing-value maps, scatter plots and
+        outlier treatment.
       contents:
         - prepare_descriptive_table
         - prepare_correlation_table
         - prepare_ext_obs_table
-    - title: Graphs
-      desc: Interactive Plotly figures.
-      contents:
+        - prepare_histogram
+        - prepare_bar_chart
         - prepare_correlation_graph
         - prepare_trend_graph
         - prepare_quantile_trend_graph
         - prepare_by_group_bar_graph
         - prepare_by_group_trend_graph
         - prepare_by_group_violin_graph
-        - prepare_histogram
-        - prepare_bar_chart
         - prepare_missing_values_graph
         - prepare_scatter_plot
-    - title: Regression
-      desc: OLS with fixed effects and clustered standard errors (pyfixest).
+        - treat_outliers
+    - title: Analyze
+      desc: >-
+        Panel estimators — OLS with fixed effects and clustered SEs, stepwise / Newey–West /
+        Driscoll–Kraay estimation, the Frisch–Waugh–Lovell and coefficient plots, pooled /
+        between / fixed / random effects, correlated random effects (Mundlak), the Hausman
+        test, post-estimation, robust inference and event-study / difference-in-differences.
       contents:
         - prepare_regression_table
-        - prepare_fwl_plot
-    - title: Estimation
-      desc: >-
-        A unified estimator (IV/2SLS, Poisson, logit/probit), richer standard errors and
-        model comparison, plus coefficient plots.
-      contents:
         - prepare_estimation
+        - prepare_fwl_plot
         - prepare_coefficient_plot
-    - title: Post-estimation
-      desc: Operate on a fitted model — visualize fixed effects, predict, and joint-test.
-      contents:
+        - prepare_panel_table
+        - prepare_cre_table
+        - prepare_hausman_test
         - prepare_fixef_plot
         - prepare_predictions
         - prepare_joint_test
-    - title: Robust inference
-      desc: Randomization inference and the wild cluster bootstrap.
-      contents:
         - prepare_robust_inference
-    - title: Event study & difference-in-differences
-      desc: Staggered DiD / event studies and panel-structure visualization.
-      contents:
         - prepare_event_study
         - prepare_panel_view
-    - title: Panel models
+    - title: Learn
       desc: >-
-        Pooled / between / fixed / random effects and the Hausman test (requires the
-        optional ``panel`` extra, via linearmodels).
-      contents:
-        - prepare_panel_table
-        - prepare_hausman_test
-    - title: Concept sandboxes
-      desc: Simulated teaching demonstrations.
+        The teaching layer — concept sandboxes (simulated demonstrations) and concept
+        explainers. Plain-language interpretation lives on the result objects via
+        ``.interpret()``.
       contents:
         - sandbox_omitted_variable_bias
         - sandbox_pooled_vs_fixed_effects
         - sandbox_clustering_se
-    - title: Pedagogy
-      desc: Concept explainers (plain-language interpretation lives on the result objects).
-      contents:
+        - sandbox_first_differences
+        - sandbox_within_vs_lsdv
         - explain
         - list_topics
-    - title: Data preparation
+    - title: Interactive apps
+      desc: The three no-code ExPdPy apps (Streamlit) — one per module.
+      package: expdpy.streamlit_app
       contents:
-        - treat_outliers
-    - title: Interactive app
-      desc: The no-code ExPdPy exploration app (Streamlit).
-      contents:
-        - streamlit_app.ExPdPy
+        - ExploreApp
+        - AnalyzeApp
+        - LearnApp
     - title: Datasets
       package: expdpy.data
       contents:
