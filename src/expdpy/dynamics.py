@@ -29,9 +29,9 @@ from expdpy.scatter import _default_alpha
 from expdpy.trends import _try_convert_ts_id
 
 __all__ = [
-    "prepare_distribution_over_time",
-    "prepare_transition_matrix",
-    "prepare_within_persistence",
+    "explore_distribution_over_time",
+    "explore_transition_matrix",
+    "explore_within_persistence",
 ]
 
 
@@ -72,7 +72,7 @@ def _even_periods(periods: list, max_periods: int | None) -> list:
     return [periods[i] for i in idx]
 
 
-def prepare_distribution_over_time(
+def explore_distribution_over_time(
     df: pd.DataFrame,
     var: str,
     *,
@@ -118,7 +118,7 @@ def prepare_distribution_over_time(
     from expdpy.data import load_kuznets
 
     df = load_kuznets()
-    ex.prepare_distribution_over_time(df, var="gini_regional", time="year").fig
+    ex.explore_distribution_over_time(df, var="gini_regional", time="year").fig
     ```
     """
     df = ensure_dataframe(df)
@@ -312,7 +312,7 @@ def _bin_states(
     return cats.astype(str), labels
 
 
-def prepare_transition_matrix(
+def explore_transition_matrix(
     df: pd.DataFrame,
     var: str,
     *,
@@ -363,7 +363,7 @@ def prepare_transition_matrix(
     from expdpy.data import load_kuznets
 
     df = load_kuznets()
-    ex.prepare_transition_matrix(
+    ex.explore_transition_matrix(
         df, var="gini_regional", entity="country", time="year", n_bins=4
     ).fig
     ```
@@ -457,7 +457,7 @@ def prepare_transition_matrix(
     )
 
 
-def prepare_within_persistence(
+def explore_within_persistence(
     df: pd.DataFrame,
     var: str,
     *,
@@ -499,7 +499,7 @@ def prepare_within_persistence(
     from expdpy.data import load_kuznets
 
     df = load_kuznets()
-    ex.prepare_within_persistence(df, var="gini_regional", entity="country", time="year").fig
+    ex.explore_within_persistence(df, var="gini_regional", entity="country", time="year").fig
     ```
     """
     df = ensure_dataframe(df)

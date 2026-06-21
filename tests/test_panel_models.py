@@ -22,7 +22,7 @@ _needs_lm = pytest.mark.skipif(not _HAS_LM, reason="requires the linearmodels ex
 
 @_needs_lm
 def test_panel_table_four_models(kuznets):
-    res = ex.prepare_panel_table(
+    res = ex.analyze_panel_table(
         kuznets, dv="gini_regional", idvs=["log_gdp_pc"], entity="country", time="year"
     )
     assert len(res.models) == 4
@@ -32,7 +32,7 @@ def test_panel_table_four_models(kuznets):
 
 @_needs_lm
 def test_fe_matches_pyfixest(kuznets):
-    panel = ex.prepare_panel_table(
+    panel = ex.analyze_panel_table(
         kuznets,
         dv="gini_regional",
         idvs=["log_gdp_pc"],
@@ -42,7 +42,7 @@ def test_fe_matches_pyfixest(kuznets):
     )
     lm_fe = float(panel.df.query("term == 'log_gdp_pc'")["Estimate"].iloc[0])
     pf_fe = float(
-        ex.prepare_regression_table(
+        ex.analyze_regression_table(
             kuznets,
             dvs="gini_regional",
             idvs=["log_gdp_pc"],
@@ -57,7 +57,7 @@ def test_fe_matches_pyfixest(kuznets):
 
 @_needs_lm
 def test_panel_table_interpret_and_glance(kuznets):
-    res = ex.prepare_panel_table(
+    res = ex.analyze_panel_table(
         kuznets, dv="gini_regional", idvs=["log_gdp_pc"], entity="country", time="year"
     )
     assert "gini_regional" in res.interpret()
@@ -68,7 +68,7 @@ def test_panel_table_interpret_and_glance(kuznets):
 
 @_needs_lm
 def test_panel_table_format_df(kuznets):
-    res = ex.prepare_panel_table(
+    res = ex.analyze_panel_table(
         kuznets,
         dv="gini_regional",
         idvs=["log_gdp_pc"],
@@ -81,7 +81,7 @@ def test_panel_table_format_df(kuznets):
 
 @_needs_lm
 def test_hausman_runs(kuznets):
-    res = ex.prepare_hausman_test(
+    res = ex.analyze_hausman_test(
         kuznets,
         dv="gini_regional",
         idvs=["log_gdp_pc", "log_gdp_pc_sq"],
@@ -99,7 +99,7 @@ def test_hausman_runs(kuznets):
 @_needs_lm
 def test_panel_table_missing_column_raises(kuznets):
     with pytest.raises(KeyError, match="nope"):
-        ex.prepare_panel_table(
+        ex.analyze_panel_table(
             kuznets, dv="gini_regional", idvs=["nope"], entity="country", time="year"
         )
 

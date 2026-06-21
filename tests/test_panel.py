@@ -8,16 +8,16 @@ import plotly.graph_objects as go
 import pytest
 
 from expdpy import (
-    prepare_distribution_over_time,
-    prepare_panel_structure,
-    prepare_quantile_trend_graph,
-    prepare_spaghetti_graph,
-    prepare_transition_matrix,
-    prepare_trend_graph,
-    prepare_value_heatmap,
-    prepare_within_between_scatter,
-    prepare_within_persistence,
-    prepare_xtsum_table,
+    explore_distribution_over_time,
+    explore_panel_structure,
+    explore_quantile_trend_plot,
+    explore_scatter_plot_within_between,
+    explore_spaghetti_plot,
+    explore_transition_matrix,
+    explore_trend_plot,
+    explore_value_heatmap,
+    explore_within_persistence,
+    explore_xtsum_table,
     resolve_panel,
     set_panel,
 )
@@ -108,7 +108,7 @@ def test_entity_means_shape(sample_df):
 
 # ------------------------------------------------------------------------- xtsum + scatter ---
 def test_xtsum_table_matches_decomposition(sample_df):
-    res = prepare_xtsum_table(sample_df, var=["x1", "x3"], entity="firm")
+    res = explore_xtsum_table(sample_df, var=["x1", "x3"], entity="firm")
     assert set(res.df["component"]) == {"overall", "between", "within"}
     g = res.df[res.df["variable"] == "x1"].set_index("component")
     d = panel_decompose(sample_df["x1"], sample_df["firm"])
@@ -119,18 +119,18 @@ def test_xtsum_table_matches_decomposition(sample_df):
 
 def test_xtsum_resolves_from_set_panel(sample_df):
     df = set_panel(sample_df.copy(), entity="firm", time="year")
-    res = prepare_xtsum_table(df, var=["x1"])  # entity inferred from attrs
+    res = explore_xtsum_table(df, var=["x1"])  # entity inferred from attrs
     assert res.df.shape[0] == 3
 
 
 def test_xtsum_needs_two_entities():
     df = pd.DataFrame({"u": ["a", "a"], "v": [1.0, 2.0]})
     with pytest.raises(ValueError):
-        prepare_xtsum_table(df, var=["v"], entity="u")
+        explore_xtsum_table(df, var=["v"], entity="u")
 
 
 def test_within_between_scatter_slopes(sample_df):
-    res = prepare_within_between_scatter(sample_df, "x1", "x2", entity="firm")
+    res = explore_scatter_plot_within_between(sample_df, "x1", "x2", entity="firm")
     assert len(res.fig.data) == 6
     # the between slope equals OLS on the unit means
     em = sample_df.groupby("firm")[["x1", "x2"]].mean()
@@ -140,7 +140,7 @@ def test_within_between_scatter_slopes(sample_df):
 
 # ---------------------------------------------------------------------------------- spaghetti ---
 def test_spaghetti_one_line_per_unit(sample_df):
-    res = prepare_spaghetti_graph(sample_df, "x1", entity="firm", time="year")
+    res = explore_spaghetti_plot(sample_df, "x1", entity="firm", time="year")
     assert res.n_units == sample_df["firm"].nunique()
     assert res.n_shown == res.n_units
     assert list(res.df.columns) == ["firm", "year", "x1"]
@@ -148,7 +148,7 @@ def test_spaghetti_one_line_per_unit(sample_df):
 
 def test_spaghetti_sampling_and_highlight(sample_df):
     with pytest.warns(UserWarning):
-        res = prepare_spaghetti_graph(
+        res = explore_spaghetti_plot(
             sample_df, "x1", entity="firm", time="year", max_units=5, highlight=[1]
         )
     assert res.n_shown == 5
@@ -166,9 +166,9 @@ def _trace_y_min(fig: go.Figure) -> float:
 @pytest.mark.parametrize(
     "build",
     [
-        lambda df: prepare_trend_graph(df, var=["x1"], time="year").fig,
-        lambda df: prepare_quantile_trend_graph(df, var="x1", time="year").fig,
-        lambda df: prepare_spaghetti_graph(df, "x1", entity="firm", time="year").fig,
+        lambda df: explore_trend_plot(df, var=["x1"], time="year").fig,
+        lambda df: explore_quantile_trend_plot(df, var="x1", time="year").fig,
+        lambda df: explore_spaghetti_plot(df, "x1", entity="firm", time="year").fig,
     ],
 )
 def test_rangeslider_is_blank_strip_below_data(sample_df, build):
@@ -187,7 +187,7 @@ def _summary(res) -> dict:
 
 
 def test_panel_structure_balanced(sample_df):
-    res = prepare_panel_structure(sample_df, entity="firm", time="year")
+    res = explore_panel_structure(sample_df, entity="firm", time="year")
     s = _summary(res)
     assert s["balanced"] is True
     assert int(s["units"]) == sample_df["firm"].nunique()
@@ -201,16 +201,16 @@ def test_panel_structure_unbalanced_with_gap(sample_df):
     firm0 = sample_df["firm"].iloc[0]
     yr_mid = sorted(sample_df["year"].unique())[3]
     df = sample_df[~((sample_df["firm"] == firm0) & (sample_df["year"] == yr_mid))]
-    res = prepare_panel_structure(df, entity="firm", time="year")
+    res = explore_panel_structure(df, entity="firm", time="year")
     s = _summary(res)
     assert s["balanced"] is False
     assert int(s["internal gaps"]) >= 1
 
 
 def test_value_heatmap_shape_and_standardize(sample_df):
-    res = prepare_value_heatmap(sample_df, "x1", entity="firm", time="year")
+    res = explore_value_heatmap(sample_df, "x1", entity="firm", time="year")
     assert res.df.shape == (sample_df["firm"].nunique(), sample_df["year"].nunique())
-    resz = prepare_value_heatmap(
+    resz = explore_value_heatmap(
         sample_df, "x1", entity="firm", time="year", standardize="by_time"
     )
     assert isinstance(resz.fig, go.Figure)
@@ -218,13 +218,13 @@ def test_value_heatmap_shape_and_standardize(sample_df):
 
 # ----------------------------------------------------------------------- dynamics + transitions ---
 def test_distribution_over_time_ridgeline(sample_df):
-    res = prepare_distribution_over_time(sample_df, "x3", time="year")
+    res = explore_distribution_over_time(sample_df, "x3", time="year")
     assert len(res.fig.data) == sample_df["year"].nunique()
     assert list(res.df.columns) == ["year", "x3"]
 
 
 def test_distribution_over_time_animated_has_frames(sample_df):
-    res = prepare_distribution_over_time(
+    res = explore_distribution_over_time(
         sample_df, "x3", time="year", style="animated_hist"
     )
     assert len(res.fig.frames) == sample_df["year"].nunique()
@@ -238,7 +238,7 @@ def test_transition_matrix_known_counts():
             "s": ["A", "B", "B", "A", "A", "B"],
         }
     )
-    res = prepare_transition_matrix(toy, "s", entity="u", time="t")
+    res = explore_transition_matrix(toy, "s", entity="u", time="t")
     assert res.states == ("A", "B")
     assert int(res.counts.loc["A", "A"]) == 1
     assert int(res.counts.loc["A", "B"]) == 2
@@ -258,7 +258,7 @@ def test_transition_matrix_skips_gaps_warns():
         }
     )
     with pytest.warns(UserWarning):
-        res = prepare_transition_matrix(toy, "s", entity="u", time="t")
+        res = explore_transition_matrix(toy, "s", entity="u", time="t")
     # only unit 2's two consecutive steps are counted (A->A, A->B); unit 1's jump dropped
     assert int(res.counts.to_numpy().sum()) == 2
     assert int(res.counts.loc["A", "A"]) == 1
@@ -266,7 +266,7 @@ def test_transition_matrix_skips_gaps_warns():
 
 
 def test_within_persistence_positive_and_pairs(sample_df):
-    res = prepare_within_persistence(sample_df, "x1", entity="firm", time="year")
+    res = explore_within_persistence(sample_df, "x1", entity="firm", time="year")
     assert -1.0 <= res.rho <= 1.0
     assert res.n_pairs == sample_df["firm"].nunique() * (
         sample_df["year"].nunique() - 1
@@ -278,6 +278,6 @@ def test_within_persistence_known_sign():
     toy = pd.DataFrame(
         {"u": [1, 1, 1, 2, 2, 2], "t": [1, 2, 3, 1, 2, 3], "x": [1.0, 2, 3, 2, 4, 6]}
     )
-    res = prepare_within_persistence(toy, "x", entity="u", time="t")
+    res = explore_within_persistence(toy, "x", entity="u", time="t")
     assert res.rho > 0  # within units the series trends, so positive serial correlation
     assert res.n_pairs == 4

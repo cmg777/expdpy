@@ -51,11 +51,11 @@ def r_df(sample_df):
 
 
 def test_descriptive_parity(sample_df, r_df):
-    from expdpy import prepare_descriptive_table
+    from expdpy import explore_descriptive_table
 
     r_res = expandar.prepare_descriptive_table(r_df)
     r_tab = _to_py(_dollar(r_res, "df"))
-    py = prepare_descriptive_table(sample_df[["x1", "x2", "x3"]]).df
+    py = explore_descriptive_table(sample_df[["x1", "x2", "x3"]]).df
     np.testing.assert_allclose(
         py["Mean"].to_numpy(), r_tab["Mean"].to_numpy(), rtol=1e-6
     )
@@ -65,11 +65,11 @@ def test_descriptive_parity(sample_df, r_df):
 
 
 def test_correlation_parity(sample_df, r_df):
-    from expdpy import prepare_correlation_table
+    from expdpy import explore_correlation_table
 
     r_res = expandar.prepare_correlation_table(r_df)
     r_corr = _to_py(_dollar(r_res, "df_corr"))
-    py = prepare_correlation_table(sample_df[["x1", "x2", "x3"]]).df_corr
+    py = explore_correlation_table(sample_df[["x1", "x2", "x3"]]).df_corr
     np.testing.assert_allclose(
         py.to_numpy(dtype=float), r_corr.to_numpy(dtype=float), rtol=1e-5, atol=1e-6
     )
@@ -86,8 +86,8 @@ def test_treat_outliers_parity(sample_df):
 
 
 def test_regression_parity(sample_df):
-    """Clustered-SE parity vs lfe::felm (cmethod='reghdfe') via prepare_regression_table."""
-    from expdpy import prepare_regression_table
+    """Clustered-SE parity vs lfe::felm (cmethod='reghdfe') via analyze_regression_table."""
+    from expdpy import analyze_regression_table
 
     r_res = expandar.prepare_regression_table(
         _to_r(sample_df),
@@ -97,7 +97,7 @@ def test_regression_parity(sample_df):
         clusters="firm",
         format="text",
     )
-    py = prepare_regression_table(
+    py = analyze_regression_table(
         sample_df, dvs="x2", idvs=["x1", "x3"], feffects=["firm"], clusters=["firm"]
     )
     r_model = _dollar(_dbl(_dollar(r_res, "models"), 1), "model")

@@ -24,7 +24,7 @@ from expdpy._estimation import as_list
 from expdpy._theme import apply_default_layout, color_for
 from expdpy._types import CoefficientPlotResult
 
-__all__ = ["prepare_coefficient_plot"]
+__all__ = ["analyze_coefficient_plot"]
 
 
 def _coerce_models(models: Any) -> list[Any]:
@@ -32,7 +32,7 @@ def _coerce_models(models: Any) -> list[Any]:
 
     A list may mix bare fitted models and result objects (anything carrying ``.models``,
     e.g. a :class:`~expdpy.RegressionTableResult`); result objects are expanded in place so
-    ``prepare_coefficient_plot([pooled, fe])`` works as readily as passing the raw models.
+    ``analyze_coefficient_plot([pooled, fe])`` works as readily as passing the raw models.
     """
     if hasattr(models, "models"):  # e.g. a RegressionTableResult
         out = list(models.models)
@@ -55,7 +55,7 @@ def _ci_columns(alpha: float) -> tuple[str, str]:
     return f"{alpha / 2 * 100:.1f}%", f"{(1 - alpha / 2) * 100:.1f}%"
 
 
-def prepare_coefficient_plot(
+def analyze_coefficient_plot(
     models: Any,
     *,
     keep: Sequence[str] | str | None = None,
@@ -75,7 +75,7 @@ def prepare_coefficient_plot(
     models
         A fitted pyfixest model, a list of fitted models, or a
         :class:`~expdpy.RegressionTableResult` (its ``.models`` are used). This lets you do
-        ``prepare_coefficient_plot(prepare_regression_table(...))`` directly.
+        ``analyze_coefficient_plot(analyze_regression_table(...))`` directly.
     keep, drop
         Optional regular-expression patterns selecting which coefficients to show (and in
         which order). ``keep`` whitelists, ``drop`` blacklists; both use pyfixest's own
@@ -112,22 +112,22 @@ def prepare_coefficient_plot(
     from expdpy.data import load_kuznets
 
     df = load_kuznets()
-    result = ex.prepare_regression_table(
+    result = ex.analyze_regression_table(
         df, dvs="gini_regional", idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"]
     )
-    ex.prepare_coefficient_plot(result).fig
+    ex.analyze_coefficient_plot(result).fig
     ```
 
     Advanced — compare several models side by side with custom labels:
 
     ```python
-    pooled = ex.prepare_regression_table(
+    pooled = ex.analyze_regression_table(
         df, dvs="gini_regional", idvs=["log_gdp_pc"]
     )
-    fe = ex.prepare_regression_table(
+    fe = ex.analyze_regression_table(
         df, dvs="gini_regional", idvs=["log_gdp_pc"], feffects=["country", "year"]
     )
-    ex.prepare_coefficient_plot(
+    ex.analyze_coefficient_plot(
         [pooled, fe],
         model_labels=["Pooled OLS", "Two-way FE"],
         keep=["log_gdp_pc"],

@@ -21,7 +21,7 @@ from expdpy._estimation import (
 from expdpy._types import RegressionTableResult
 from expdpy._validation import ensure_dataframe
 
-__all__ = ["prepare_regression_table"]
+__all__ = ["analyze_regression_table"]
 
 # Backwards-compatible aliases re-exported for expdpy.fwl (the FWL plot reuses the same
 # small-sample correction and list-normalization to stay numerically consistent).
@@ -53,7 +53,7 @@ def _fit_one(
     return fit_model(data, spec)
 
 
-def prepare_regression_table(
+def analyze_regression_table(
     df: pd.DataFrame,
     dvs: Sequence[str] | str,
     idvs: Sequence[str] | Sequence[Sequence[str]],
@@ -103,7 +103,7 @@ def prepare_regression_table(
     from expdpy.data import load_kuznets
 
     df = load_kuznets()
-    ex.prepare_regression_table(
+    ex.analyze_regression_table(
         df,
         dvs="gini_regional",
         idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"],
@@ -114,7 +114,7 @@ def prepare_regression_table(
     clustered by country, then read the tidy coefficient frame and fitted models:
 
     ```python
-    result = ex.prepare_regression_table(
+    result = ex.analyze_regression_table(
         df,
         dvs="gini_regional",
         idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"],

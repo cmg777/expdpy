@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import pytest
 
-from expdpy import prepare_fwl_plot, prepare_regression_table
+from expdpy import analyze_fwl_plot, analyze_regression_table
 from expdpy.data import load_kuznets
 
 IDVS = ["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"]
@@ -19,7 +19,7 @@ IDVS = ["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"]
 def test_cubic_survives_two_way_fixed_effects():
     """With country + year FE (clustered by country) the cubic term stays positive & sig."""
     df = load_kuznets()
-    res = prepare_regression_table(
+    res = analyze_regression_table(
         df,
         dvs="gini_regional",
         idvs=IDVS,
@@ -36,14 +36,14 @@ def test_cubic_survives_two_way_fixed_effects():
 def test_fwl_slope_matches_two_way_fe_coefficient():
     """FWL slope on the focal regressor equals its coefficient in the two-way FE model."""
     df = load_kuznets()
-    tab = prepare_regression_table(
+    tab = analyze_regression_table(
         df,
         dvs="gini_regional",
         idvs=IDVS,
         feffects=["country", "year"],
         clusters=["country"],
     ).models[0]
-    fwl = prepare_fwl_plot(
+    fwl = analyze_fwl_plot(
         df,
         dv="gini_regional",
         var="log_gdp_pc",

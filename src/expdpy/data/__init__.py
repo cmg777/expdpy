@@ -85,7 +85,7 @@ def load_staggered_did() -> pd.DataFrame:
 
     A balanced unit-year panel with several treatment cohorts (and a never-treated control
     group, ``cohort == 0``) and a known *dynamic* treatment effect — for teaching event-study
-    and staggered-DiD methods via :func:`expdpy.prepare_event_study`.
+    and staggered-DiD methods via :func:`expdpy.analyze_event_study`.
     """
     return _read_parquet("staggered_did")
 

@@ -19,7 +19,7 @@ from expdpy._validation import ensure_dataframe
 from expdpy.scatter import _default_alpha
 from expdpy.trends import _try_convert_ts_id, _xaxis
 
-__all__ = ["prepare_spaghetti_graph"]
+__all__ = ["explore_spaghetti_plot"]
 
 
 def _draw_unit_lines(
@@ -81,7 +81,7 @@ def _draw_unit_lines(
         )
 
 
-def prepare_spaghetti_graph(
+def explore_spaghetti_plot(
     df: pd.DataFrame,
     var: str,
     *,
@@ -133,7 +133,7 @@ def prepare_spaghetti_graph(
     from expdpy.data import load_kuznets
 
     df = load_kuznets()
-    ex.prepare_spaghetti_graph(df, var="gini_regional", entity="country").fig
+    ex.explore_spaghetti_plot(df, var="gini_regional", entity="country").fig
     ```
     """
     df = ensure_dataframe(df)

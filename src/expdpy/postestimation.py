@@ -1,8 +1,8 @@
 """Post-estimation helpers: visualize fixed effects, predict, and joint-test coefficients.
 
 These operate on a fitted model (or any expdpy result that carries ``.models``), so they
-compose with both :func:`expdpy.prepare_regression_table` and
-:func:`expdpy.prepare_estimation`.
+compose with both :func:`expdpy.analyze_regression_table` and
+:func:`expdpy.analyze_estimation`.
 """
 
 from __future__ import annotations
@@ -19,9 +19,9 @@ from expdpy._theme import apply_default_layout, color_for
 from expdpy._types import FixefPlotResult, JointTestResult, PredictionResult
 
 __all__ = [
-    "prepare_fixef_plot",
-    "prepare_joint_test",
-    "prepare_predictions",
+    "analyze_fixef_plot",
+    "analyze_joint_test",
+    "analyze_predictions",
 ]
 
 
@@ -31,7 +31,7 @@ def _strip_fe(key: str) -> str:
     return k[2:-1] if k.startswith("C(") and k.endswith(")") else k
 
 
-def prepare_fixef_plot(
+def analyze_fixef_plot(
     result_or_model: Any,
     *,
     fixef: str | None = None,
@@ -125,7 +125,7 @@ def prepare_fixef_plot(
     return FixefPlotResult(df=df, fig=fig)
 
 
-def prepare_predictions(
+def analyze_predictions(
     result_or_model: Any, newdata: pd.DataFrame | None = None
 ) -> PredictionResult:
     """Return fitted values from a model (and residuals/actuals on the estimation sample).
@@ -154,7 +154,7 @@ def prepare_predictions(
     )
 
 
-def prepare_joint_test(
+def analyze_joint_test(
     result_or_model: Any,
     hypotheses: Sequence[str] | str | None = None,
     *,

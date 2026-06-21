@@ -1,9 +1,9 @@
 """Event studies, staggered difference-in-differences, and panel-structure visualization.
 
-``prepare_event_study`` wraps pyfixest's modern DiD estimators (Gardner's two-stage
+``analyze_event_study`` wraps pyfixest's modern DiD estimators (Gardner's two-stage
 ``did2s``, Sun-Abraham ``saturated``, local-projections ``lpdid`` and the classic two-way
 fixed-effects ``twfe``) behind one beginner-friendly signature and returns a themed Plotly
-event-study plot. ``prepare_panel_view`` reimplements pyfixest's ``panelview`` in Plotly to
+event-study plot. ``analyze_panel_view`` reimplements pyfixest's ``panelview`` in Plotly to
 show the treatment structure (which units are treated when) — and derives the binary
 treatment indicator from a first-treatment ``cohort`` column for you.
 """
@@ -22,7 +22,7 @@ from expdpy._theme import COLOR_SEQUENCE, apply_default_layout, color_for
 from expdpy._types import EventStudyResult, PanelViewResult
 from expdpy._validation import ensure_dataframe
 
-__all__ = ["prepare_event_study", "prepare_panel_view"]
+__all__ = ["analyze_event_study", "analyze_panel_view"]
 
 _UNTREATED_COLOR = "#BAB0AC"  # Tableau gray
 _TREATED_COLOR = COLOR_SEQUENCE[0]  # Tableau blue
@@ -78,7 +78,7 @@ def _add_reference(path: pd.DataFrame) -> pd.DataFrame:
     return path.sort_values("event_time").reset_index(drop=True)
 
 
-def prepare_event_study(
+def analyze_event_study(
     df: pd.DataFrame,
     *,
     outcome: str,
@@ -133,7 +133,7 @@ def prepare_event_study(
     from expdpy.data import load_staggered_did
 
     df = load_staggered_did()
-    ex.prepare_event_study(
+    ex.analyze_event_study(
         df, outcome="outcome", unit="unit", time="year", cohort="cohort"
     ).fig
     ```
@@ -269,7 +269,7 @@ def _event_study_fig(
     return fig
 
 
-def prepare_panel_view(
+def analyze_panel_view(
     df: pd.DataFrame,
     *,
     unit: str,

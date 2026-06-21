@@ -27,7 +27,7 @@ pixi run -e r test-r
   `method="averaged_inverted_cdf"` to `treat_outliers` for Stata / R `type = 2`.
 - **Correlations** — computed pairwise (per-pair complete observations, p-values and N),
   Pearson above and Spearman below the diagonal, exactly as ExPanDaR's `cor_mat`.
-- **Clustered standard errors** — `prepare_regression_table` uses pyfixest with
+- **Clustered standard errors** — `analyze_regression_table` uses pyfixest with
   `ssc(k_adj=True, G_adj=True)`, matching `lfe::felm(cmethod = "reghdfe")`.
 - **Approximations** — the scatter LOESS confidence band is bootstrap-based, and weighted
   LOESS (`loess=2`) approximates ggplot's `geom_smooth(weight=...)`; these are smoke-tested

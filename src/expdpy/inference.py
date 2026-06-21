@@ -15,10 +15,10 @@ import pandas as pd
 from expdpy._estimation import first_model
 from expdpy._types import RobustInferenceResult
 
-__all__ = ["prepare_robust_inference"]
+__all__ = ["analyze_robust_inference"]
 
 
-def prepare_robust_inference(
+def analyze_robust_inference(
     result_or_model: Any,
     param: str,
     *,

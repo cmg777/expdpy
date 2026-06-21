@@ -18,7 +18,7 @@ Guidance for working in this repository. Keep it current when commands or conven
   every result.
 
 Three no-code **Streamlit** apps (one per module). `src/` layout, Python ≥ 3.10, managed with
-**pixi**. Current version: 0.4.1.
+**pixi**. Current version: 0.5.0.
 
 ## Commands
 
@@ -65,9 +65,16 @@ public API is curated in `src/expdpy/__init__.py` (`__all__` grouped by module).
   kwargs, and the `df_def` `type` metadata. `set_panel(df, entity=, time=)` declares the panel
   once (stored on `df.attrs`); explicit per-call args always win (`resolve_panel`). New
   functions take `entity`/`time` keyword-only.
-- **Every `prepare_*` returns a frozen result dataclass** (defined in `_types.py`) exposing
-  `.df` plus `.fig` (Plotly) or `.gt` (Great Tables) — never a bare figure. Many mix in
-  `Interpretable`, adding `.interpret()` / `.explain()` / `.tidy()` / `.glance()`.
+- **Public functions are module-prefixed** (renamed in 0.5.0, replacing the old `prepare_*` /
+  `sandbox_*` names): `explore_*` (Explore), `analyze_*` (Analyze), `learn_*` (Learn).
+  Plotly-figure functions end in `_plot`, Great-Tables functions in `_table`, and scope
+  qualifiers go last (e.g. `explore_violin_plot_by_group`). The cross-cutting helpers
+  `set_panel` / `resolve_panel` / `treat_outliers` / `explain` / `list_topics` are
+  **unprefixed** and grouped as "Utilities" in `__all__`.
+- **Every `explore_*` / `analyze_*` / `learn_*` function returns a frozen result dataclass**
+  (defined in `_types.py`) exposing `.df` plus `.fig` (Plotly) or `.gt` (Great Tables) — never
+  a bare figure. Many mix in `Interpretable`, adding
+  `.interpret()` / `.explain()` / `.tidy()` / `.glance()`.
 - **`.interpret()` describes associations, never causation** — the words "causes" / "effect of"
   must not appear, and the text ends with the shared `_ASSOC_NOTE` pointing to
   `correlation_vs_causation`. Interpretation logic lives in `pedagogy/_interpret.py`, which is

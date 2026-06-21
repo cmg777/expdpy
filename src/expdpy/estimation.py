@@ -1,7 +1,7 @@
 """The OLS estimator with model comparison and panel-friendly standard errors.
 
-``prepare_estimation`` is the home for everything beyond the classic OLS table that
-``prepare_regression_table`` provides: richer standard errors (heteroskedastic,
+``analyze_estimation`` is the home for everything beyond the classic OLS table that
+``analyze_regression_table`` provides: richer standard errors (heteroskedastic,
 cluster-robust, Newey-West / Driscoll-Kraay), weights, and stepwise / multi-outcome
 comparison (estimate a sequence of nested models in one call and read them side by side).
 It builds on the shared :mod:`expdpy._estimation` engine, so its numbers stay consistent
@@ -30,7 +30,7 @@ from expdpy._estimation._spec import Stepwise, VCovKind
 from expdpy._types import EstimationResult
 from expdpy._validation import ensure_dataframe
 
-__all__ = ["prepare_estimation"]
+__all__ = ["analyze_estimation"]
 
 _FEW_CLUSTERS = 40
 
@@ -42,7 +42,7 @@ def _resolve_vcov(
     panel_id: str | None,
     lag: int | None,
 ) -> VCovSpec:
-    """Build a :class:`VCovSpec` from the friendly ``prepare_estimation`` arguments."""
+    """Build a :class:`VCovSpec` from the friendly ``analyze_estimation`` arguments."""
     if isinstance(vcov, VCovSpec):
         return vcov
     cl = as_list(cluster)
@@ -77,7 +77,7 @@ def _fit_stats(models: list[Any]) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def prepare_estimation(
+def analyze_estimation(
     df: pd.DataFrame,
     dv: Sequence[str] | str,
     idvs: Sequence[str] | str | None = None,
@@ -95,7 +95,7 @@ def prepare_estimation(
 ) -> EstimationResult:
     """Estimate an OLS model, optionally several nested or multi-outcome models at once.
 
-    A richer companion to :func:`expdpy.prepare_regression_table`: same OLS/fixed-effects
+    A richer companion to :func:`expdpy.analyze_regression_table`: same OLS/fixed-effects
     core, but with stepwise nested-model comparison, serial-correlation-robust standard
     errors (Newey-West / Driscoll-Kraay), multiple outcomes and weights.
 
@@ -146,7 +146,7 @@ def prepare_estimation(
     from expdpy.data import load_kuznets
 
     df = load_kuznets()
-    ex.prepare_estimation(
+    ex.analyze_estimation(
         df,
         dv="gini_regional",
         idvs=["log_gdp_pc", "log_gdp_pc_sq"],
@@ -157,7 +157,7 @@ def prepare_estimation(
     Advanced — a cumulative-stepwise comparison with heteroskedastic SEs:
 
     ```python
-    res = ex.prepare_estimation(
+    res = ex.analyze_estimation(
         df,
         dv="gini_regional",
         idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"],
@@ -227,7 +227,7 @@ def prepare_estimation(
         if n_groups < _FEW_CLUSTERS:
             notes.append(
                 f"Only {n_groups} clusters: cluster-robust inference is unreliable with few "
-                "clusters — consider a wild cluster bootstrap via prepare_robust_inference()."
+                "clusters — consider a wild cluster bootstrap via analyze_robust_inference()."
             )
 
     etable_type = "gt" if format == "html" else format

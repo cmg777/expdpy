@@ -1,7 +1,8 @@
 """Interactive teaching sandboxes that *generate* data to make a concept tangible.
 
-Unlike the ``prepare_*`` functions (which summarize *your* data), the ``sandbox_*``
-functions simulate data from a known data-generating process so a learner can see a concept
+Unlike the ``explore_*`` / ``analyze_*`` functions (which summarize *your* data), the
+``learn_*`` functions simulate data from a known data-generating process so a learner can see
+a concept
 in action and turn the knobs: omitted-variable bias, pooled-OLS-vs-fixed-effects, and the
 effect of clustering on standard errors. Each returns a :class:`~expdpy.SandboxResult` whose
 ``summary`` holds the scalar facts the demonstration turns on (so they are easy to test and
@@ -19,18 +20,18 @@ import statsmodels.api as sm
 
 from expdpy._theme import apply_default_layout, color_for
 from expdpy._types import SandboxResult
-from expdpy.regression import prepare_regression_table
+from expdpy.regression import analyze_regression_table
 
 __all__ = [
-    "sandbox_clustering_se",
-    "sandbox_first_differences",
-    "sandbox_omitted_variable_bias",
-    "sandbox_pooled_vs_fixed_effects",
-    "sandbox_within_vs_lsdv",
+    "learn_clustering_se",
+    "learn_first_differences",
+    "learn_omitted_variable_bias",
+    "learn_pooled_vs_fixed_effects",
+    "learn_within_vs_lsdv",
 ]
 
 
-def sandbox_omitted_variable_bias(
+def learn_omitted_variable_bias(
     *,
     n: int = 2000,
     beta_x: float = 1.0,
@@ -107,7 +108,7 @@ def sandbox_omitted_variable_bias(
     return SandboxResult(df=df, fig=fig, summary=summary, topic="omitted_variable_bias")
 
 
-def sandbox_pooled_vs_fixed_effects(
+def learn_pooled_vs_fixed_effects(
     *,
     n_units: int = 50,
     n_periods: int = 10,
@@ -149,8 +150,8 @@ def sandbox_pooled_vs_fixed_effects(
             rows.append((i, t, float(x[t]), float(y[t])))
     data = pd.DataFrame(rows, columns=["unit", "period", "x", "y"])
 
-    pooled = prepare_regression_table(data, dvs="y", idvs=["x"]).models[0]
-    fe = prepare_regression_table(data, dvs="y", idvs=["x"], feffects=["unit"]).models[
+    pooled = analyze_regression_table(data, dvs="y", idvs=["x"]).models[0]
+    fe = analyze_regression_table(data, dvs="y", idvs=["x"], feffects=["unit"]).models[
         0
     ]
     pooled_b = float(pooled.coef()["x"])
@@ -216,7 +217,7 @@ def sandbox_pooled_vs_fixed_effects(
     return SandboxResult(df=df, fig=fig, summary=summary, topic="fixed_effects")
 
 
-def sandbox_clustering_se(
+def learn_clustering_se(
     *,
     n_clusters: int = 40,
     cluster_size: int = 30,
@@ -257,8 +258,8 @@ def sandbox_clustering_se(
             rows.append((c, x, y))
     data = pd.DataFrame(rows, columns=["cluster", "x", "y"])
 
-    iid = prepare_regression_table(data, dvs="y", idvs=["x"]).models[0]
-    clustered = prepare_regression_table(
+    iid = analyze_regression_table(data, dvs="y", idvs=["x"]).models[0]
+    clustered = analyze_regression_table(
         data, dvs="y", idvs=["x"], clusters=["cluster"]
     ).models[0]
     coef = float(iid.coef()["x"])
@@ -331,7 +332,7 @@ def _panel_with_unit_effects(
     return pd.DataFrame(rows, columns=["unit", "period", "x", "y"])
 
 
-def sandbox_first_differences(
+def learn_first_differences(
     *,
     n_units: int = 150,
     n_periods: int = 2,
@@ -378,10 +379,10 @@ def sandbox_first_differences(
     )
 
     pooled_b = float(
-        prepare_regression_table(data, dvs="y", idvs=["x"]).models[0].coef()["x"]
+        analyze_regression_table(data, dvs="y", idvs=["x"]).models[0].coef()["x"]
     )
     within_b = float(
-        prepare_regression_table(data, dvs="y", idvs=["x"], feffects=["unit"])
+        analyze_regression_table(data, dvs="y", idvs=["x"], feffects=["unit"])
         .models[0]
         .coef()["x"]
     )
@@ -431,7 +432,7 @@ def sandbox_first_differences(
     return SandboxResult(df=df, fig=fig, summary=summary, topic="first_differences")
 
 
-def sandbox_within_vs_lsdv(
+def learn_within_vs_lsdv(
     *,
     n_units: int = 30,
     n_periods: int = 6,
@@ -476,7 +477,7 @@ def sandbox_within_vs_lsdv(
     )
 
     within_b = float(
-        prepare_regression_table(data, dvs="y", idvs=["x"], feffects=["unit"])
+        analyze_regression_table(data, dvs="y", idvs=["x"], feffects=["unit"])
         .models[0]
         .coef()["x"]
     )

@@ -25,7 +25,7 @@ year) fixed effects**. A cubic in (log) GDP per capita recovers the N — a posi
 significant cubic term — *within* country, with standard errors clustered by country:
 
 ```{python}
-res = ex.prepare_regression_table(
+res = ex.analyze_regression_table(
     df,
     dvs="gini_regional",
     idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"],
@@ -39,10 +39,10 @@ A coefficient plot compares specifications side by side — pooled OLS against t
 effects:
 
 ```{python}
-pooled = ex.prepare_regression_table(
+pooled = ex.analyze_regression_table(
     df, dvs="gini_regional", idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"]
 )
-ex.prepare_coefficient_plot(
+ex.analyze_coefficient_plot(
     [pooled, res], model_labels=["Pooled OLS", "Two-way FE"]
 ).fig
 ```
@@ -56,13 +56,13 @@ print(res.interpret())
 
 ### Frisch–Waugh–Lovell plot
 
-The same coefficient, *seen*. `prepare_fwl_plot` residualizes both the outcome and the focal
+The same coefficient, *seen*. `analyze_fwl_plot` residualizes both the outcome and the focal
 regressor on the **other** regressors **and** the fixed effects, then scatters the two
 residuals. By the Frisch–Waugh–Lovell theorem the fitted slope equals the focal coefficient
 in the table above:
 
 ```{python}
-ex.prepare_fwl_plot(
+ex.analyze_fwl_plot(
     df,
     dv="gini_regional",
     var="log_gdp_pc",
@@ -77,13 +77,13 @@ ex.prepare_fwl_plot(
 **Predictions** — fitted values, residuals and actuals on the estimation sample:
 
 ```{python}
-ex.prepare_predictions(res).df.head()
+ex.analyze_predictions(res).df.head()
 ```
 
 **Fixed-effect estimates** — the estimated country intercepts the panel absorbs (top 20):
 
 ```{python}
-ex.prepare_fixef_plot(res, fixef="country", top_n=20).fig
+ex.analyze_fixef_plot(res, fixef="country", top_n=20).fig
 ```
 
 **Joint (Wald) test** — are the curvature terms jointly different from zero?
@@ -91,18 +91,18 @@ ex.prepare_fixef_plot(res, fixef="country", top_n=20).fig
 ```{python}
 #| warning: false
 print(
-    ex.prepare_joint_test(res, hypotheses=["log_gdp_pc_sq", "log_gdp_pc_cu"]).summary()
+    ex.analyze_joint_test(res, hypotheses=["log_gdp_pc_sq", "log_gdp_pc_cu"]).summary()
 )
 ```
 
 ### Stepwise comparison and panel-friendly standard errors
 
-Beyond the OLS table, `prepare_estimation` adds **stepwise / multiple-outcome** comparison,
+Beyond the OLS table, `analyze_estimation` adds **stepwise / multiple-outcome** comparison,
 serial-correlation-robust standard errors (**Newey–West**, **Driscoll–Kraay**) and weights.
 Here, a cumulative-stepwise comparison — watch the estimate move as terms are added:
 
 ```{python}
-ex.prepare_estimation(
+ex.analyze_estimation(
     df,
     dv="gini_regional",
     idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"],
@@ -112,31 +112,31 @@ ex.prepare_estimation(
 
 ### Classic panel models, CRE and the Hausman test
 
-`prepare_panel_table` estimates **pooled / between / fixed / random effects** side by side:
+`analyze_panel_table` estimates **pooled / between / fixed / random effects** side by side:
 
 ```{python}
-ex.prepare_panel_table(
+ex.analyze_panel_table(
     df, dv="gini_regional", idvs=["log_gdp_pc"], entity="country", time="year"
 ).etable
 ```
 
-`prepare_cre_table` adds the **correlated-random-effects (Mundlak)** estimator — a
+`analyze_cre_table` adds the **correlated-random-effects (Mundlak)** estimator — a
 random-effects model augmented with each regressor's unit mean. The coefficient on the
 regressor equals its fixed-effects (within) estimate, while a joint test on the mean terms is
 the regression-form Hausman test:
 
 ```{python}
-cre = ex.prepare_cre_table(
+cre = ex.analyze_cre_table(
     df, dv="gini_regional", idvs=["log_gdp_pc"], entity="country", time="year"
 )
 print(cre.interpret())
 ```
 
-`prepare_hausman_test` chooses between fixed and random effects directly:
+`analyze_hausman_test` chooses between fixed and random effects directly:
 
 ```{python}
 print(
-    ex.prepare_hausman_test(
+    ex.analyze_hausman_test(
         df, dv="gini_regional", idvs=["log_gdp_pc"], entity="country", time="year"
     ).interpret()
 )
@@ -145,21 +145,21 @@ print(
 ### Treatment structure & event study
 
 For treated panels, the bundled `staggered_did` dataset is a ready-made example.
-`prepare_panel_view` shows the **treatment structure** (who is treated, when):
+`analyze_panel_view` shows the **treatment structure** (who is treated, when):
 
 ```{python}
 from expdpy.data import load_staggered_did
 
 did = load_staggered_did()
-ex.prepare_panel_view(did, unit="unit", time="year", cohort="cohort").fig
+ex.analyze_panel_view(did, unit="unit", time="year", cohort="cohort").fig
 ```
 
-`prepare_event_study` traces the **dynamic treatment effect** with a built-in pre-trend
+`analyze_event_study` traces the **dynamic treatment effect** with a built-in pre-trend
 check, using a modern staggered-adoption estimator (Gardner's `did2s` here; `twfe`,
 Sun–Abraham `saturated` and `lpdid` are also available):
 
 ```{python}
-ex.prepare_event_study(
+ex.analyze_event_study(
     did, outcome="outcome", unit="unit", time="year", cohort="cohort", estimator="did2s"
 ).fig
 ```
@@ -167,14 +167,14 @@ ex.prepare_event_study(
 ### Robust inference
 
 When clusters are few, large-sample cluster-robust p-values can be over-confident.
-`prepare_robust_inference` offers **randomization inference** (`ritest`) and the **wild
+`analyze_robust_inference` offers **randomization inference** (`ritest`) and the **wild
 cluster bootstrap** (`wildboot`, needs the optional `wildboottest` package):
 
 ```{python}
 #| warning: false
 did_f = did.assign(treated=did["treated"].astype(float))
-m = ex.prepare_regression_table(did_f, dvs="outcome", idvs=["treated"], clusters=["unit"])
-ri = ex.prepare_robust_inference(
+m = ex.analyze_regression_table(did_f, dvs="outcome", idvs=["treated"], clusters=["unit"])
+ri = ex.analyze_robust_inference(
     m, param="treated", method="ritest", reps=500, cluster="unit", seed=0
 )
 print(
@@ -187,12 +187,12 @@ print(
 
 A **basic** and **advanced** example for every Analyze function.
 
-### `prepare_regression_table`
+### `analyze_regression_table`
 
 Basic — a pooled OLS regression of the cubic Kuznets curve:
 
 ```{python}
-ex.prepare_regression_table(
+ex.analyze_regression_table(
     df, dvs="gini_regional", idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"]
 ).etable
 ```
@@ -200,7 +200,7 @@ ex.prepare_regression_table(
 Advanced — two-way fixed effects with standard errors clustered by country:
 
 ```{python}
-ex.prepare_regression_table(
+ex.analyze_regression_table(
     df,
     dvs="gini_regional",
     idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"],
@@ -209,7 +209,7 @@ ex.prepare_regression_table(
 ).etable
 ```
 
-### `prepare_estimation`
+### `analyze_estimation`
 
 OLS with stepwise / multiple-outcome comparison and a rich choice of standard errors
 (HC1–HC3, CRV1/CRV3, Newey–West, Driscoll–Kraay) plus weights.
@@ -217,7 +217,7 @@ OLS with stepwise / multiple-outcome comparison and a rich choice of standard er
 Basic — a cumulative-stepwise comparison:
 
 ```{python}
-ex.prepare_estimation(
+ex.analyze_estimation(
     df,
     dv="gini_regional",
     idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"],
@@ -228,7 +228,7 @@ ex.prepare_estimation(
 Advanced — Driscoll–Kraay standard errors (robust to cross-sectional and serial correlation):
 
 ```{python}
-ex.prepare_estimation(
+ex.analyze_estimation(
     df,
     dv="gini_regional",
     idvs=["log_gdp_pc", "log_gdp_pc_sq"],
@@ -238,19 +238,19 @@ ex.prepare_estimation(
 ).etable
 ```
 
-### `prepare_fwl_plot`
+### `analyze_fwl_plot`
 
 Basic — the partial relationship of the outcome and a single regressor:
 
 ```{python}
-ex.prepare_fwl_plot(df, dv="gini_regional", var="log_gdp_pc").fig
+ex.analyze_fwl_plot(df, dv="gini_regional", var="log_gdp_pc").fig
 ```
 
 Advanced — residualize on the other cubic terms and two-way fixed effects, with the reported
 standard error clustered by country:
 
 ```{python}
-ex.prepare_fwl_plot(
+ex.analyze_fwl_plot(
     df,
     dv="gini_regional",
     var="log_gdp_pc",
@@ -260,108 +260,108 @@ ex.prepare_fwl_plot(
 ).fig
 ```
 
-### `prepare_coefficient_plot`
+### `analyze_coefficient_plot`
 
 Basic:
 
 ```{python}
-reg = ex.prepare_regression_table(
+reg = ex.analyze_regression_table(
     df, dvs="gini_regional", idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"]
 )
-ex.prepare_coefficient_plot(reg).fig
+ex.analyze_coefficient_plot(reg).fig
 ```
 
 Advanced — compare pooled OLS and two-way fixed effects, keeping one term:
 
 ```{python}
-fe = ex.prepare_regression_table(
+fe = ex.analyze_regression_table(
     df, dvs="gini_regional", idvs=["log_gdp_pc"], feffects=["country", "year"]
 )
-poolg = ex.prepare_regression_table(df, dvs="gini_regional", idvs=["log_gdp_pc"])
-ex.prepare_coefficient_plot(
+poolg = ex.analyze_regression_table(df, dvs="gini_regional", idvs=["log_gdp_pc"])
+ex.analyze_coefficient_plot(
     [poolg.models[0], fe.models[0]],
     model_labels=["Pooled OLS", "Two-way FE"],
     keep=["log_gdp_pc"],
 ).fig
 ```
 
-### `prepare_fixef_plot`
+### `analyze_fixef_plot`
 
 The estimated fixed effects of a model, ranked:
 
 ```{python}
-country_fe = ex.prepare_regression_table(
+country_fe = ex.analyze_regression_table(
     df, dvs="gini_regional", idvs=["log_gdp_pc"], feffects=["country", "year"]
 )
-ex.prepare_fixef_plot(country_fe, fixef="country", top_n=20).fig
+ex.analyze_fixef_plot(country_fe, fixef="country", top_n=20).fig
 ```
 
-### `prepare_predictions`
+### `analyze_predictions`
 
 ```{python}
-ex.prepare_predictions(reg).df.head()
+ex.analyze_predictions(reg).df.head()
 ```
 
-### `prepare_joint_test`
+### `analyze_joint_test`
 
 ```{python}
-joint = ex.prepare_joint_test(reg, ["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"])
+joint = ex.analyze_joint_test(reg, ["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"])
 print(joint.summary())
 ```
 
-### `prepare_panel_table`
+### `analyze_panel_table`
 
 Pooled / between / fixed / random effects side by side:
 
 ```{python}
-ex.prepare_panel_table(
+ex.analyze_panel_table(
     df, dv="gini_regional", idvs=["log_gdp_pc"], entity="country", time="year"
 ).etable
 ```
 
-### `prepare_cre_table`
+### `analyze_cre_table`
 
 The correlated-random-effects (Mundlak) estimator — its `log_gdp_pc` coefficient equals the
 fixed-effects (within) estimate:
 
 ```{python}
-ex.prepare_cre_table(
+ex.analyze_cre_table(
     df, dv="gini_regional", idvs=["log_gdp_pc"], entity="country", time="year"
 ).df
 ```
 
-### `prepare_hausman_test`
+### `analyze_hausman_test`
 
 ```{python}
 print(
-    ex.prepare_hausman_test(
+    ex.analyze_hausman_test(
         df, dv="gini_regional", idvs=["log_gdp_pc"], entity="country", time="year"
     ).interpret()
 )
 ```
 
-### `prepare_robust_inference`
+### `analyze_robust_inference`
 
 ```{python}
-clustered = ex.prepare_regression_table(
+clustered = ex.analyze_regression_table(
     df, dvs="gini_regional", idvs=["log_gdp_pc"], feffects=["country"], clusters=["country"]
 )
-ri = ex.prepare_robust_inference(clustered, "log_gdp_pc", method="ritest", reps=200, seed=0)
+ri = ex.analyze_robust_inference(clustered, "log_gdp_pc", method="ritest", reps=200, seed=0)
 ri.p_value, ri.conf_int
 ```
 
-### `prepare_panel_view`
+### `analyze_panel_view`
 
 ```{python}
-ex.prepare_panel_view(did, unit="unit", time="year", cohort="cohort").fig
+ex.analyze_panel_view(did, unit="unit", time="year", cohort="cohort").fig
 ```
 
-### `prepare_event_study`
+### `analyze_event_study`
 
 Basic — Gardner's `did2s`:
 
 ```{python}
-es = ex.prepare_event_study(
+es = ex.analyze_event_study(
     did, outcome="outcome", unit="unit", time="year", cohort="cohort", estimator="did2s"
 )
 print(es.interpret())
@@ -371,7 +371,7 @@ es.fig
 Advanced — the Sun–Abraham (`saturated`) estimator, one curve per treatment cohort:
 
 ```{python}
-ex.prepare_event_study(
+ex.analyze_event_study(
     did, outcome="outcome", unit="unit", time="year", cohort="cohort", estimator="saturated"
 ).fig
 ```

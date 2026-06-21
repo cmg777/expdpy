@@ -1,4 +1,4 @@
-"""Tests for prepare_event_study and prepare_panel_view (event study / staggered DiD)."""
+"""Tests for analyze_event_study and analyze_panel_view (event study / staggered DiD)."""
 
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ def test_staggered_did_dataset_loads(did_df):
 @pytest.mark.parametrize("estimator", ["did2s", "twfe", "saturated", "lpdid"])
 def test_event_study_estimators(did_df, estimator):
     kw = {"pre_window": 5, "post_window": 5} if estimator == "lpdid" else {}
-    res = ex.prepare_event_study(
+    res = ex.analyze_event_study(
         did_df,
         outcome="outcome",
         unit="unit",
@@ -46,7 +46,7 @@ def test_event_study_estimators(did_df, estimator):
 
 
 def test_event_study_has_reference_period(did_df):
-    res = ex.prepare_event_study(
+    res = ex.analyze_event_study(
         did_df, outcome="outcome", unit="unit", time="year", cohort="cohort"
     )
     ref = res.df[res.df["event_time"] == -1.0]
@@ -55,7 +55,7 @@ def test_event_study_has_reference_period(did_df):
 
 
 def test_saturated_has_per_cohort_curves(did_df):
-    res = ex.prepare_event_study(
+    res = ex.analyze_event_study(
         did_df,
         outcome="outcome",
         unit="unit",
@@ -68,7 +68,7 @@ def test_saturated_has_per_cohort_curves(did_df):
 
 
 def test_event_study_zero_and_reference_lines(did_df):
-    res = ex.prepare_event_study(
+    res = ex.analyze_event_study(
         did_df, outcome="outcome", unit="unit", time="year", cohort="cohort"
     )
     # a dotted zero line and a dashed t=-1 reference line
@@ -76,7 +76,7 @@ def test_event_study_zero_and_reference_lines(did_df):
 
 
 def test_event_study_interpret_and_explain(did_df):
-    res = ex.prepare_event_study(
+    res = ex.analyze_event_study(
         did_df, outcome="outcome", unit="unit", time="year", cohort="cohort"
     )
     text = res.interpret()
@@ -88,7 +88,7 @@ def test_event_study_interpret_and_explain(did_df):
 
 def test_event_study_missing_column_raises(did_df):
     with pytest.raises(KeyError, match="nope"):
-        ex.prepare_event_study(
+        ex.analyze_event_study(
             did_df, outcome="nope", unit="unit", time="year", cohort="cohort"
         )
 
@@ -97,19 +97,19 @@ def test_event_study_missing_column_raises(did_df):
 
 
 def test_panel_view_quilt_from_cohort(did_df):
-    res = ex.prepare_panel_view(did_df, unit="unit", time="year", cohort="cohort")
+    res = ex.analyze_panel_view(did_df, unit="unit", time="year", cohort="cohort")
     assert isinstance(res, PanelViewResult)
     assert res.df.shape == (did_df["unit"].nunique(), did_df["year"].nunique())
     assert len(res.fig.data) == 1  # a single heatmap
 
 
 def test_panel_view_quilt_from_binary_treat(did_df):
-    res = ex.prepare_panel_view(did_df, unit="unit", time="year", treat="treated")
+    res = ex.analyze_panel_view(did_df, unit="unit", time="year", treat="treated")
     assert res.df.shape[0] == did_df["unit"].nunique()
 
 
 def test_panel_view_outcome_lines(did_df):
-    res = ex.prepare_panel_view(
+    res = ex.analyze_panel_view(
         did_df, unit="unit", time="year", cohort="cohort", outcome="outcome"
     )
     assert list(res.df.columns) == ["unit", "year", "outcome"]
@@ -118,16 +118,16 @@ def test_panel_view_outcome_lines(did_df):
 
 def test_panel_view_requires_treat_or_cohort(did_df):
     with pytest.raises(ValueError, match=r"treat.*cohort"):
-        ex.prepare_panel_view(did_df, unit="unit", time="year")
+        ex.analyze_panel_view(did_df, unit="unit", time="year")
 
 
 def test_panel_view_non_binary_treat_raises(did_df):
     with pytest.raises(ValueError, match="binary"):
-        ex.prepare_panel_view(did_df, unit="unit", time="year", treat="outcome")
+        ex.analyze_panel_view(did_df, unit="unit", time="year", treat="outcome")
 
 
 def test_panel_view_max_units(did_df):
-    res = ex.prepare_panel_view(
+    res = ex.analyze_panel_view(
         did_df, unit="unit", time="year", cohort="cohort", max_units=20
     )
     assert res.df.shape[0] == 20

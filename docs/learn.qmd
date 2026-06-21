@@ -24,7 +24,7 @@ Fit a model anywhere in [Analyze](analyze.qmd), then ask it to explain itself. `
 gives an **associational** reading (never a causal claim unless the design supports it):
 
 ```{python}
-res = ex.prepare_regression_table(
+res = ex.analyze_regression_table(
     df,
     dvs="gini_regional",
     idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"],
@@ -50,21 +50,21 @@ A unit fixed effect is anything constant within a unit over time. Three transfor
 - **The within transformation (demeaning)** subtracts each unit's time-average.
 - **Least-squares dummy variables (LSDV)** add one dummy per unit to an OLS regression.
 
-`sandbox_first_differences` simulates a panel where the regressor is correlated with the unit
+`learn_first_differences` simulates a panel where the regressor is correlated with the unit
 effect (so pooled OLS is biased) and recovers the slope by first differences and by demeaning.
 On a two-period panel the two coincide exactly, and both recover the truth:
 
 ```{python}
-fd = ex.sandbox_first_differences(n_periods=2)
+fd = ex.learn_first_differences(n_periods=2)
 print(fd.interpret())
 fd.fig
 ```
 
-`sandbox_within_vs_lsdv` shows that demeaning and unit dummies give the **identical** slope —
+`learn_within_vs_lsdv` shows that demeaning and unit dummies give the **identical** slope —
 the Frisch–Waugh–Lovell theorem at work — for any number of periods:
 
 ```{python}
-wl = ex.sandbox_within_vs_lsdv(n_periods=6)
+wl = ex.learn_within_vs_lsdv(n_periods=6)
 print(wl.interpret())
 wl.fig
 ```
@@ -85,13 +85,13 @@ Pooled OLS is biased when the unit effects are correlated with the regressor; fi
 fix it by using only within-unit variation:
 
 ```{python}
-pf = ex.sandbox_pooled_vs_fixed_effects(unit_effect_corr=0.8)
+pf = ex.learn_pooled_vs_fixed_effects(unit_effect_corr=0.8)
 print(pf.interpret())
 pf.fig
 ```
 
 The **correlated random effects (Mundlak)** estimator builds a bridge between the two — see
-its explainer, and `prepare_cre_table` in [Analyze](analyze.qmd):
+its explainer, and `analyze_cre_table` in [Analyze](analyze.qmd):
 
 ```{python}
 ex.explain("correlated_random_effects")
@@ -103,14 +103,14 @@ ex.explain("correlated_random_effects")
 out:
 
 ```{python}
-ex.sandbox_omitted_variable_bias(corr_xz=0.6).fig
+ex.learn_omitted_variable_bias(corr_xz=0.6).fig
 ```
 
 **Clustered standard errors** — why ignoring within-cluster correlation understates
 uncertainty:
 
 ```{python}
-ex.sandbox_clustering_se(icc=0.3).fig
+ex.learn_clustering_se(icc=0.3).fig
 ```
 
 ## Explainer index
@@ -131,34 +131,34 @@ print(ex.explain("clustered_se"))
 Every sandbox returns a figure, a small comparison table (`.df`), a `summary` of the facts it
 turns on, and a plain-language `.interpret()`.
 
-### `sandbox_omitted_variable_bias`
+### `learn_omitted_variable_bias`
 
 ```{python}
-ex.sandbox_omitted_variable_bias(corr_xz=0.6).fig
+ex.learn_omitted_variable_bias(corr_xz=0.6).fig
 ```
 
-### `sandbox_pooled_vs_fixed_effects`
+### `learn_pooled_vs_fixed_effects`
 
 ```{python}
-ex.sandbox_pooled_vs_fixed_effects(unit_effect_corr=0.8).fig
+ex.learn_pooled_vs_fixed_effects(unit_effect_corr=0.8).fig
 ```
 
-### `sandbox_clustering_se`
+### `learn_clustering_se`
 
 ```{python}
-ex.sandbox_clustering_se(icc=0.4).fig
+ex.learn_clustering_se(icc=0.4).fig
 ```
 
-### `sandbox_first_differences`
+### `learn_first_differences`
 
 ```{python}
-ex.sandbox_first_differences(n_periods=2).fig
+ex.learn_first_differences(n_periods=2).fig
 ```
 
-### `sandbox_within_vs_lsdv`
+### `learn_within_vs_lsdv`
 
 ```{python}
-ex.sandbox_within_vs_lsdv(n_periods=6).fig
+ex.learn_within_vs_lsdv(n_periods=6).fig
 ```
 
 ## Where to go next

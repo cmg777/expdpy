@@ -44,7 +44,7 @@ tests use `rpy2` to compare against ExPanDaR directly (run in the pixi `r` envir
 Frozen golden values in `tests/fixtures/goldens.json` cover the base-R-equivalent
 computations so the fast test run needs no R install.
 
-The FWL-plot parity test (`tests/test_vs_fwlplot.py`) compares `prepare_fwl_plot` against
+The FWL-plot parity test (`tests/test_vs_fwlplot.py`) compares `analyze_fwl_plot` against
 the bundled `fwlplot-r/` R package (Kyle Butts). Install it into the pixi `r` env once with
 `pixi run -e r Rscript -e 'remotes::install_local("fwlplot-r", upgrade="never", dependencies=FALSE)'`
 (its `fixest`/`data.table`/`tinyplot`/`ggplot2` dependencies come from conda-forge via pixi).

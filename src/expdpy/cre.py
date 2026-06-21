@@ -33,12 +33,12 @@ from expdpy.panel_models import (
     _tidy_lm,
 )
 
-__all__ = ["prepare_cre_table"]
+__all__ = ["analyze_cre_table"]
 
 _MEAN_SUFFIX = "_mean"
 
 
-def prepare_cre_table(
+def analyze_cre_table(
     df: pd.DataFrame,
     dv: str,
     idvs: Sequence[str] | str,
@@ -53,8 +53,8 @@ def prepare_cre_table(
 
     Augments a random-effects model with the entity means of each time-varying regressor.
     By the Mundlak equivalence the coefficient on each original regressor equals its within
-    (fixed-effects) estimate — so ``prepare_cre_table(df, "y", "x", ...)`` recovers the same
-    slope on ``x`` as ``prepare_regression_table(df, "y", "x", feffects=[entity])`` — while
+    (fixed-effects) estimate — so ``analyze_cre_table(df, "y", "x", ...)`` recovers the same
+    slope on ``x`` as ``analyze_regression_table(df, "y", "x", feffects=[entity])`` — while
     the coefficient on ``x_mean`` measures the between-vs-within gap. A joint Wald test that
     all ``*_mean`` coefficients are zero is the regression-form Hausman test (reported on the
     fitted model as ``_cre_mundlak_stat`` / ``_cre_mundlak_df`` / ``_cre_mundlak_p``).
@@ -89,7 +89,7 @@ def prepare_cre_table(
     from expdpy.data import load_kuznets
 
     df = load_kuznets()
-    cre = ex.prepare_cre_table(
+    cre = ex.analyze_cre_table(
         df, dv="gini_regional", idvs=["log_gdp_pc"], entity="country", time="year"
     )
     cre.etable          # the log_gdp_pc coefficient == the within / fixed-effects estimate

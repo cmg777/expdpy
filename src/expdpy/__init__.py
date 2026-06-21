@@ -11,6 +11,9 @@ conceptual modules:
   post-estimation, robust inference and event-study / difference-in-differences.
 * **Learn** — a teaching layer: concept explainers (``explain`` / ``list_topics``),
   plain-language ``.interpret()`` on every result, and runnable concept sandboxes.
+* **Utilities** — shared helpers used across modules: ``set_panel`` / ``resolve_panel``
+  (declare the panel once), ``treat_outliers`` (winsorize/truncate), and the
+  concept-explainer registry entry points (``explain`` / ``list_topics``).
 
 Three no-code ``ExPdPy`` apps (one per module) build on the same functions — see
 :mod:`expdpy.streamlit_app`.
@@ -56,124 +59,129 @@ from expdpy._types import (
     XtsumTableResult,
 )
 from expdpy.by_group import (
-    prepare_by_group_bar_graph,
-    prepare_by_group_trend_graph,
-    prepare_by_group_violin_graph,
+    explore_bar_plot_by_group,
+    explore_trend_plot_by_group,
+    explore_violin_plot_by_group,
 )
-from expdpy.coefplot import prepare_coefficient_plot
-from expdpy.correlation import prepare_correlation_graph
-from expdpy.cre import prepare_cre_table
-from expdpy.did import prepare_event_study, prepare_panel_view
-from expdpy.distributions import prepare_bar_chart, prepare_histogram
+from expdpy.coefplot import analyze_coefficient_plot
+from expdpy.correlation import explore_correlation_plot
+from expdpy.cre import analyze_cre_table
+from expdpy.did import analyze_event_study, analyze_panel_view
+from expdpy.distributions import explore_bar_plot, explore_histogram
 from expdpy.dynamics import (
-    prepare_distribution_over_time,
-    prepare_transition_matrix,
-    prepare_within_persistence,
+    explore_distribution_over_time,
+    explore_transition_matrix,
+    explore_within_persistence,
 )
-from expdpy.estimation import prepare_estimation
-from expdpy.fwl import prepare_fwl_plot
-from expdpy.inference import prepare_robust_inference
-from expdpy.missing import prepare_missing_values_graph
+from expdpy.estimation import analyze_estimation
+from expdpy.fwl import analyze_fwl_plot
+from expdpy.inference import analyze_robust_inference
+from expdpy.missing import explore_missing_values_plot
 from expdpy.outliers import treat_outliers
-from expdpy.panel_models import prepare_hausman_test, prepare_panel_table
-from expdpy.panel_structure import prepare_panel_structure, prepare_value_heatmap
-from expdpy.panel_summary import prepare_within_between_scatter, prepare_xtsum_table
+from expdpy.panel_models import analyze_hausman_test, analyze_panel_table
+from expdpy.panel_structure import explore_panel_structure, explore_value_heatmap
+from expdpy.panel_summary import (
+    explore_scatter_plot_within_between,
+    explore_xtsum_table,
+)
 from expdpy.pedagogy import Explainer, explain, list_topics
 from expdpy.postestimation import (
-    prepare_fixef_plot,
-    prepare_joint_test,
-    prepare_predictions,
+    analyze_fixef_plot,
+    analyze_joint_test,
+    analyze_predictions,
 )
-from expdpy.regression import prepare_regression_table
+from expdpy.regression import analyze_regression_table
 from expdpy.sandbox import (
-    sandbox_clustering_se,
-    sandbox_first_differences,
-    sandbox_omitted_variable_bias,
-    sandbox_pooled_vs_fixed_effects,
-    sandbox_within_vs_lsdv,
+    learn_clustering_se,
+    learn_first_differences,
+    learn_omitted_variable_bias,
+    learn_pooled_vs_fixed_effects,
+    learn_within_vs_lsdv,
 )
-from expdpy.scatter import prepare_scatter_plot
-from expdpy.spaghetti import prepare_spaghetti_graph
+from expdpy.scatter import explore_scatter_plot
+from expdpy.spaghetti import explore_spaghetti_plot
 from expdpy.tables import (
-    prepare_correlation_table,
-    prepare_descriptive_table,
-    prepare_ext_obs_table,
+    explore_correlation_table,
+    explore_descriptive_table,
+    explore_ext_obs_table,
 )
-from expdpy.trends import prepare_quantile_trend_graph, prepare_trend_graph
+from expdpy.trends import explore_quantile_trend_plot, explore_trend_plot
 
-__version__ = "0.4.1"
+__version__ = "0.5.0"
 
 __all__ = [
     # ===== EXPLORE =====
+    # tables
+    "explore_descriptive_table",
+    "explore_correlation_table",
+    "explore_ext_obs_table",
+    # distributions
+    "explore_histogram",
+    "explore_bar_plot",
+    # correlation graph
+    "explore_correlation_plot",
+    # trends
+    "explore_trend_plot",
+    "explore_quantile_trend_plot",
+    # by group
+    "explore_bar_plot_by_group",
+    "explore_trend_plot_by_group",
+    "explore_violin_plot_by_group",
+    # missing values
+    "explore_missing_values_plot",
+    # scatter
+    "explore_scatter_plot",
+    # within/between variation
+    "explore_xtsum_table",
+    "explore_scatter_plot_within_between",
+    # per-unit trajectories
+    "explore_spaghetti_plot",
+    # panel structure
+    "explore_panel_structure",
+    "explore_value_heatmap",
+    # distribution & transition dynamics
+    "explore_distribution_over_time",
+    "explore_transition_matrix",
+    "explore_within_persistence",
+    # ===== ANALYZE =====
+    # regression table (OLS / fixed effects / clustered SEs)
+    "analyze_regression_table",
+    # estimation (OLS + stepwise + Newey-West / Driscoll-Kraay + weights)
+    "analyze_estimation",
+    # diagnostic plots
+    "analyze_fwl_plot",
+    "analyze_coefficient_plot",
+    # panel models (pooled / between / fixed / random effects, CRE) + Hausman
+    "analyze_panel_table",
+    "analyze_cre_table",
+    "analyze_hausman_test",
+    # post-estimation
+    "analyze_fixef_plot",
+    "analyze_predictions",
+    "analyze_joint_test",
+    # robust inference
+    "analyze_robust_inference",
+    # event study / staggered DiD
+    "analyze_event_study",
+    "analyze_panel_view",
+    # ===== LEARN =====
+    # concept sandboxes
+    "learn_omitted_variable_bias",
+    "learn_pooled_vs_fixed_effects",
+    "learn_clustering_se",
+    "learn_first_differences",
+    "learn_within_vs_lsdv",
+    # concept-explainer registry type
+    "Explainer",
+    # ===== UTILITIES =====
     # panel declaration
     "set_panel",
     "resolve_panel",
     # outlier treatment
     "treat_outliers",
-    # tables
-    "prepare_descriptive_table",
-    "prepare_correlation_table",
-    "prepare_ext_obs_table",
-    # distributions
-    "prepare_histogram",
-    "prepare_bar_chart",
-    # correlation graph
-    "prepare_correlation_graph",
-    # trends
-    "prepare_trend_graph",
-    "prepare_quantile_trend_graph",
-    # by group
-    "prepare_by_group_bar_graph",
-    "prepare_by_group_trend_graph",
-    "prepare_by_group_violin_graph",
-    # missing values
-    "prepare_missing_values_graph",
-    # scatter
-    "prepare_scatter_plot",
-    # within/between variation
-    "prepare_xtsum_table",
-    "prepare_within_between_scatter",
-    # per-unit trajectories
-    "prepare_spaghetti_graph",
-    # panel structure
-    "prepare_panel_structure",
-    "prepare_value_heatmap",
-    # distribution & transition dynamics
-    "prepare_distribution_over_time",
-    "prepare_transition_matrix",
-    "prepare_within_persistence",
-    # ===== ANALYZE =====
-    # regression table (OLS / fixed effects / clustered SEs)
-    "prepare_regression_table",
-    # estimation (OLS + stepwise + Newey-West / Driscoll-Kraay + weights)
-    "prepare_estimation",
-    # diagnostic plots
-    "prepare_fwl_plot",
-    "prepare_coefficient_plot",
-    # panel models (pooled / between / fixed / random effects, CRE) + Hausman
-    "prepare_panel_table",
-    "prepare_cre_table",
-    "prepare_hausman_test",
-    # post-estimation
-    "prepare_fixef_plot",
-    "prepare_predictions",
-    "prepare_joint_test",
-    # robust inference
-    "prepare_robust_inference",
-    # event study / staggered DiD
-    "prepare_event_study",
-    "prepare_panel_view",
-    # ===== LEARN =====
-    # concept sandboxes
-    "sandbox_omitted_variable_bias",
-    "sandbox_pooled_vs_fixed_effects",
-    "sandbox_clustering_se",
-    "sandbox_first_differences",
-    "sandbox_within_vs_lsdv",
-    # pedagogy
+    # concept explainers (registry entry points)
     "explain",
     "list_topics",
-    "Explainer",
     # ===== RESULT TYPES =====
     # explore
     "DescriptiveTableResult",

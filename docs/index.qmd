@@ -48,7 +48,7 @@ charts, time and quantile trends, by-group bar / violin / trend views, a missing
 scatter plots with an optional LOESS smoother, and `treat_outliers`.
 
 **Analyze** provides OLS with **multi-way fixed effects** and **clustered standard errors** via
-[pyfixest](https://github.com/py-econometrics/pyfixest); a richer `prepare_estimation` with
+[pyfixest](https://github.com/py-econometrics/pyfixest); a richer `analyze_estimation` with
 **stepwise / multiple-outcome** comparison and serial-correlation-robust standard errors
 (Newey–West, Driscoll–Kraay); **pooled / between / fixed / random effects** and the
 **correlated-random-effects (Mundlak)** estimator; the **Hausman test**; post-estimation tools
@@ -60,9 +60,9 @@ local-projections DiD, dynamic TWFE).
 **Learn** makes every result speak plain language — `.interpret()` gives an **associational**
 reading (never a causal claim unless the design supports it), and `.explain()` /
 `explain(topic)` / `list_topics()` provide concept explainers. **Concept sandboxes** simulate
-data so a learner can *see* and tune a concept (`sandbox_omitted_variable_bias`,
-`sandbox_pooled_vs_fixed_effects`, `sandbox_clustering_se`, `sandbox_first_differences`,
-`sandbox_within_vs_lsdv`).
+data so a learner can *see* and tune a concept (`learn_omitted_variable_bias`,
+`learn_pooled_vs_fixed_effects`, `learn_clustering_se`, `learn_first_differences`,
+`learn_within_vs_lsdv`).
 
 **Three no-code apps.** [Streamlit](streamlit.qmd) apps — one per module — bring the whole
 workflow to the browser with a sample pipeline, point-and-click analysis, native sortable
@@ -111,7 +111,7 @@ from expdpy.data import load_kuznets
 
 df = load_kuznets()
 # The N-shaped regional Kuznets curve: regional inequality vs (log) GDP per capita
-ex.prepare_scatter_plot(
+ex.explore_scatter_plot(
     df, x="log_gdp_pc", y="gini_regional", color="continent", size="population", loess=1
 ).fig
 ```
@@ -120,7 +120,7 @@ ex.prepare_scatter_plot(
 errors, a plain-language reading, and a coefficient plot:
 
 ```python
-res = ex.prepare_regression_table(
+res = ex.analyze_regression_table(
     df,
     dvs="gini_regional",
     idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"],
@@ -128,7 +128,7 @@ res = ex.prepare_regression_table(
     clusters=["country"],
 )
 print(res.interpret())            # plain-language, associational reading
-ex.prepare_coefficient_plot(res)  # themed coefficient plot with confidence intervals
+ex.analyze_coefficient_plot(res)  # themed coefficient plot with confidence intervals
 ```
 
 **Bring within estimates into a random-effects frame** with the correlated-random-effects
@@ -136,7 +136,7 @@ ex.prepare_coefficient_plot(res)  # themed coefficient plot with confidence inte
 unit-mean terms is the regression-form Hausman test:
 
 ```python
-ex.prepare_cre_table(
+ex.analyze_cre_table(
     df, dv="gini_regional", idvs=["log_gdp_pc"], entity="country", time="year"
 ).etable
 ```
@@ -147,8 +147,8 @@ ex.prepare_cre_table(
 from expdpy.data import load_staggered_did
 
 did = load_staggered_did()
-ex.prepare_panel_view(did, unit="unit", time="year", cohort="cohort")   # treatment structure
-ex.prepare_event_study(                                                  # dynamic effects
+ex.analyze_panel_view(did, unit="unit", time="year", cohort="cohort")   # treatment structure
+ex.analyze_event_study(                                                  # dynamic effects
     did, outcome="outcome", unit="unit", time="year", cohort="cohort", estimator="did2s"
 ).fig
 ```
@@ -156,7 +156,7 @@ ex.prepare_event_study(                                                  # dynam
 **Learn as you go** — concept sandboxes and explainers:
 
 ```python
-ex.sandbox_first_differences()      # first differences ≈ demeaning ≈ dummy variables
+ex.learn_first_differences()      # first differences ≈ demeaning ≈ dummy variables
 print(ex.explain("fixed_effects"))  # a concept explainer; ex.list_topics() lists them all
 ```
 

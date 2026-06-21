@@ -68,31 +68,29 @@ quartodoc:
         Exploratory analysis — descriptive / correlation / extreme-observation tables,
         distributions, time trends, group comparisons, missing-value maps, scatter plots,
         within/between variation, per-unit trajectories, panel-structure diagnostics,
-        distribution & transition dynamics, and outlier treatment.
+        and distribution & transition dynamics.
       contents:
-        - set_panel
-        - prepare_descriptive_table
-        - prepare_correlation_table
-        - prepare_ext_obs_table
-        - prepare_histogram
-        - prepare_bar_chart
-        - prepare_correlation_graph
-        - prepare_trend_graph
-        - prepare_quantile_trend_graph
-        - prepare_by_group_bar_graph
-        - prepare_by_group_trend_graph
-        - prepare_by_group_violin_graph
-        - prepare_missing_values_graph
-        - prepare_scatter_plot
-        - prepare_xtsum_table
-        - prepare_within_between_scatter
-        - prepare_spaghetti_graph
-        - prepare_panel_structure
-        - prepare_value_heatmap
-        - prepare_distribution_over_time
-        - prepare_transition_matrix
-        - prepare_within_persistence
-        - treat_outliers
+        - explore_descriptive_table
+        - explore_correlation_table
+        - explore_ext_obs_table
+        - explore_histogram
+        - explore_bar_plot
+        - explore_correlation_plot
+        - explore_trend_plot
+        - explore_quantile_trend_plot
+        - explore_bar_plot_by_group
+        - explore_trend_plot_by_group
+        - explore_violin_plot_by_group
+        - explore_missing_values_plot
+        - explore_scatter_plot
+        - explore_xtsum_table
+        - explore_scatter_plot_within_between
+        - explore_spaghetti_plot
+        - explore_panel_structure
+        - explore_value_heatmap
+        - explore_distribution_over_time
+        - explore_transition_matrix
+        - explore_within_persistence
     - title: Analyze
       desc: >-
         Panel estimators — OLS with fixed effects and clustered SEs, stepwise / Newey–West /
@@ -100,30 +98,38 @@ quartodoc:
         between / fixed / random effects, correlated random effects (Mundlak), the Hausman
         test, post-estimation, robust inference and event-study / difference-in-differences.
       contents:
-        - prepare_regression_table
-        - prepare_estimation
-        - prepare_fwl_plot
-        - prepare_coefficient_plot
-        - prepare_panel_table
-        - prepare_cre_table
-        - prepare_hausman_test
-        - prepare_fixef_plot
-        - prepare_predictions
-        - prepare_joint_test
-        - prepare_robust_inference
-        - prepare_event_study
-        - prepare_panel_view
+        - analyze_regression_table
+        - analyze_estimation
+        - analyze_fwl_plot
+        - analyze_coefficient_plot
+        - analyze_panel_table
+        - analyze_cre_table
+        - analyze_hausman_test
+        - analyze_fixef_plot
+        - analyze_predictions
+        - analyze_joint_test
+        - analyze_robust_inference
+        - analyze_event_study
+        - analyze_panel_view
     - title: Learn
       desc: >-
         The teaching layer — concept sandboxes (simulated demonstrations) and concept
         explainers. Plain-language interpretation lives on the result objects via
         ``.interpret()``.
       contents:
-        - sandbox_omitted_variable_bias
-        - sandbox_pooled_vs_fixed_effects
-        - sandbox_clustering_se
-        - sandbox_first_differences
-        - sandbox_within_vs_lsdv
+        - learn_omitted_variable_bias
+        - learn_pooled_vs_fixed_effects
+        - learn_clustering_se
+        - learn_first_differences
+        - learn_within_vs_lsdv
+    - title: Utilities
+      desc: >-
+        Cross-cutting helpers shared across modules — panel declaration, outlier
+        treatment, and the concept-explainer registry.
+      contents:
+        - set_panel
+        - resolve_panel
+        - treat_outliers
         - explain
         - list_topics
     - title: Interactive apps

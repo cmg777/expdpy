@@ -1,9 +1,9 @@
 """Native Streamlit renderers for the analysis components.
 
 Tables are rendered natively with :func:`streamlit.dataframe` (sortable, theme-aware) from
-the plain ``DataFrame`` each ``prepare_*`` function returns; the publication-quality Great
-Tables / pyfixest ``etable`` output is offered as an optional secondary view. Plotly figures
-are passed straight to :func:`streamlit.plotly_chart`.
+the plain ``DataFrame`` each ``explore_*`` / ``analyze_*`` function returns; the
+publication-quality Great Tables / pyfixest ``etable`` output is offered as an optional
+secondary view. Plotly figures are passed straight to :func:`streamlit.plotly_chart`.
 """
 
 from __future__ import annotations
@@ -12,12 +12,12 @@ import pandas as pd
 import streamlit as st
 
 from expdpy import (
-    prepare_coefficient_plot,
-    prepare_correlation_graph,
-    prepare_correlation_table,
-    prepare_descriptive_table,
-    prepare_ext_obs_table,
-    prepare_regression_table,
+    analyze_coefficient_plot,
+    analyze_regression_table,
+    explore_correlation_plot,
+    explore_correlation_table,
+    explore_descriptive_table,
+    explore_ext_obs_table,
 )
 from expdpy._theme import PLOTLY_CONFIG
 
@@ -70,7 +70,7 @@ def render_descriptive(sample: pd.DataFrame) -> None:
         st.info("Need at least one numeric variable and two observations.")
         return
     try:
-        res = prepare_descriptive_table(num)
+        res = explore_descriptive_table(num)
     except Exception as exc:
         st.info(str(exc))
         return
@@ -93,7 +93,7 @@ def render_ext_obs(sample: pd.DataFrame, var: str | None) -> None:
         st.info("Not enough observations for an extreme-observations table.")
         return
     try:
-        res = prepare_ext_obs_table(sample, n=n, var=var)
+        res = explore_ext_obs_table(sample, n=n, var=var)
     except Exception as exc:
         st.info(str(exc))
         return
@@ -113,8 +113,8 @@ def render_correlation(sample: pd.DataFrame) -> None:
         st.info("Need at least two numeric variables and five observations.")
         return
     try:
-        res = prepare_correlation_table(num)
-        graph = prepare_correlation_graph(num)
+        res = explore_correlation_table(num)
+        graph = explore_correlation_plot(num)
     except Exception as exc:
         st.info(str(exc))
         return
@@ -166,7 +166,7 @@ def render_regression(
     fes = [f for f in fes if _ok(f)]
     clusters = [c for c in clusters if _ok(c)]
     try:
-        res = prepare_regression_table(
+        res = analyze_regression_table(
             sample, dvs=y, idvs=xs, feffects=fes, clusters=clusters, format="gt"
         )
     except Exception as exc:
@@ -209,7 +209,7 @@ def render_regression(
     with st.expander("📊 Coefficient plot"):
         try:
             st.plotly_chart(
-                prepare_coefficient_plot(res).fig,
+                analyze_coefficient_plot(res).fig,
                 width="stretch",
                 config=PLOTLY_CONFIG,
             )

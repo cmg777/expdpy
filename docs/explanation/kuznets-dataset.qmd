@@ -51,7 +51,7 @@ A scatter of regional inequality against (log) GDP per capita, with a LOESS smoo
 the rise–fall–rise directly:
 
 ```{python}
-ex.prepare_scatter_plot(
+ex.explore_scatter_plot(
     df, x="log_gdp_pc", y="gini_regional", color="continent", size="population", loess=1
 ).fig
 ```
@@ -65,7 +65,7 @@ still recovers the N *within* country — the cubic term is **positive and signi
 standard errors clustered by country:
 
 ```{python}
-ex.prepare_regression_table(
+ex.analyze_regression_table(
     df,
     dvs="gini_regional",
     idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"],

@@ -82,7 +82,7 @@ def test_explain_exposed_on_package():
 
 
 def test_regression_interpret_words(kuznets):
-    res = ex.prepare_regression_table(
+    res = ex.analyze_regression_table(
         kuznets,
         dvs="gini_regional",
         idvs=["log_gdp_pc", "log_gdp_pc_sq"],
@@ -98,22 +98,22 @@ def test_regression_interpret_words(kuznets):
 
 
 def test_regression_explain_topic_depends_on_design(sample_df, kuznets):
-    pooled = ex.prepare_regression_table(sample_df, dvs="x2", idvs=["x1"])
+    pooled = ex.analyze_regression_table(sample_df, dvs="x2", idvs=["x1"])
     assert pooled.explain().topic == "ols"
 
-    clustered = ex.prepare_regression_table(
+    clustered = ex.analyze_regression_table(
         sample_df, dvs="x2", idvs=["x1"], clusters=["firm"]
     )
     assert clustered.explain().topic == "clustered_se"
 
-    fe = ex.prepare_regression_table(
+    fe = ex.analyze_regression_table(
         kuznets, dvs="gini_regional", idvs=["log_gdp_pc"], feffects=["country"]
     )
     assert fe.explain().topic == "fixed_effects"
 
 
 def test_regression_tidy_and_glance(kuznets):
-    res = ex.prepare_regression_table(
+    res = ex.analyze_regression_table(
         kuznets,
         dvs="gini_regional",
         idvs=["log_gdp_pc"],
@@ -130,7 +130,7 @@ def test_regression_tidy_and_glance(kuznets):
 
 
 def test_correlation_interpret(kuznets):
-    res = ex.prepare_correlation_table(
+    res = ex.explore_correlation_table(
         kuznets[["gini_regional", "log_gdp_pc", "population"]]
     )
     text = res.interpret()
@@ -142,7 +142,7 @@ def test_correlation_interpret(kuznets):
 
 
 def test_fwl_interpret(kuznets):
-    res = ex.prepare_fwl_plot(
+    res = ex.analyze_fwl_plot(
         kuznets, dv="gini_regional", var="log_gdp_pc", controls=["log_gdp_pc_sq"]
     )
     text = res.interpret()
@@ -159,14 +159,14 @@ def test_fwl_interpret(kuznets):
 
 
 def test_trend_interpret(kuznets):
-    res = ex.prepare_trend_graph(kuznets, var=["gini_regional"], time="year")
+    res = ex.explore_trend_plot(kuznets, var=["gini_regional"], time="year")
     text = res.interpret()
     assert "gini_regional" in text
     assert "2015" in text and "2025" in text
 
 
 def test_descriptive_interpret_flags_skew(kuznets):
-    res = ex.prepare_descriptive_table(
+    res = ex.explore_descriptive_table(
         kuznets[["gini_regional", "log_gdp_pc", "population"]]
     )
     text = res.interpret()
@@ -178,9 +178,9 @@ def test_descriptive_interpret_flags_skew(kuznets):
 
 def test_no_causal_language_across_interpreters(sample_df, kuznets):
     """Guardrail: associations must never be described in causal terms."""
-    pooled = ex.prepare_regression_table(sample_df, dvs="x2", idvs=["x1", "x3"])
-    corr = ex.prepare_correlation_table(sample_df[["x1", "x2", "x3"]])
-    desc = ex.prepare_descriptive_table(sample_df[["x1", "x2", "x3"]])
+    pooled = ex.analyze_regression_table(sample_df, dvs="x2", idvs=["x1", "x3"])
+    corr = ex.explore_correlation_table(sample_df[["x1", "x2", "x3"]])
+    desc = ex.explore_descriptive_table(sample_df[["x1", "x2", "x3"]])
     for res in (pooled, corr, desc):
         assert _no_causal_language(res.interpret())
 
@@ -189,5 +189,5 @@ def test_interpret_not_implemented_for_plain_results(kuznets):
     """A result type without an interpreter raises a clear NotImplementedError."""
     from expdpy.pedagogy import Interpretable
 
-    hist = ex.prepare_histogram(kuznets, var="gini_regional")
+    hist = ex.explore_histogram(kuznets, var="gini_regional")
     assert not isinstance(hist, Interpretable)

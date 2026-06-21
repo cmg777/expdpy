@@ -2,6 +2,81 @@
 title: "Changelog"
 ---
 
+## 0.5.0 (2026-06-21)
+
+**API-wide function rename.** Every analysis function is now prefixed with its module, so the
+name tells you which workflow it belongs to and reads consistently across the library. **This
+is a breaking change with no backward-compatible aliases** — update call sites to the new
+names using the map below.
+
+### Changed (breaking)
+
+- **`prepare_*` → `explore_*` / `analyze_*`**, and **`sandbox_*` → `learn_*`.** Plotly-figure
+  functions now end in `_plot` and Great-Tables functions in `_table`, and scope qualifiers
+  move to the end of the name (e.g. `prepare_by_group_violin_graph` →
+  `explore_violin_plot_by_group`).
+- **Utilities keep their current names** and are grouped under a new *Utilities* heading in
+  the API: `set_panel`, `resolve_panel`, `treat_outliers`, `explain`, `list_topics` are
+  unchanged.
+- Result dataclasses, the `ExploreApp` / `AnalyzeApp` / `LearnApp` classes, and all function
+  parameters are unchanged.
+
+#### Rename map
+
+**Explore**
+
+| Old | New |
+| --- | --- |
+| `prepare_descriptive_table` | `explore_descriptive_table` |
+| `prepare_correlation_table` | `explore_correlation_table` |
+| `prepare_ext_obs_table` | `explore_ext_obs_table` |
+| `prepare_xtsum_table` | `explore_xtsum_table` |
+| `prepare_histogram` | `explore_histogram` |
+| `prepare_bar_chart` | `explore_bar_plot` |
+| `prepare_correlation_graph` | `explore_correlation_plot` |
+| `prepare_trend_graph` | `explore_trend_plot` |
+| `prepare_quantile_trend_graph` | `explore_quantile_trend_plot` |
+| `prepare_by_group_bar_graph` | `explore_bar_plot_by_group` |
+| `prepare_by_group_trend_graph` | `explore_trend_plot_by_group` |
+| `prepare_by_group_violin_graph` | `explore_violin_plot_by_group` |
+| `prepare_missing_values_graph` | `explore_missing_values_plot` |
+| `prepare_scatter_plot` | `explore_scatter_plot` |
+| `prepare_within_between_scatter` | `explore_scatter_plot_within_between` |
+| `prepare_spaghetti_graph` | `explore_spaghetti_plot` |
+| `prepare_value_heatmap` | `explore_value_heatmap` |
+| `prepare_panel_structure` | `explore_panel_structure` |
+| `prepare_distribution_over_time` | `explore_distribution_over_time` |
+| `prepare_transition_matrix` | `explore_transition_matrix` |
+| `prepare_within_persistence` | `explore_within_persistence` |
+
+**Analyze**
+
+| Old | New |
+| --- | --- |
+| `prepare_regression_table` | `analyze_regression_table` |
+| `prepare_estimation` | `analyze_estimation` |
+| `prepare_fwl_plot` | `analyze_fwl_plot` |
+| `prepare_coefficient_plot` | `analyze_coefficient_plot` |
+| `prepare_panel_table` | `analyze_panel_table` |
+| `prepare_cre_table` | `analyze_cre_table` |
+| `prepare_hausman_test` | `analyze_hausman_test` |
+| `prepare_fixef_plot` | `analyze_fixef_plot` |
+| `prepare_predictions` | `analyze_predictions` |
+| `prepare_joint_test` | `analyze_joint_test` |
+| `prepare_robust_inference` | `analyze_robust_inference` |
+| `prepare_event_study` | `analyze_event_study` |
+| `prepare_panel_view` | `analyze_panel_view` |
+
+**Learn**
+
+| Old | New |
+| --- | --- |
+| `sandbox_omitted_variable_bias` | `learn_omitted_variable_bias` |
+| `sandbox_pooled_vs_fixed_effects` | `learn_pooled_vs_fixed_effects` |
+| `sandbox_clustering_se` | `learn_clustering_se` |
+| `sandbox_first_differences` | `learn_first_differences` |
+| `sandbox_within_vs_lsdv` | `learn_within_vs_lsdv` |
+
 ## 0.4.1 (2026-06-21)
 
 A panel-aware **Explore** release: the exploratory functions now make the
@@ -10,19 +85,19 @@ standardized. **This includes breaking changes to the Explore API.**
 
 ### Added
 
-- **Within / between variation** — `prepare_xtsum_table` (Stata `xtsum`-style decomposition of
+- **Within / between variation** — `explore_xtsum_table` (Stata `xtsum`-style decomposition of
   each variable into overall / between / within standard deviations) and
-  `prepare_within_between_scatter` (the pooled, between and within slopes of an `x`–`y`
+  `explore_scatter_plot_within_between` (the pooled, between and within slopes of an `x`–`y`
   relationship, side by side).
-- **Per-unit trajectories** — `prepare_spaghetti_graph` draws every unit's path over time with
+- **Per-unit trajectories** — `explore_spaghetti_plot` draws every unit's path over time with
   a bold central-tendency overlay, optional highlighting, sampling for large panels and
   small-multiple faceting.
-- **Panel-structure diagnostics** — `prepare_panel_structure` (balance/gaps summary +
-  unit-by-period presence grid) and `prepare_value_heatmap` (a unit-by-time value heatmap,
+- **Panel-structure diagnostics** — `explore_panel_structure` (balance/gaps summary +
+  unit-by-period presence grid) and `explore_value_heatmap` (a unit-by-time value heatmap,
   optionally standardized within period or unit).
-- **Distribution & transition dynamics** — `prepare_distribution_over_time` (ridgeline or
-  animated), `prepare_transition_matrix` (period-to-period state transitions, binning numeric
-  variables) and `prepare_within_persistence` (within-unit serial correlation).
+- **Distribution & transition dynamics** — `explore_distribution_over_time` (ridgeline or
+  animated), `explore_transition_matrix` (period-to-period state transitions, binning numeric
+  variables) and `explore_within_persistence` (within-unit serial correlation).
 - **`set_panel(df, entity=, time=)`** stores the panel identifiers on the frame so Explore
   functions can omit them; explicit per-call arguments always win.
 - New explainer topics (`within_between_variation`, `panel_structure`, `transition_matrix`)
@@ -34,12 +109,12 @@ standardized. **This includes breaking changes to the Explore API.**
 ### Changed (breaking)
 
 - **Identifiers standardized to `entity` (unit) and `time`.** The Explore functions that took
-  `ts_id` now take `time` (keyword-only): `prepare_trend_graph`, `prepare_quantile_trend_graph`,
-  `prepare_by_group_trend_graph`, `prepare_missing_values_graph`. `prepare_ext_obs_table`'s
-  `cs_id` / `ts_id` become `entity` / `time`. `prepare_by_group_trend_graph` now takes
+  `ts_id` now take `time` (keyword-only): `explore_trend_plot`, `explore_quantile_trend_plot`,
+  `explore_trend_plot_by_group`, `explore_missing_values_plot`. `explore_ext_obs_table`'s
+  `cs_id` / `ts_id` become `entity` / `time`. `explore_trend_plot_by_group` now takes
   `group_var`, `var` positionally with `time` keyword-only.
-- **Every `prepare_*` Explore function returns a wrapped result.** `prepare_scatter_plot`,
-  `prepare_missing_values_graph` and `prepare_by_group_violin_graph` previously returned a bare
+- **Every Explore function returns a wrapped result.** `explore_scatter_plot`,
+  `explore_missing_values_plot` and `explore_violin_plot_by_group` previously returned a bare
   Plotly figure; they now return a result object — access the figure via `.fig`.
 - **The app launchers, dataset metadata and bundle format use `entity`/`time` too.** The
   `ExploreApp` / `AnalyzeApp` / `LearnApp` keyword arguments `cs_id` / `ts_id` are renamed to
@@ -50,10 +125,10 @@ standardized. **This includes breaking changes to the Explore API.**
 
 ### Fixed
 
-- `prepare_trend_graph` no longer drops a row from *all* series when *any* one variable is
+- `explore_trend_plot` no longer drops a row from *all* series when *any* one variable is
   missing (it now drops missing values per series), removing a multi-variable mean bias.
-- `prepare_missing_values_graph` orders periods by their true (numeric/date) value rather than
-  lexically; `prepare_by_group_trend_graph` orders group levels numerically when possible.
+- `explore_missing_values_plot` orders periods by their true (numeric/date) value rather than
+  lexically; `explore_trend_plot_by_group` orders group levels numerically when possible.
 
 ### Visual
 
@@ -69,7 +144,7 @@ apps. The estimator surface is focused on linear panel methods. **This is a brea
 
 ### Removed (breaking)
 
-- **IV / 2SLS, Poisson, and logit / probit estimators are gone.** `prepare_estimation` no
+- **IV / 2SLS, Poisson, and logit / probit estimators are gone.** `analyze_estimation` no
   longer accepts `model="iv"` / `"poisson"` / `"logit"` / `"probit"` (nor the `endog` /
   `instruments` arguments); it now covers **OLS** with stepwise / multiple-outcome comparison,
   serial-correlation-robust standard errors (Newey–West, Driscoll–Kraay) and weights. Migrate
@@ -80,11 +155,11 @@ apps. The estimator surface is focused on linear panel methods. **This is a brea
 
 ### Added
 
-- `prepare_cre_table` — a **correlated-random-effects (Mundlak)** estimator that brings
-  FE-consistent within estimates into a random-effects frame, alongside `prepare_panel_table`
-  and `prepare_hausman_test`. A joint test on its unit-mean terms is the regression-form
+- `analyze_cre_table` — a **correlated-random-effects (Mundlak)** estimator that brings
+  FE-consistent within estimates into a random-effects frame, alongside `analyze_panel_table`
+  and `analyze_hausman_test`. A joint test on its unit-mean terms is the regression-form
   Hausman test.
-- Two **Learn** sandboxes — `sandbox_first_differences` and `sandbox_within_vs_lsdv` (first
+- Two **Learn** sandboxes — `learn_first_differences` and `learn_within_vs_lsdv` (first
   differences ≈ demeaning ≈ least-squares dummy variables) — plus matching explainer topics
   (`first_differences`, `within_transformation` / `demeaning`, `dummy_variables` / `lsdv`,
   `correlated_random_effects` / `mundlak`).
@@ -121,35 +196,35 @@ Requires `pyfixest>=0.60`; adds an optional `panel` extra (`linearmodels`).
 
 ### New estimators
 
-- `prepare_estimation` — a unified estimator adding **IV / 2SLS**, **Poisson** (`fepois`)
+- `analyze_estimation` — a unified estimator adding **IV / 2SLS**, **Poisson** (`fepois`)
   and **logit / probit** (`feglm`) to OLS; a wider choice of standard errors
   (heteroskedastic HC1–HC3, cluster-robust CRV1 / CRV3, and the serial-correlation-robust
   Newey–West and Driscoll–Kraay); and **stepwise / multiple-outcome model comparison**
   (`sw()` / `csw()`, multiple left-hand sides) for watching estimates move as the
   specification changes.
-- Post-estimation helpers: `prepare_fixef_plot` (visualize the estimated fixed effects),
-  `prepare_predictions`, and `prepare_joint_test` (a Wald joint-significance test).
-- `prepare_robust_inference` — randomization inference (and the wild cluster bootstrap when
+- Post-estimation helpers: `analyze_fixef_plot` (visualize the estimated fixed effects),
+  `analyze_predictions`, and `analyze_joint_test` (a Wald joint-significance test).
+- `analyze_robust_inference` — randomization inference (and the wild cluster bootstrap when
   the optional `wildboottest` package is installed), for credible inference with few clusters.
 
 ### Event study & staggered difference-in-differences
 
-- `prepare_event_study` wrapping the modern estimators — Gardner's two-stage `did2s`,
+- `analyze_event_study` wrapping the modern estimators — Gardner's two-stage `did2s`,
   Sun–Abraham (`saturated`), local-projections DiD (`lpdid`) and dynamic two-way fixed
   effects (`twfe`) — returning a themed Plotly event-study plot with a pre-trend diagnostic.
-- `prepare_panel_view` — a Plotly reimplementation of `panelview` that derives the binary
+- `analyze_panel_view` — a Plotly reimplementation of `panelview` that derives the binary
   treatment indicator from a first-treatment **cohort** column for you.
 - A bundled `load_staggered_did()` teaching dataset.
 
 ### Panel models (optional `panel` extra, via `linearmodels`)
 
-- `prepare_panel_table` — pooled OLS, between, fixed-effects and random-effects estimates
+- `analyze_panel_table` — pooled OLS, between, fixed-effects and random-effects estimates
   side by side (the fixed-effects estimate matches the pyfixest path).
-- `prepare_hausman_test` — the classic fixed-vs-random-effects specification test.
+- `analyze_hausman_test` — the classic fixed-vs-random-effects specification test.
 
 ### Visualization
 
-- `prepare_coefficient_plot` — coefficient plots with confidence intervals for one or several
+- `analyze_coefficient_plot` — coefficient plots with confidence intervals for one or several
   models (a beginner-friendly alternative to reading a coefficient table).
 - A dark Plotly theme variant (`apply_default_layout(fig, dark=True)`).
 
@@ -161,7 +236,7 @@ Requires `pyfixest>=0.60`; adds an optional `panel` extra (`linearmodels`).
 - Result objects gain `.interpret()` (plain-language, strictly *associational* — never causal
   unless an FE/IV design is present), `.explain()`, and broom-style `.tidy()` / `.glance()`.
 - Concept sandboxes that simulate data so a concept can be seen and tuned:
-  `sandbox_omitted_variable_bias`, `sandbox_pooled_vs_fixed_effects`, `sandbox_clustering_se`.
+  `learn_omitted_variable_bias`, `learn_pooled_vs_fixed_effects`, `learn_clustering_se`.
 
 ### Interactive apps
 
@@ -176,11 +251,11 @@ Requires `pyfixest>=0.60`; adds an optional `panel` extra (`linearmodels`).
 Initial release — a Python port of ExPanDaR.
 
 - Analytical functions returning Plotly figures and Great Tables / pyfixest output:
-  `prepare_descriptive_table`, `prepare_correlation_table`, `prepare_correlation_graph`,
-  `prepare_ext_obs_table`, `prepare_trend_graph`, `prepare_quantile_trend_graph`,
-  `prepare_by_group_bar_graph`, `prepare_by_group_trend_graph`,
-  `prepare_by_group_violin_graph`, `prepare_histogram`, `prepare_bar_chart`,
-  `prepare_missing_values_graph`, `prepare_scatter_plot`, `prepare_regression_table`,
+  `explore_descriptive_table`, `explore_correlation_table`, `explore_correlation_plot`,
+  `explore_ext_obs_table`, `explore_trend_plot`, `explore_quantile_trend_plot`,
+  `explore_bar_plot_by_group`, `explore_trend_plot_by_group`,
+  `explore_violin_plot_by_group`, `explore_histogram`, `explore_bar_plot`,
+  `explore_missing_values_plot`, `explore_scatter_plot`, `analyze_regression_table`,
   and `treat_outliers`.
 - The interactive `ExPdPy` app (Shiny for Python) with in-app upload, save/load of
   configurations, and reproducible notebook/script export.

@@ -1,7 +1,7 @@
 """The ExPdPy interactive apps, built with Streamlit.
 
 expdpy ships **three** no-code apps — one per module — that build a multipage UI on top of
-the library's ``prepare_*`` / ``sandbox_*`` functions:
+the library's ``explore_*`` / ``analyze_*`` / ``learn_*`` functions:
 
 * :func:`ExploreApp` — exploratory data analysis (tables, distributions, trends, scatter…),
 * :func:`AnalyzeApp` — panel estimators (regression, FWL, panel models, CRE, event study…),

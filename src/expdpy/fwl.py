@@ -5,7 +5,7 @@ regressor are residualized on the *other* regressors **and the fixed effects** (
 absorbed/demeaned via ``pyfixest``), and the two residual vectors are plotted against each
 other. By the Frisch-Waugh-Lovell theorem the slope of that residual scatter equals the
 focal coefficient in the full multivariate model — which is exactly what
-:func:`expdpy.prepare_regression_table` reports.
+:func:`expdpy.analyze_regression_table` reports.
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ from expdpy._types import FWLPlotResult
 from expdpy._validation import ensure_dataframe
 from expdpy.regression import _SSC, _as_list
 
-__all__ = ["prepare_fwl_plot"]
+__all__ = ["analyze_fwl_plot"]
 
 
 def _residualize(data: pd.DataFrame, target: str, rhs: str, fe_part: str) -> np.ndarray:
@@ -37,7 +37,7 @@ def _residualize(data: pd.DataFrame, target: str, rhs: str, fe_part: str) -> np.
     return np.asarray(model.resid(), dtype=float)
 
 
-def prepare_fwl_plot(
+def analyze_fwl_plot(
     df: pd.DataFrame,
     dv: str,
     var: str,
@@ -58,7 +58,7 @@ def prepare_fwl_plot(
     the fixed effects. By the Frisch-Waugh-Lovell theorem the slope of this residual
     regression equals the coefficient on ``var`` in the full model; the annotation states
     this and reports the full model's standard error (clustered when ``clusters`` is given,
-    matching :func:`expdpy.prepare_regression_table`), the sample size, and the within-R².
+    matching :func:`expdpy.analyze_regression_table`), the sample size, and the within-R².
 
     Parameters
     ----------
@@ -98,14 +98,14 @@ def prepare_fwl_plot(
     from expdpy.data import load_kuznets
 
     df = load_kuznets()
-    ex.prepare_fwl_plot(df, dv="gini_regional", var="log_gdp_pc").fig
+    ex.analyze_fwl_plot(df, dv="gini_regional", var="log_gdp_pc").fig
     ```
 
     Advanced — residualize on the other cubic terms and two-way fixed effects, cluster
     the reported standard error by country, then read the FWL statistics back:
 
     ```python
-    result = ex.prepare_fwl_plot(
+    result = ex.analyze_fwl_plot(
         df,
         dv="gini_regional",
         var="log_gdp_pc",
@@ -148,7 +148,7 @@ def prepare_fwl_plot(
     fe_part = (" | " + " + ".join(fe)) if has_fe else ""
 
     # Full model: source of the reported slope (== focal coefficient) and clustered SE,
-    # so the annotation is identical to prepare_regression_table.
+    # so the annotation is identical to analyze_regression_table.
     full_rhs = " + ".join([var, *controls])
     vcov: object = {"CRV1": " + ".join(cl)} if cl else "iid"
     full = pf.feols(f"{dv} ~ {full_rhs}{fe_part}", data=data, vcov=vcov, ssc=_SSC)

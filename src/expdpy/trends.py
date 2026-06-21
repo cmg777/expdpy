@@ -17,8 +17,8 @@ from expdpy._types import QuantileTrendGraphResult, TrendGraphResult
 from expdpy._validation import ensure_dataframe
 
 __all__ = [
-    "prepare_quantile_trend_graph",
-    "prepare_trend_graph",
+    "explore_quantile_trend_plot",
+    "explore_trend_plot",
 ]
 
 _FULL_DATE = re.compile(r"^\d{4}[-/]\d{1,2}[-/]\d{1,2}")
@@ -87,7 +87,7 @@ def _numeric_vars(df: pd.DataFrame, *exclude: str | None) -> list[str]:
     ]
 
 
-def prepare_trend_graph(
+def explore_trend_plot(
     df: pd.DataFrame,
     var: Sequence[str] | None = None,
     *,
@@ -113,7 +113,7 @@ def prepare_trend_graph(
     spaghetti
         If ``True`` (and a single ``var`` and an ``entity`` are available), draw a faint
         per-unit trajectory backdrop behind the mean line. For richer per-unit views see
-        :func:`expdpy.prepare_spaghetti_graph`.
+        :func:`expdpy.explore_spaghetti_plot`.
 
     Returns
     -------
@@ -129,13 +129,13 @@ def prepare_trend_graph(
     from expdpy.data import load_kuznets
 
     df = load_kuznets()
-    ex.prepare_trend_graph(df, var=["gini_regional"], time="year").fig
+    ex.explore_trend_plot(df, var=["gini_regional"], time="year").fig
     ```
 
     Advanced — several variables on one chart, with the aggregated frame from ``.df``:
 
     ```python
-    result = ex.prepare_trend_graph(
+    result = ex.explore_trend_plot(
         df, var=["gini_regional", "trade_share"], time="year"
     )
     result.fig
@@ -222,7 +222,7 @@ def prepare_trend_graph(
     return TrendGraphResult(df=gf, fig=fig)
 
 
-def prepare_quantile_trend_graph(
+def explore_quantile_trend_plot(
     df: pd.DataFrame,
     quantiles: Sequence[float] = (0.05, 0.25, 0.5, 0.75, 0.95),
     var: str | None = None,
@@ -260,13 +260,13 @@ def prepare_quantile_trend_graph(
     from expdpy.data import load_kuznets
 
     df = load_kuznets()
-    ex.prepare_quantile_trend_graph(df, var="gini_regional", time="year").fig
+    ex.explore_quantile_trend_plot(df, var="gini_regional", time="year").fig
     ```
 
     Advanced — custom quantile levels and no per-observation points:
 
     ```python
-    ex.prepare_quantile_trend_graph(
+    ex.explore_quantile_trend_plot(
         df, quantiles=(0.1, 0.5, 0.9), var="gini_regional", time="year", points=False
     ).fig
     ```

@@ -17,7 +17,7 @@ from expdpy._types import PanelStructureResult, ValueHeatmapResult
 from expdpy._validation import ensure_dataframe
 from expdpy.trends import _try_convert_ts_id
 
-__all__ = ["prepare_panel_structure", "prepare_value_heatmap"]
+__all__ = ["explore_panel_structure", "explore_value_heatmap"]
 
 _PRESENT_SCALE = [[0.0, "#EDEDED"], [1.0, "#4E79A7"]]
 
@@ -34,7 +34,7 @@ def _even_sample(labels: list, max_units: int | None, *, what: str) -> list:
     return [labels[i] for i in positions]
 
 
-def prepare_panel_structure(
+def explore_panel_structure(
     df: pd.DataFrame,
     *,
     entity: str | None = None,
@@ -46,7 +46,7 @@ def prepare_panel_structure(
     """Summarise the panel's balance and coverage, with a unit-by-period presence grid.
 
     A general panel-completeness diagnostic. (For *treatment* structure on a staggered-adoption
-    design, see :func:`expdpy.prepare_panel_view`.)
+    design, see :func:`expdpy.analyze_panel_view`.)
 
     Parameters
     ----------
@@ -77,7 +77,7 @@ def prepare_panel_structure(
     from expdpy.data import load_kuznets
 
     df = load_kuznets()
-    res = ex.prepare_panel_structure(df, entity="country", time="year")
+    res = ex.explore_panel_structure(df, entity="country", time="year")
     res.gt
     res.fig
     ```
@@ -182,7 +182,7 @@ def prepare_panel_structure(
     return PanelStructureResult(df_summary=summary, df_grid=grid, gt=gt, fig=fig)
 
 
-def prepare_value_heatmap(
+def explore_value_heatmap(
     df: pd.DataFrame,
     var: str,
     *,
@@ -227,7 +227,7 @@ def prepare_value_heatmap(
     from expdpy.data import load_kuznets
 
     df = load_kuznets()
-    ex.prepare_value_heatmap(
+    ex.explore_value_heatmap(
         df, var="gini_regional", entity="country", time="year", standardize="by_time"
     ).fig
     ```

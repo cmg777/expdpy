@@ -20,9 +20,9 @@ from expdpy._types import (
 from expdpy._validation import ensure_dataframe, numeric_logical_columns
 
 __all__ = [
-    "prepare_correlation_table",
-    "prepare_descriptive_table",
-    "prepare_ext_obs_table",
+    "explore_correlation_table",
+    "explore_descriptive_table",
+    "explore_ext_obs_table",
 ]
 
 _DESC_COLUMNS = ["N", "Mean", "Std. dev.", "Min.", "25 %", "Median", "75 %", "Max."]
@@ -37,7 +37,7 @@ def _excel_letters(n: int) -> list[str]:
     return labels[:n]
 
 
-def prepare_descriptive_table(
+def explore_descriptive_table(
     df: pd.DataFrame,
     digits: Sequence[int | None] = (0, 3, 3, 3, 3, 3, 3, 3),
     *,
@@ -63,7 +63,7 @@ def prepare_descriptive_table(
         Optional panel identifiers (defaulting to those declared via
         :func:`expdpy.set_panel`). When both resolve, a source note reports the panel
         dimensions (number of units, periods and average observations per unit). For the
-        within/between split of each variable see :func:`expdpy.prepare_xtsum_table`.
+        within/between split of each variable see :func:`expdpy.explore_xtsum_table`.
     caption
         Table title used for the Great Tables header.
 
@@ -81,14 +81,14 @@ def prepare_descriptive_table(
     from expdpy.data import load_kuznets
 
     df = load_kuznets()
-    ex.prepare_descriptive_table(df).gt
+    ex.explore_descriptive_table(df).gt
     ```
 
     Advanced — set the decimals per statistic (``None`` drops that column), add a
     caption, and read the tidy statistics frame back from ``.df``:
 
     ```python
-    result = ex.prepare_descriptive_table(
+    result = ex.explore_descriptive_table(
         df,
         digits=(0, 2, 2, None, None, 2, None, None),
         caption="Kuznets panel",
@@ -143,7 +143,7 @@ def prepare_descriptive_table(
     return DescriptiveTableResult(df=stats, gt=gt)
 
 
-def prepare_correlation_table(
+def explore_correlation_table(
     df: pd.DataFrame,
     digits: int = 2,
     bold: float = 0.05,
@@ -179,14 +179,14 @@ def prepare_correlation_table(
     from expdpy.data import load_kuznets
 
     df = load_kuznets()
-    ex.prepare_correlation_table(df[["gini_regional", "gdp_pc", "log_gdp_pc"]]).gt
+    ex.explore_correlation_table(df[["gini_regional", "gdp_pc", "log_gdp_pc"]]).gt
     ```
 
     Advanced — more decimals, a stricter bold threshold, a caption, and the raw
     coefficient/p-value matrices from ``.df_corr`` / ``.df_prob``:
 
     ```python
-    result = ex.prepare_correlation_table(
+    result = ex.explore_correlation_table(
         df[["gini_regional", "gdp_pc", "log_gdp_pc", "trade_share"]],
         digits=3,
         bold=0.01,
@@ -275,7 +275,7 @@ def prepare_correlation_table(
     return CorrelationTableResult(df_corr=corr_r, df_prob=corr_p, df_n=corr_n, gt=gt)
 
 
-def prepare_ext_obs_table(
+def explore_ext_obs_table(
     df: pd.DataFrame,
     n: int = 5,
     var: str | None = None,
@@ -320,14 +320,14 @@ def prepare_ext_obs_table(
     from expdpy.data import load_kuznets
 
     df = load_kuznets()
-    ex.prepare_ext_obs_table(df, n=5).gt
+    ex.explore_ext_obs_table(df, n=5).gt
     ```
 
     Advanced — the ten most extreme observations of a chosen variable, showing only
     the panel identifiers and that variable:
 
     ```python
-    ex.prepare_ext_obs_table(
+    ex.explore_ext_obs_table(
         df, n=10, var="gini_regional", entity=["country"], time="year"
     ).gt
     ```

@@ -23,10 +23,10 @@ from expdpy._types import WithinBetweenScatterResult, XtsumTableResult
 from expdpy._validation import ensure_dataframe, numeric_logical_columns
 from expdpy.scatter import _default_alpha
 
-__all__ = ["prepare_within_between_scatter", "prepare_xtsum_table"]
+__all__ = ["explore_scatter_plot_within_between", "explore_xtsum_table"]
 
 
-def prepare_xtsum_table(
+def explore_xtsum_table(
     df: pd.DataFrame,
     var: Sequence[str] | None = None,
     *,
@@ -72,7 +72,7 @@ def prepare_xtsum_table(
     from expdpy.data import load_kuznets
 
     df = load_kuznets()
-    ex.prepare_xtsum_table(df, var=["gini_regional", "log_gdp_pc"], entity="country").gt
+    ex.explore_xtsum_table(df, var=["gini_regional", "log_gdp_pc"], entity="country").gt
     ```
     """
     df = ensure_dataframe(df)
@@ -173,7 +173,7 @@ def _fit_line(
     return float(slope), float(intercept), (xs, slope * xs + intercept)
 
 
-def prepare_within_between_scatter(
+def explore_scatter_plot_within_between(
     df: pd.DataFrame,
     x: str,
     y: str,
@@ -219,7 +219,7 @@ def prepare_within_between_scatter(
     from expdpy.data import load_kuznets
 
     df = load_kuznets()
-    ex.prepare_within_between_scatter(
+    ex.explore_scatter_plot_within_between(
         df, x="log_gdp_pc", y="gini_regional", entity="country"
     ).fig
     ```

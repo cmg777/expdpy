@@ -1,7 +1,7 @@
 """Characterization + unit tests for the shared estimation engine.
 
 The characterization tests pin the *exact* coefficients and standard errors that
-``prepare_regression_table`` produced before the engine was extracted into
+``analyze_regression_table`` produced before the engine was extracted into
 ``expdpy._estimation``. They are the safety net for the refactor: the public function
 must keep returning byte-identical numbers (same dropna order, category casting, dedupe,
 ``_SSC`` and ``{"CRV1": ...}`` vcov path).
@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import pytest
 
-from expdpy import prepare_regression_table
+from expdpy import analyze_regression_table
 from expdpy._estimation import (
     ModelSpec,
     VCovSpec,
@@ -72,7 +72,7 @@ def _assert_model_matches(model, golden) -> None:
 
 
 def test_characterize_kuznets_pooled(kuznets):
-    res = prepare_regression_table(
+    res = analyze_regression_table(
         kuznets,
         dvs="gini_regional",
         idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"],
@@ -81,7 +81,7 @@ def test_characterize_kuznets_pooled(kuznets):
 
 
 def test_characterize_kuznets_twfe_cluster(kuznets):
-    res = prepare_regression_table(
+    res = analyze_regression_table(
         kuznets,
         dvs="gini_regional",
         idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"],
@@ -92,14 +92,14 @@ def test_characterize_kuznets_twfe_cluster(kuznets):
 
 
 def test_characterize_sample_fe_cluster(sample_df):
-    res = prepare_regression_table(
+    res = analyze_regression_table(
         sample_df, dvs="x2", idvs=["x1", "x3"], feffects=["firm"], clusters=["firm"]
     )
     _assert_model_matches(res.models[0], _SAMPLE_FE_CLUSTER)
 
 
 def test_characterize_byvar_levels(sample_df):
-    res = prepare_regression_table(sample_df, dvs="x2", idvs=["x1"], byvar="grp")
+    res = analyze_regression_table(sample_df, dvs="x2", idvs=["x1"], byvar="grp")
     assert len(res.models) == 1 + sample_df["grp"].nunique()
     assert "Full Sample" in set(res.df["byvalue"])
 

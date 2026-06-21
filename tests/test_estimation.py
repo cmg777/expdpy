@@ -1,4 +1,4 @@
-"""Tests for prepare_estimation (OLS, VCOV options, stepwise/multi-outcome comparison)."""
+"""Tests for analyze_estimation (OLS, VCOV options, stepwise/multi-outcome comparison)."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ def _no_causal(text: str) -> bool:
 
 
 def test_stepwise_csw_makes_nested_models(kuznets):
-    res = ex.prepare_estimation(
+    res = ex.analyze_estimation(
         kuznets,
         dv="gini_regional",
         idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"],
@@ -31,15 +31,15 @@ def test_stepwise_csw_makes_nested_models(kuznets):
 
 
 def test_multi_lhs(kuznets):
-    res = ex.prepare_estimation(
+    res = ex.analyze_estimation(
         kuznets, dv=["gini_regional", "log_gdp_pc"], idvs=["population"]
     )
     assert len(res.models) == 2
 
 
 def test_vcov_hetero_differs_from_iid(kuznets):
-    iid = ex.prepare_estimation(kuznets, dv="gini_regional", idvs=["log_gdp_pc"])
-    hc = ex.prepare_estimation(
+    iid = ex.analyze_estimation(kuznets, dv="gini_regional", idvs=["log_gdp_pc"])
+    hc = ex.analyze_estimation(
         kuznets, dv="gini_regional", idvs=["log_gdp_pc"], vcov="hetero"
     )
     se_iid = float(iid.df.query("term=='log_gdp_pc'")["Std. Error"].iloc[0])
@@ -48,7 +48,7 @@ def test_vcov_hetero_differs_from_iid(kuznets):
 
 
 def test_cluster_shortcut_selects_crv1(kuznets):
-    res = ex.prepare_estimation(
+    res = ex.analyze_estimation(
         kuznets, dv="gini_regional", idvs=["log_gdp_pc"], cluster=["country"]
     )
     assert res.models[0]._vcov_type_detail == "CRV1"
@@ -56,7 +56,7 @@ def test_cluster_shortcut_selects_crv1(kuznets):
 
 def test_newey_west_and_driscoll_kraay_run(kuznets):
     for v in ("NW", "DK"):
-        res = ex.prepare_estimation(
+        res = ex.analyze_estimation(
             kuznets,
             dv="gini_regional",
             idvs=["log_gdp_pc"],
@@ -69,7 +69,7 @@ def test_newey_west_and_driscoll_kraay_run(kuznets):
 
 
 def test_few_clusters_note(kuznets):
-    res = ex.prepare_estimation(
+    res = ex.analyze_estimation(
         kuznets, dv="gini_regional", idvs=["log_gdp_pc"], cluster=["continent"]
     )
     assert any("clusters" in n for n in res.notes)
@@ -77,14 +77,14 @@ def test_few_clusters_note(kuznets):
 
 def test_missing_column_raises(kuznets):
     with pytest.raises(KeyError, match="nope"):
-        ex.prepare_estimation(kuznets, dv="gini_regional", idvs=["nope"])
+        ex.analyze_estimation(kuznets, dv="gini_regional", idvs=["nope"])
 
 
 # --- interpretation / explanation ----------------------------------------------------
 
 
 def test_interpret_ols_is_associational(kuznets):
-    res = ex.prepare_estimation(kuznets, dv="gini_regional", idvs=["log_gdp_pc"])
+    res = ex.analyze_estimation(kuznets, dv="gini_regional", idvs=["log_gdp_pc"])
     text = res.interpret()
     assert isinstance(res, EstimationResult)
     assert "OLS" in text
@@ -93,6 +93,6 @@ def test_interpret_ols_is_associational(kuznets):
 
 
 def test_glance_returns_fit_stats(kuznets):
-    res = ex.prepare_estimation(kuznets, dv="gini_regional", idvs=["log_gdp_pc"])
+    res = ex.analyze_estimation(kuznets, dv="gini_regional", idvs=["log_gdp_pc"])
     assert res.glance() is res.fit_stats
     assert res.tidy() is res.df

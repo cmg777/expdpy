@@ -54,10 +54,10 @@ def _r_resids(formula: str, sample_df):
 
 def test_fwl_residual_parity_with_fe(sample_df):
     """Residualized x/y and the fitted slope match fwlplot (controls + fixed effects)."""
-    from expdpy import prepare_fwl_plot
+    from expdpy import analyze_fwl_plot
 
     r_df = _r_resids("x2 ~ x1 + x3 | firm", sample_df)
-    py = prepare_fwl_plot(
+    py = analyze_fwl_plot(
         sample_df, dv="x2", var="x1", controls=["x3"], feffects=["firm"], n_sample=None
     )
     assert len(py.df) == len(r_df)
@@ -73,10 +73,10 @@ def test_fwl_residual_parity_with_fe(sample_df):
 
 def test_fwl_slope_parity_no_fe(sample_df):
     """The no-fixed-effects (controls-only) path also matches fwlplot."""
-    from expdpy import prepare_fwl_plot
+    from expdpy import analyze_fwl_plot
 
     r_df = _r_resids("x2 ~ x1 + x3", sample_df)
-    py = prepare_fwl_plot(sample_df, dv="x2", var="x1", controls=["x3"], n_sample=None)
+    py = analyze_fwl_plot(sample_df, dv="x2", var="x1", controls=["x3"], n_sample=None)
     r_slope = float(np.polyfit(r_df["x_resid"], r_df["y_resid"], 1)[0])
     assert py.slope == pytest.approx(r_slope, rel=1e-5)
     np.testing.assert_allclose(

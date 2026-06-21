@@ -13,7 +13,7 @@ from expdpy._theme import DIVERGING_SCALE, apply_default_layout, diverging_color
 from expdpy._types import CorrelationGraphResult
 from expdpy._validation import ensure_dataframe, numeric_logical_columns
 
-__all__ = ["prepare_correlation_graph"]
+__all__ = ["explore_correlation_plot"]
 
 
 def _ellipse_points(cx: float, cy: float, r: float, scale: float = 0.45, n: int = 50):
@@ -29,7 +29,7 @@ def _ellipse_points(cx: float, cy: float, r: float, scale: float = 0.45, n: int 
     return x, y
 
 
-def prepare_correlation_graph(
+def explore_correlation_plot(
     df: pd.DataFrame,
     *,
     style: Literal["heatmap", "ellipse"] = "heatmap",
@@ -58,14 +58,14 @@ def prepare_correlation_graph(
     from expdpy.data import load_kuznets
 
     df = load_kuznets()
-    ex.prepare_correlation_graph(df[["gini_regional", "gdp_pc", "log_gdp_pc"]]).fig
+    ex.explore_correlation_plot(df[["gini_regional", "gdp_pc", "log_gdp_pc"]]).fig
     ```
 
     Advanced — the ellipse style (R ``corrplot`` look), with the underlying
     correlation matrix available from ``.df_corr``:
 
     ```python
-    result = ex.prepare_correlation_graph(
+    result = ex.explore_correlation_plot(
         df[["gini_regional", "gdp_pc", "log_gdp_pc", "trade_share"]],
         style="ellipse",
     )

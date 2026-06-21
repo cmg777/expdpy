@@ -20,7 +20,7 @@ from expdpy._estimation import as_list
 from expdpy._types import HausmanTestResult, RegressionTableResult
 from expdpy._validation import ensure_dataframe
 
-__all__ = ["prepare_hausman_test", "prepare_panel_table"]
+__all__ = ["analyze_hausman_test", "analyze_panel_table"]
 
 _MODEL_LABELS = {
     "pooled": "Pooled OLS",
@@ -92,7 +92,7 @@ def _tidy_lm(res: Any, model_id: int) -> pd.DataFrame:
     )
 
 
-def prepare_panel_table(
+def analyze_panel_table(
     df: pd.DataFrame,
     dv: str,
     idvs: Sequence[str] | str,
@@ -111,10 +111,10 @@ def prepare_panel_table(
 ) -> RegressionTableResult:
     """Estimate pooled / between / fixed / random-effects models side by side.
 
-    A linearmodels-backed companion to :func:`expdpy.prepare_regression_table`, returned in
+    A linearmodels-backed companion to :func:`expdpy.analyze_regression_table`, returned in
     the same :class:`~expdpy.RegressionTableResult` container so ``.df``, ``.interpret()``
     and the apps work the same way. The one-way fixed-effects estimate matches
-    ``prepare_regression_table(feffects=[entity])``.
+    ``analyze_regression_table(feffects=[entity])``.
 
     Parameters
     ----------
@@ -183,7 +183,7 @@ def prepare_panel_table(
     return RegressionTableResult(models=model_list, etable=etable, df=tidy_df)
 
 
-def prepare_hausman_test(
+def analyze_hausman_test(
     df: pd.DataFrame,
     dv: str,
     idvs: Sequence[str] | str,

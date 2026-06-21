@@ -29,42 +29,42 @@ def _emit_load() -> str:
 
 
 def _emit_descriptive(cfg: dict) -> str:
-    return "res = ex.prepare_descriptive_table(df.select_dtypes('number'))\nres.gt"
+    return "res = ex.explore_descriptive_table(df.select_dtypes('number'))\nres.gt"
 
 
 def _emit_histogram(cfg: dict) -> str:
-    return f"ex.prepare_histogram(df, var={_q(cfg.get('hist_var'))}, bins={int(cfg.get('hist_nr_of_breaks', 20))}).fig"
+    return f"ex.explore_histogram(df, var={_q(cfg.get('hist_var'))}, bins={int(cfg.get('hist_nr_of_breaks', 20))}).fig"
 
 
 def _emit_bar_chart(cfg: dict) -> str:
-    return f"ex.prepare_bar_chart(df, var={_q(cfg.get('bar_chart_var1'))}).fig"
+    return f"ex.explore_bar_plot(df, var={_q(cfg.get('bar_chart_var1'))}).fig"
 
 
 def _emit_ext_obs(cfg: dict) -> str:
-    return f"ex.prepare_ext_obs_table(df, n=5, var={_q(cfg.get('ext_obs_var'))}).gt"
+    return f"ex.explore_ext_obs_table(df, n=5, var={_q(cfg.get('ext_obs_var'))}).gt"
 
 
 def _emit_missing(cfg: dict, time: str | None) -> str:
-    return f"ex.prepare_missing_values_graph(df, time={_q(time)}).fig"
+    return f"ex.explore_missing_values_plot(df, time={_q(time)}).fig"
 
 
 def _emit_by_group_bar(cfg: dict) -> str:
     return (
-        f"ex.prepare_by_group_bar_graph(df, by_var={_q(cfg.get('bgbg_byvar'))}, "
+        f"ex.explore_bar_plot_by_group(df, by_var={_q(cfg.get('bgbg_byvar'))}, "
         f"var={_q(cfg.get('bgbg_var'))}).fig"
     )
 
 
 def _emit_by_group_violin(cfg: dict) -> str:
     return (
-        f"ex.prepare_by_group_violin_graph(df, by_var={_q(cfg.get('bgvg_byvar'))}, "
+        f"ex.explore_violin_plot_by_group(df, by_var={_q(cfg.get('bgvg_byvar'))}, "
         f"var={_q(cfg.get('bgvg_var'))}).fig"
     )
 
 
 def _emit_by_group_trend(cfg: dict, time: str | None) -> str:
     return (
-        f"ex.prepare_by_group_trend_graph(df, group_var={_q(cfg.get('bgtg_byvar'))}, "
+        f"ex.explore_trend_plot_by_group(df, group_var={_q(cfg.get('bgtg_byvar'))}, "
         f"var={_q(cfg.get('bgtg_var'))}, time={_q(time)}).fig"
     )
 
@@ -75,27 +75,27 @@ def _emit_trend(cfg: dict, time: str | None) -> str:
         for k in ("trend_graph_var1", "trend_graph_var2", "trend_graph_var3")
         if cfg.get(k) not in (None, "None")
     ]
-    return f"ex.prepare_trend_graph(df, var={_q(variables)}, time={_q(time)}).fig"
+    return f"ex.explore_trend_plot(df, var={_q(variables)}, time={_q(time)}).fig"
 
 
 def _emit_quantile_trend(cfg: dict, time: str | None) -> str:
     qs = [float(q) for q in cfg.get("quantile_trend_graph_quantiles", [])]
     return (
-        f"ex.prepare_quantile_trend_graph(df, "
+        f"ex.explore_quantile_trend_plot(df, "
         f"var={_q(cfg.get('quantile_trend_graph_var'))}, quantiles={_q(qs)}, "
         f"time={_q(time)}).fig"
     )
 
 
 def _emit_corr(cfg: dict) -> str:
-    return "ex.prepare_correlation_graph(df.select_dtypes('number')).fig"
+    return "ex.explore_correlation_plot(df.select_dtypes('number')).fig"
 
 
 def _emit_scatter(cfg: dict) -> str:
     color = cfg.get("scatter_color")
     size = cfg.get("scatter_size")
     return (
-        f"ex.prepare_scatter_plot(df, x={_q(cfg.get('scatter_x'))}, "
+        f"ex.explore_scatter_plot(df, x={_q(cfg.get('scatter_x'))}, "
         f"y={_q(cfg.get('scatter_y'))}, "
         f"color={_q(None if color in (None, 'None') else color)}, "
         f"size={_q(None if size in (None, 'None') else size)}, "
@@ -112,7 +112,7 @@ def _emit_regression(cfg: dict) -> str:
     cluster_choice = int(cfg.get("cluster", 1))
     clusters = fes[: max(0, cluster_choice - 1)] if cluster_choice > 1 else []
     return (
-        f"res = ex.prepare_regression_table(df, dvs={_q(cfg.get('reg_y'))}, "
+        f"res = ex.analyze_regression_table(df, dvs={_q(cfg.get('reg_y'))}, "
         f"idvs={_q(idvs)}, feffects={_q(fes)}, clusters={_q(clusters)})\nres.etable"
     )
 
@@ -133,7 +133,7 @@ def _emit_fwl_plot(cfg: dict) -> str | None:
     cluster_choice = int(cfg.get("cluster", 1))
     clusters = fes[: max(0, cluster_choice - 1)] if cluster_choice > 1 else []
     return (
-        f"ex.prepare_fwl_plot(df, dv={_q(cfg.get('reg_y'))}, var={_q(focal)}, "
+        f"ex.analyze_fwl_plot(df, dv={_q(cfg.get('reg_y'))}, var={_q(focal)}, "
         f"controls={_q(controls)}, feffects={_q(fes)}, clusters={_q(clusters)}).fig"
     )
 

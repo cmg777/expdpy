@@ -125,8 +125,8 @@ def test_export_script_and_zip(kuznets):
         "reg_x": ["log_gdp_pc"],
     }
     script = build_script(cfg, comps, time="year")
-    assert "ex.prepare_descriptive_table" in script
-    assert "ex.prepare_regression_table" in script
+    assert "ex.explore_descriptive_table" in script
+    assert "ex.analyze_regression_table" in script
     assert len(build_notebook(cfg, comps)) > 100
     assert len(build_export_zip(cfg, comps, kuznets.head(50), "year")) > 200
 

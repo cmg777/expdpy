@@ -252,11 +252,11 @@ _PAGE_SPECS: list[PageSpec] = [
 def page_sandboxes() -> None:
     """Interactive teaching demos that simulate data — no dataset required."""
     from expdpy import (
-        sandbox_clustering_se,
-        sandbox_first_differences,
-        sandbox_omitted_variable_bias,
-        sandbox_pooled_vs_fixed_effects,
-        sandbox_within_vs_lsdv,
+        learn_clustering_se,
+        learn_first_differences,
+        learn_omitted_variable_bias,
+        learn_pooled_vs_fixed_effects,
+        learn_within_vs_lsdv,
     )
 
     st.header("Concept sandboxes")
@@ -278,7 +278,7 @@ def page_sandboxes() -> None:
             "Correlation between x and the omitted z", 0.0, 0.95, 0.6, 0.05
         )
         bz = st.slider("Effect of the omitted z", -2.0, 2.0, 1.0, 0.25)
-        res = sandbox_omitted_variable_bias(corr_xz=corr, beta_z=bz)
+        res = learn_omitted_variable_bias(corr_xz=corr, beta_z=bz)
         st.plotly_chart(res.fig, width="stretch", config=PLOTLY_CONFIG)
         st.markdown(res.interpret())
         with st.expander("❓ What is this?"):
@@ -287,28 +287,28 @@ def page_sandboxes() -> None:
         uc = st.slider(
             "Correlation between x and the unit effect", 0.0, 0.95, 0.8, 0.05
         )
-        res = sandbox_pooled_vs_fixed_effects(unit_effect_corr=uc)
+        res = learn_pooled_vs_fixed_effects(unit_effect_corr=uc)
         st.plotly_chart(res.fig, width="stretch", config=PLOTLY_CONFIG)
         st.markdown(res.interpret())
         with st.expander("❓ What is this?"):
             st.markdown(res.explain().to_markdown())
     with tabs[2]:
         icc = st.slider("Intra-cluster correlation (ICC)", 0.0, 0.9, 0.3, 0.05)
-        res = sandbox_clustering_se(icc=icc)
+        res = learn_clustering_se(icc=icc)
         st.plotly_chart(res.fig, width="stretch", config=PLOTLY_CONFIG)
         st.markdown(res.interpret())
         with st.expander("❓ What is this?"):
             st.markdown(res.explain().to_markdown())
     with tabs[3]:
         periods = st.slider("Periods per unit", 2, 8, 2, 1, key="fd_periods")
-        res = sandbox_first_differences(n_periods=int(periods))
+        res = learn_first_differences(n_periods=int(periods))
         st.plotly_chart(res.fig, width="stretch", config=PLOTLY_CONFIG)
         st.markdown(res.interpret())
         with st.expander("❓ What is this?"):
             st.markdown(res.explain().to_markdown())
     with tabs[4]:
         periods = st.slider("Periods per unit", 2, 12, 6, 1, key="wl_periods")
-        res = sandbox_within_vs_lsdv(n_periods=int(periods))
+        res = learn_within_vs_lsdv(n_periods=int(periods))
         st.plotly_chart(res.fig, width="stretch", config=PLOTLY_CONFIG)
         st.markdown(res.interpret())
         with st.expander("❓ What is this?"):
@@ -323,14 +323,14 @@ def _is_panel(active: Active) -> bool:
 def page_panel_structure() -> None:
     """Within/between variation, panel balance, spaghetti, dynamics and transitions."""
     from expdpy import (
-        prepare_distribution_over_time,
-        prepare_panel_structure,
-        prepare_spaghetti_graph,
-        prepare_transition_matrix,
-        prepare_value_heatmap,
-        prepare_within_between_scatter,
-        prepare_within_persistence,
-        prepare_xtsum_table,
+        explore_distribution_over_time,
+        explore_panel_structure,
+        explore_scatter_plot_within_between,
+        explore_spaghetti_plot,
+        explore_transition_matrix,
+        explore_value_heatmap,
+        explore_within_persistence,
+        explore_xtsum_table,
     )
 
     active = _active_or_stop()
@@ -363,7 +363,7 @@ def page_panel_structure() -> None:
     )
     if [v for v in xtsum_vars if v not in (None, "None")]:
         try:
-            res = prepare_xtsum_table(
+            res = explore_xtsum_table(
                 active.sample, var=list(xtsum_vars), entity=entity, time=time
             )
             st.html(res.gt.as_raw_html())
@@ -381,7 +381,7 @@ def page_panel_structure() -> None:
             "Y", nums, key="ps_wb_y", default=nums[1] if len(nums) > 1 else None
         )
     _show(
-        lambda: prepare_within_between_scatter(
+        lambda: explore_scatter_plot_within_between(
             active.sample, wb_x, wb_y, entity=entity, time=time
         )
     )
@@ -389,7 +389,7 @@ def page_panel_structure() -> None:
     st.divider()
     st.subheader("Panel balance & coverage")
     try:
-        struct = prepare_panel_structure(active.sample, entity=entity, time=time)
+        struct = explore_panel_structure(active.sample, entity=entity, time=time)
         st.markdown(struct.interpret())
         st.plotly_chart(struct.fig, width="stretch", config=PLOTLY_CONFIG)
         with st.expander("Balance summary"):
@@ -401,7 +401,7 @@ def page_panel_structure() -> None:
         "Standardize", ["none", "by_time", "by_entity", "global"], key="ps_vh_std"
     )
     _show(
-        lambda: prepare_value_heatmap(
+        lambda: explore_value_heatmap(
             active.sample, vh_var, entity=entity, time=time, standardize=standardize
         ),
         interpret=False,
@@ -411,7 +411,7 @@ def page_panel_structure() -> None:
     st.subheader("Per-unit trajectories (spaghetti)")
     spag_var = w.selectbox("Variable", nums, key="ps_spag_var")
     _show(
-        lambda: prepare_spaghetti_graph(
+        lambda: explore_spaghetti_plot(
             active.sample, spag_var, entity=entity, time=time
         )
     )
@@ -423,7 +423,7 @@ def page_panel_structure() -> None:
         "Style", ["ridgeline", "animated_hist", "animated_violin"], key="ps_dot_style"
     )
     _show(
-        lambda: prepare_distribution_over_time(
+        lambda: explore_distribution_over_time(
             active.sample, dot_var, time=time, style=dot_style
         )
     )
@@ -433,7 +433,7 @@ def page_panel_structure() -> None:
     tm_var = w.selectbox("State variable", factors + nums, key="ps_tm_var")
     tm_bins = w.slider("Bins (numeric only)", 2, 8, key="ps_tm_bins", default=4)
     _show(
-        lambda: prepare_transition_matrix(
+        lambda: explore_transition_matrix(
             active.sample, tm_var, entity=entity, time=time, n_bins=int(tm_bins)
         )
     )
@@ -442,7 +442,7 @@ def page_panel_structure() -> None:
     st.subheader("Within-unit persistence")
     wp_var = w.selectbox("Variable", nums, key="ps_wp_var")
     _show(
-        lambda: prepare_within_persistence(
+        lambda: explore_within_persistence(
             active.sample, wp_var, entity=entity, time=time
         )
     )
@@ -450,7 +450,7 @@ def page_panel_structure() -> None:
 
 def page_event_study() -> None:
     """Event study / staggered difference-in-differences for a treated panel."""
-    from expdpy import prepare_event_study
+    from expdpy import analyze_event_study
 
     active = _active_or_stop()
     st.header("Event study & staggered DiD")
@@ -477,7 +477,7 @@ def page_event_study() -> None:
             "Estimator", ["did2s", "twfe", "saturated", "lpdid"], key="es_estimator"
         )
     try:
-        res = prepare_event_study(
+        res = analyze_event_study(
             active.sample,
             outcome=outcome,
             unit=unit,
@@ -496,7 +496,7 @@ def page_event_study() -> None:
 
 def page_panel_models() -> None:
     """Pooled / between / fixed / random-effects comparison, Hausman, and CRE (Mundlak)."""
-    from expdpy import prepare_cre_table, prepare_hausman_test, prepare_panel_table
+    from expdpy import analyze_cre_table, analyze_hausman_test, analyze_panel_table
 
     active = _active_or_stop()
     st.header("Panel models")
@@ -512,7 +512,7 @@ def page_panel_models() -> None:
         st.info("Choose a dependent variable and at least one independent variable.")
         return
     try:
-        res = prepare_panel_table(
+        res = analyze_panel_table(
             active.sample, dv=dv, idvs=xs, entity=entity, time=time, format="md"
         )
     except ImportError as exc:  # linearmodels not installed
@@ -526,7 +526,7 @@ def page_panel_models() -> None:
 
     st.subheader("Hausman test (fixed vs random effects)")
     try:
-        hausman = prepare_hausman_test(
+        hausman = analyze_hausman_test(
             active.sample, dv=dv, idvs=xs, entity=entity, time=time
         )
     except Exception as exc:  # surface the message, keep the page alive
@@ -543,7 +543,7 @@ def page_panel_models() -> None:
         "mean terms is the regression-form Hausman test."
     )
     try:
-        cre = prepare_cre_table(
+        cre = analyze_cre_table(
             active.sample, dv=dv, idvs=xs, entity=entity, time=time, format="md"
         )
     except Exception as exc:  # surface the message, keep the page alive

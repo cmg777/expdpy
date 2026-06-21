@@ -14,7 +14,7 @@ from expdpy._types import MissingValuesResult
 from expdpy._validation import ensure_dataframe, numeric_logical_columns
 from expdpy.trends import _try_convert_ts_id
 
-__all__ = ["prepare_missing_values_graph"]
+__all__ = ["explore_missing_values_plot"]
 
 
 def _ordered_levels(index: pd.Index, *, as_time: bool) -> np.ndarray:
@@ -27,7 +27,7 @@ def _ordered_levels(index: pd.Index, *, as_time: bool) -> np.ndarray:
     return np.argsort(keys, kind="stable")
 
 
-def prepare_missing_values_graph(
+def explore_missing_values_plot(
     df: pd.DataFrame,
     *,
     time: str | None = None,
@@ -71,13 +71,13 @@ def prepare_missing_values_graph(
     from expdpy.data import load_kuznets
 
     df = load_kuznets()
-    ex.prepare_missing_values_graph(df, time="year").fig
+    ex.explore_missing_values_plot(df, time="year").fig
     ```
 
     Advanced — missingness by unit, restricted to numeric variables, shown as a flag:
 
     ```python
-    ex.prepare_missing_values_graph(
+    ex.explore_missing_values_plot(
         df, entity="country", by="entity", no_factors=True, binary=True
     ).fig
     ```

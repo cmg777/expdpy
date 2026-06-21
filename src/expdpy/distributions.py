@@ -11,10 +11,10 @@ from expdpy._theme import apply_default_layout, color_for
 from expdpy._types import BarChartResult, HistogramResult
 from expdpy._validation import ensure_dataframe
 
-__all__ = ["prepare_bar_chart", "prepare_histogram"]
+__all__ = ["explore_bar_plot", "explore_histogram"]
 
 
-def prepare_histogram(
+def explore_histogram(
     df: pd.DataFrame,
     var: str,
     *,
@@ -45,13 +45,13 @@ def prepare_histogram(
     from expdpy.data import load_kuznets
 
     df = load_kuznets()
-    ex.prepare_histogram(df, "gini_regional").fig
+    ex.explore_histogram(df, "gini_regional").fig
     ```
 
     Advanced — finer bins, with the bin/count table from ``.df``:
 
     ```python
-    result = ex.prepare_histogram(df, "gdp_pc", bins=50)
+    result = ex.explore_histogram(df, "gdp_pc", bins=50)
     result.fig
     result.df.head()
     ```
@@ -118,7 +118,7 @@ def prepare_histogram(
     return HistogramResult(df=out, fig=fig)
 
 
-def prepare_bar_chart(
+def explore_bar_plot(
     df: pd.DataFrame,
     var: str,
     *,
@@ -152,13 +152,13 @@ def prepare_bar_chart(
     from expdpy.data import load_kuznets
 
     df = load_kuznets()
-    ex.prepare_bar_chart(df, "continent").fig
+    ex.explore_bar_plot(df, "continent").fig
     ```
 
     Advanced — order bars by descending count and set a custom color:
 
     ```python
-    ex.prepare_bar_chart(df, "continent", order_by_count=True, color="red").fig
+    ex.explore_bar_plot(df, "continent", order_by_count=True, color="red").fig
     ```
     """
     df = ensure_dataframe(df)

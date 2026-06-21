@@ -1,6 +1,7 @@
-"""Frozen result dataclasses returned by the ``prepare_*`` functions.
+"""Frozen result dataclasses returned by the public analysis functions.
 
-The R package returns ``list(df = ..., plot = ...)`` or ``list(df = ..., kable_ret = ...)``
+The ``explore_*`` / ``analyze_*`` / ``learn_*`` functions return these typed wrappers. The R
+package returns ``list(df = ..., plot = ...)`` or ``list(df = ..., kable_ret = ...)``
 objects. In Python we use small, typed, immutable dataclasses that expose the underlying
 ``pandas.DataFrame`` alongside the rendered object (a Plotly ``Figure``, a Great Tables
 ``GT``, or a pyfixest ``etable`` result).
@@ -83,7 +84,7 @@ __all__ = [
 
 @dataclass(frozen=True)
 class DescriptiveTableResult(Interpretable):
-    """Result of :func:`expdpy.prepare_descriptive_table`."""
+    """Result of :func:`expdpy.explore_descriptive_table`."""
 
     df: pd.DataFrame
     gt: GT
@@ -103,7 +104,7 @@ class DescriptiveTableResult(Interpretable):
 
 @dataclass(frozen=True)
 class CorrelationTableResult(Interpretable):
-    """Result of :func:`expdpy.prepare_correlation_table`.
+    """Result of :func:`expdpy.explore_correlation_table`.
 
     ``df_corr`` holds Pearson correlations above and Spearman correlations below the
     diagonal; ``df_prob`` the matching p-values; ``df_n`` the pairwise observation counts.
@@ -131,7 +132,7 @@ class CorrelationTableResult(Interpretable):
 
 @dataclass(frozen=True)
 class CorrelationGraphResult:
-    """Result of :func:`expdpy.prepare_correlation_graph`."""
+    """Result of :func:`expdpy.explore_correlation_plot`."""
 
     df_corr: pd.DataFrame
     df_prob: pd.DataFrame
@@ -141,7 +142,7 @@ class CorrelationGraphResult:
 
 @dataclass(frozen=True)
 class ExtObsTableResult:
-    """Result of :func:`expdpy.prepare_ext_obs_table`."""
+    """Result of :func:`expdpy.explore_ext_obs_table`."""
 
     df: pd.DataFrame
     gt: GT
@@ -149,7 +150,7 @@ class ExtObsTableResult:
 
 @dataclass(frozen=True)
 class TrendGraphResult(Interpretable):
-    """Result of :func:`expdpy.prepare_trend_graph`."""
+    """Result of :func:`expdpy.explore_trend_plot`."""
 
     df: pd.DataFrame
     fig: go.Figure
@@ -165,7 +166,7 @@ class TrendGraphResult(Interpretable):
 
 @dataclass(frozen=True)
 class QuantileTrendGraphResult:
-    """Result of :func:`expdpy.prepare_quantile_trend_graph`."""
+    """Result of :func:`expdpy.explore_quantile_trend_plot`."""
 
     df: pd.DataFrame
     fig: go.Figure
@@ -173,7 +174,7 @@ class QuantileTrendGraphResult:
 
 @dataclass(frozen=True)
 class ByGroupBarGraphResult:
-    """Result of :func:`expdpy.prepare_by_group_bar_graph`."""
+    """Result of :func:`expdpy.explore_bar_plot_by_group`."""
 
     df: pd.DataFrame
     fig: go.Figure
@@ -181,7 +182,7 @@ class ByGroupBarGraphResult:
 
 @dataclass(frozen=True)
 class ByGroupTrendGraphResult:
-    """Result of :func:`expdpy.prepare_by_group_trend_graph`."""
+    """Result of :func:`expdpy.explore_trend_plot_by_group`."""
 
     df: pd.DataFrame
     fig: go.Figure
@@ -189,7 +190,7 @@ class ByGroupTrendGraphResult:
 
 @dataclass(frozen=True)
 class ByGroupViolinResult:
-    """Result of :func:`expdpy.prepare_by_group_violin_graph`."""
+    """Result of :func:`expdpy.explore_violin_plot_by_group`."""
 
     df: pd.DataFrame
     fig: go.Figure
@@ -197,7 +198,7 @@ class ByGroupViolinResult:
 
 @dataclass(frozen=True)
 class HistogramResult:
-    """Result of :func:`expdpy.prepare_histogram`."""
+    """Result of :func:`expdpy.explore_histogram`."""
 
     df: pd.DataFrame
     fig: go.Figure
@@ -205,7 +206,7 @@ class HistogramResult:
 
 @dataclass(frozen=True)
 class MissingValuesResult:
-    """Result of :func:`expdpy.prepare_missing_values_graph`.
+    """Result of :func:`expdpy.explore_missing_values_plot`.
 
     ``df`` is the missingness frame (rows = time periods or units, columns = variables, cells
     = fraction missing or a 0/1 flag); ``fig`` is the Plotly heatmap.
@@ -217,7 +218,7 @@ class MissingValuesResult:
 
 @dataclass(frozen=True)
 class ScatterPlotResult:
-    """Result of :func:`expdpy.prepare_scatter_plot`.
+    """Result of :func:`expdpy.explore_scatter_plot`.
 
     ``df`` is the complete-case frame actually plotted; ``fig`` is the Plotly scatter.
     """
@@ -228,7 +229,7 @@ class ScatterPlotResult:
 
 @dataclass(frozen=True)
 class BarChartResult:
-    """Result of :func:`expdpy.prepare_bar_chart`."""
+    """Result of :func:`expdpy.explore_bar_plot`."""
 
     df: pd.DataFrame
     fig: go.Figure
@@ -236,7 +237,7 @@ class BarChartResult:
 
 @dataclass(frozen=True)
 class CoefficientPlotResult:
-    """Result of :func:`expdpy.prepare_coefficient_plot`.
+    """Result of :func:`expdpy.analyze_coefficient_plot`.
 
     ``df`` is a tidy long frame with columns ``model``, ``term``, ``estimate``, ``se``,
     ``ci_lower`` and ``ci_upper``; ``fig`` is the Plotly coefficient plot.
@@ -248,7 +249,7 @@ class CoefficientPlotResult:
 
 @dataclass(frozen=True)
 class RegressionTableResult(Interpretable):
-    """Result of :func:`expdpy.prepare_regression_table`.
+    """Result of :func:`expdpy.analyze_regression_table`.
 
     ``models`` is the list of fitted pyfixest models, ``etable`` the rendered regression
     table (a Great Tables object or a string depending on ``format``), and ``df`` a tidy
@@ -300,7 +301,7 @@ class RegressionTableResult(Interpretable):
 
 @dataclass(frozen=True)
 class CRETableResult(RegressionTableResult):
-    """Result of :func:`expdpy.prepare_cre_table`.
+    """Result of :func:`expdpy.analyze_cre_table`.
 
     A :class:`RegressionTableResult` carrying a single fitted Correlated Random Effects
     (Mundlak) model. ``models[0]`` additionally exposes ``_cre_means`` (the entity-mean
@@ -319,14 +320,14 @@ class CRETableResult(RegressionTableResult):
 
 @dataclass(frozen=True)
 class FWLPlotResult(Interpretable):
-    """Result of :func:`expdpy.prepare_fwl_plot`.
+    """Result of :func:`expdpy.analyze_fwl_plot`.
 
     ``df`` is the residual frame sorted by ``x_resid`` with columns ``x_resid``,
     ``y_resid``, ``fit``, ``lwr`` and ``upr`` (the OLS fit and 95% pointwise confidence band
     of ``y_resid`` on ``x_resid``). ``fig`` is the Plotly figure. ``slope`` equals the
     full-model coefficient on the focal variable (Frisch-Waugh-Lovell theorem); ``se`` is its
     standard error from the full model (clustered when clusters are given, matching
-    :func:`prepare_regression_table`) — note the plotted band is the simpler residual-OLS
+    :func:`analyze_regression_table`) — note the plotted band is the simpler residual-OLS
     confidence interval, so its implied uncertainty can differ from ``se``. ``intercept`` is
     the residual-OLS intercept (≈ 0 when residualized); ``n_obs`` is the complete-case sample
     size; ``r2_within`` is the full model's within-R² (``nan`` when there are no fixed
@@ -368,7 +369,7 @@ class FWLPlotResult(Interpretable):
 
 @dataclass(frozen=True)
 class EstimationResult(Interpretable):
-    """Result of :func:`expdpy.prepare_estimation`.
+    """Result of :func:`expdpy.analyze_estimation`.
 
     ``models`` are the fitted pyfixest model(s), ``etable`` the rendered table, ``df`` the
     tidy coefficient frame, ``model_kind`` the estimator (always ``"ols"``), ``fit_stats`` a
@@ -408,7 +409,7 @@ class EstimationResult(Interpretable):
 
 @dataclass(frozen=True)
 class FixefPlotResult:
-    """Result of :func:`expdpy.prepare_fixef_plot`.
+    """Result of :func:`expdpy.analyze_fixef_plot`.
 
     ``df`` has columns ``fixef`` (the fixed-effect dimension), ``level`` and ``value`` (the
     estimated group intercept); ``fig`` is the Plotly figure.
@@ -420,7 +421,7 @@ class FixefPlotResult:
 
 @dataclass(frozen=True)
 class PredictionResult:
-    """Result of :func:`expdpy.prepare_predictions`.
+    """Result of :func:`expdpy.analyze_predictions`.
 
     ``df`` holds the fitted ``predicted`` values, plus ``actual`` and ``residual`` columns
     when predicting on the estimation sample (no ``newdata``).
@@ -431,7 +432,7 @@ class PredictionResult:
 
 @dataclass(frozen=True)
 class JointTestResult:
-    """Result of :func:`expdpy.prepare_joint_test` (a Wald joint-significance test)."""
+    """Result of :func:`expdpy.analyze_joint_test` (a Wald joint-significance test)."""
 
     statistic: float
     p_value: float
@@ -454,7 +455,7 @@ class JointTestResult:
 
 @dataclass(frozen=True)
 class EventStudyResult(Interpretable):
-    """Result of :func:`expdpy.prepare_event_study`.
+    """Result of :func:`expdpy.analyze_event_study`.
 
     ``df`` is the tidy event-time path (columns ``event_time``, ``estimate``, ``se``,
     ``ci_lower``, ``ci_upper`` and ``cohort`` — ``cohort`` is filled only for the
@@ -482,7 +483,7 @@ class EventStudyResult(Interpretable):
 
 @dataclass(frozen=True)
 class PanelViewResult:
-    """Result of :func:`expdpy.prepare_panel_view`.
+    """Result of :func:`expdpy.analyze_panel_view`.
 
     ``df`` is the treatment quilt (units by periods, 0/1) or, when an ``outcome`` is given,
     the tidy outcome frame; ``fig`` is the Plotly figure.
@@ -494,7 +495,7 @@ class PanelViewResult:
 
 @dataclass(frozen=True)
 class HausmanTestResult(Interpretable):
-    """Result of :func:`expdpy.prepare_hausman_test` (fixed vs random effects).
+    """Result of :func:`expdpy.analyze_hausman_test` (fixed vs random effects).
 
     ``statistic`` is the Hausman chi-squared statistic, ``df_test`` its degrees of freedom,
     ``p_value`` the p-value, and ``fe_coefs`` / ``re_coefs`` the compared coefficients.
@@ -531,7 +532,7 @@ class HausmanTestResult(Interpretable):
 
 @dataclass(frozen=True)
 class SandboxResult(Interpretable):
-    """Result of an ``expdpy.sandbox_*`` teaching demonstration.
+    """Result of an ``expdpy.learn_*`` teaching demonstration.
 
     ``df`` is the comparison table, ``fig`` the headline figure, ``summary`` the scalar facts
     the demonstration turns on, and ``topic`` the concept it illustrates.
@@ -553,7 +554,7 @@ class SandboxResult(Interpretable):
 
 @dataclass(frozen=True)
 class RobustInferenceResult:
-    """Result of :func:`expdpy.prepare_robust_inference`.
+    """Result of :func:`expdpy.analyze_robust_inference`.
 
     ``method`` is ``"ritest"`` (randomization inference) or ``"wildboot"`` (wild cluster
     bootstrap); ``estimate`` and ``p_value`` are for the tested ``param``; ``conf_int`` is
@@ -572,7 +573,7 @@ class RobustInferenceResult:
 # ===================================================================== panel exploration ===
 @dataclass(frozen=True)
 class XtsumTableResult(Interpretable):
-    """Result of :func:`expdpy.prepare_xtsum_table`.
+    """Result of :func:`expdpy.explore_xtsum_table`.
 
     ``df`` is a long frame with one row per ``(variable, component)`` where ``component`` is
     ``"overall"`` / ``"between"`` / ``"within"`` (columns ``mean``, ``sd``, ``min``, ``max``,
@@ -597,7 +598,7 @@ class XtsumTableResult(Interpretable):
 
 @dataclass(frozen=True)
 class WithinBetweenScatterResult(Interpretable):
-    """Result of :func:`expdpy.prepare_within_between_scatter`.
+    """Result of :func:`expdpy.explore_scatter_plot_within_between`.
 
     ``df`` is the long frame of plotted points (columns ``component``, ``x``, ``y``,
     ``entity``, ``time``); ``fig`` the Plotly figure; ``slope_pooled`` / ``slope_between`` /
@@ -621,7 +622,7 @@ class WithinBetweenScatterResult(Interpretable):
 
 @dataclass(frozen=True)
 class SpaghettiGraphResult(Interpretable):
-    """Result of :func:`expdpy.prepare_spaghetti_graph`.
+    """Result of :func:`expdpy.explore_spaghetti_plot`.
 
     ``df`` is the plotted long frame (columns ``entity``, ``time``, ``<var>``); ``fig`` the
     Plotly figure; ``n_units`` the number of units in the data and ``n_shown`` how many were
@@ -644,7 +645,7 @@ class SpaghettiGraphResult(Interpretable):
 
 @dataclass(frozen=True)
 class PanelStructureResult(Interpretable):
-    """Result of :func:`expdpy.prepare_panel_structure`.
+    """Result of :func:`expdpy.explore_panel_structure`.
 
     ``df_summary`` is a tidy ``(statistic, value)`` frame (units, periods, balanced, gaps,
     obs-per-unit); ``df_grid`` the unit-by-period presence matrix; ``gt`` the summary table;
@@ -671,7 +672,7 @@ class PanelStructureResult(Interpretable):
 
 @dataclass(frozen=True)
 class ValueHeatmapResult:
-    """Result of :func:`expdpy.prepare_value_heatmap`.
+    """Result of :func:`expdpy.explore_value_heatmap`.
 
     ``df`` is the unit-by-time pivot of the variable; ``fig`` is the Plotly heatmap.
     """
@@ -682,7 +683,7 @@ class ValueHeatmapResult:
 
 @dataclass(frozen=True)
 class DistributionOverTimeResult(Interpretable):
-    """Result of :func:`expdpy.prepare_distribution_over_time`.
+    """Result of :func:`expdpy.explore_distribution_over_time`.
 
     ``df`` is the complete-case ``(time, <var>)`` frame whose per-period distributions are
     drawn; ``fig`` is the Plotly figure (ridgeline or animated).
@@ -702,7 +703,7 @@ class DistributionOverTimeResult(Interpretable):
 
 @dataclass(frozen=True)
 class TransitionMatrixResult(Interpretable):
-    """Result of :func:`expdpy.prepare_transition_matrix`.
+    """Result of :func:`expdpy.explore_transition_matrix`.
 
     ``df`` is the K-by-K transition matrix (row-normalized probabilities or raw counts,
     per ``normalize``); ``counts`` the raw K-by-K counts; ``fig`` the heatmap; ``gt`` the
@@ -732,7 +733,7 @@ class TransitionMatrixResult(Interpretable):
 
 @dataclass(frozen=True)
 class WithinPersistenceResult(Interpretable):
-    """Result of :func:`expdpy.prepare_within_persistence`.
+    """Result of :func:`expdpy.explore_within_persistence`.
 
     ``df`` holds the lagged within-unit pairs (columns ``entity``, ``time``, ``lag_value``,
     ``value``); ``fig`` the scatter; ``rho`` the within-unit serial correlation; ``slope`` the

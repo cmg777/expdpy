@@ -17,7 +17,7 @@ from expdpy._theme import SEQUENTIAL_SCALE, apply_default_layout, color_for
 from expdpy._types import ScatterPlotResult
 from expdpy._validation import ensure_dataframe
 
-__all__ = ["prepare_scatter_plot"]
+__all__ = ["explore_scatter_plot"]
 
 
 def _default_alpha(n: int) -> float:
@@ -63,7 +63,7 @@ def _lowess_band(x: np.ndarray, y: np.ndarray, xs: np.ndarray, n_boot: int = 50)
     return lo, hi
 
 
-def prepare_scatter_plot(
+def explore_scatter_plot(
     df: pd.DataFrame,
     x: str,
     y: str,
@@ -116,14 +116,14 @@ def prepare_scatter_plot(
     from expdpy.data import load_kuznets
 
     df = load_kuznets()
-    ex.prepare_scatter_plot(df, x="log_gdp_pc", y="gini_regional").fig
+    ex.explore_scatter_plot(df, x="log_gdp_pc", y="gini_regional").fig
     ```
 
     Advanced — map color and marker size to other columns, add a size-weighted LOESS
     smoother (the N-shaped Kuznets curve) and tune opacity:
 
     ```python
-    ex.prepare_scatter_plot(
+    ex.explore_scatter_plot(
         df, x="log_gdp_pc", y="gini_regional",
         color="continent", size="population", loess=2, alpha=0.6,
     ).fig

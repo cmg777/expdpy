@@ -27,8 +27,9 @@ def set_panel(
 ) -> pd.DataFrame:
     """Declare the panel's ``entity`` and ``time`` columns on ``df`` and return it.
 
-    The ids are stored under ``df.attrs["expdpy_panel"]`` so that subsequent ``prepare_*``
-    calls can omit them. Explicit arguments to those functions still take precedence.
+    The ids are stored under ``df.attrs["expdpy_panel"]`` so that subsequent
+    ``explore_*`` / ``analyze_*`` calls can omit them. Explicit arguments to those
+    functions still take precedence.
 
     Parameters
     ----------
@@ -54,8 +55,8 @@ def set_panel(
     from expdpy.data import load_kuznets
 
     df = ex.set_panel(load_kuznets(), entity="country", time="year")
-    ex.prepare_xtsum_table(df, var=["gini_regional", "log_gdp_pc"]).gt
-    ex.prepare_spaghetti_graph(df, var="gini_regional").fig
+    ex.explore_xtsum_table(df, var=["gini_regional", "log_gdp_pc"]).gt
+    ex.explore_spaghetti_plot(df, var="gini_regional").fig
     ```
     """
     df = ensure_dataframe(df)

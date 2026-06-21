@@ -19,9 +19,9 @@ from expdpy._validation import ensure_dataframe
 from expdpy.trends import _se, _try_convert_ts_id, _xaxis
 
 __all__ = [
-    "prepare_by_group_bar_graph",
-    "prepare_by_group_trend_graph",
-    "prepare_by_group_violin_graph",
+    "explore_bar_plot_by_group",
+    "explore_trend_plot_by_group",
+    "explore_violin_plot_by_group",
 ]
 
 
@@ -37,7 +37,7 @@ def _sorted_levels(values: pd.Series) -> list[str]:
     return sorted(levels)
 
 
-def prepare_by_group_bar_graph(
+def explore_bar_plot_by_group(
     df: pd.DataFrame,
     by_var: str,
     var: str,
@@ -80,7 +80,7 @@ def prepare_by_group_bar_graph(
     from expdpy.data import load_kuznets
 
     df = load_kuznets()
-    ex.prepare_by_group_bar_graph(df, "continent", "gini_regional").fig
+    ex.explore_bar_plot_by_group(df, "continent", "gini_regional").fig
     ```
 
     Advanced — a different statistic, bars ordered by it, a custom color, and the
@@ -89,7 +89,7 @@ def prepare_by_group_bar_graph(
     ```python
     import numpy as np
 
-    result = ex.prepare_by_group_bar_graph(
+    result = ex.explore_bar_plot_by_group(
         df, "continent", "gini_regional",
         stat_fun=np.nanmedian, order_by_stat=True, color="#4682b4",
     )
@@ -144,7 +144,7 @@ def prepare_by_group_bar_graph(
     return ByGroupBarGraphResult(df=grouped, fig=fig)
 
 
-def prepare_by_group_trend_graph(
+def explore_trend_plot_by_group(
     df: pd.DataFrame,
     group_var: str,
     var: str,
@@ -185,7 +185,7 @@ def prepare_by_group_trend_graph(
     from expdpy.data import load_kuznets
 
     df = load_kuznets()
-    ex.prepare_by_group_trend_graph(
+    ex.explore_trend_plot_by_group(
         df, group_var="continent", var="gini_regional", time="year"
     ).fig
     ```
@@ -193,7 +193,7 @@ def prepare_by_group_trend_graph(
     Advanced — add standard-error bars and drop the per-observation markers:
 
     ```python
-    ex.prepare_by_group_trend_graph(
+    ex.explore_trend_plot_by_group(
         df, group_var="continent", var="gini_regional", time="year",
         error_bars=True, points=False,
     ).fig
@@ -249,7 +249,7 @@ def prepare_by_group_trend_graph(
     return ByGroupTrendGraphResult(df=gf, fig=fig)
 
 
-def prepare_by_group_violin_graph(
+def explore_violin_plot_by_group(
     df: pd.DataFrame,
     by_var: str,
     var: str,
@@ -286,13 +286,13 @@ def prepare_by_group_violin_graph(
     from expdpy.data import load_kuznets
 
     df = load_kuznets()
-    ex.prepare_by_group_violin_graph(df, "continent", "gini_regional").fig
+    ex.explore_violin_plot_by_group(df, "continent", "gini_regional").fig
     ```
 
     Advanced — order groups by their mean and orient the violins vertically:
 
     ```python
-    ex.prepare_by_group_violin_graph(
+    ex.explore_violin_plot_by_group(
         df, "continent", "gini_regional", order_by_mean=True, group_on_y=False
     ).fig
     ```

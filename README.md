@@ -41,29 +41,29 @@ optional LOESS smoother; a missing-value heatmap across the panel; and outlier t
 figure or a Great Tables object you can drop straight into a notebook or report.
 
 A dedicated set of **panel-aware** views makes the cross-unit-vs-over-time structure explicit:
-the **within/between variation** table `prepare_xtsum_table` (Stata `xtsum`-style) and the
-**within-vs-between scatter** `prepare_within_between_scatter`; **per-unit trajectories**
-(`prepare_spaghetti_graph`); **panel-structure diagnostics** — a balance/gaps summary and
-unit-by-period presence grid (`prepare_panel_structure`) plus a unit-by-time value heatmap
-(`prepare_value_heatmap`); and **distribution & transition dynamics** — `prepare_distribution_over_time`
-(ridgeline or animated), `prepare_transition_matrix`, and within-unit serial-correlation via
-`prepare_within_persistence`. Panel functions take an `entity` (unit) and a `time` id; declare
+the **within/between variation** table `explore_xtsum_table` (Stata `xtsum`-style) and the
+**within-vs-between scatter** `explore_scatter_plot_within_between`; **per-unit trajectories**
+(`explore_spaghetti_plot`); **panel-structure diagnostics** — a balance/gaps summary and
+unit-by-period presence grid (`explore_panel_structure`) plus a unit-by-time value heatmap
+(`explore_value_heatmap`); and **distribution & transition dynamics** — `explore_distribution_over_time`
+(ridgeline or animated), `explore_transition_matrix`, and within-unit serial-correlation via
+`explore_within_persistence`. Panel functions take an `entity` (unit) and a `time` id; declare
 them once with `set_panel(df, entity=..., time=...)` and the rest of Explore can omit them.
 
 ### Analyze panel data
 
 OLS with **multi-way fixed effects** and **clustered standard errors** via
-[pyfixest](https://github.com/py-econometrics/pyfixest), plus a richer `prepare_estimation`
+[pyfixest](https://github.com/py-econometrics/pyfixest), plus a richer `analyze_estimation`
 adding **stepwise / multiple-outcome** comparison, serial-correlation-robust standard errors
 (**Newey–West**, **Driscoll–Kraay**) and weights. Estimate **pooled / between / fixed / random
-effects** with `prepare_panel_table`, bring within estimates into a random-effects frame with
-the **correlated-random-effects (Mundlak)** estimator `prepare_cre_table`, and choose between
+effects** with `analyze_panel_table`, bring within estimates into a random-effects frame with
+the **correlated-random-effects (Mundlak)** estimator `analyze_cre_table`, and choose between
 fixed and random effects with the **Hausman test**. Round it out with post-estimation tools
 (fixed-effect plots, predictions, Wald joint tests), **robust inference** (randomization
 inference and the wild cluster bootstrap), **Frisch–Waugh–Lovell** and **coefficient** plots,
 and modern **event-study / staggered difference-in-differences** estimators (Gardner's `did2s`,
 Sun–Abraham, local-projections DiD, dynamic TWFE) with a built-in pre-trend diagnostic and a
-treatment-structure `prepare_panel_view`.
+treatment-structure `analyze_panel_view`.
 
 ### Learn panel data
 
@@ -73,8 +73,8 @@ output (never a causal claim unless the design supports it); `.explain()`, toget
 clustering, random effects, the Mundlak device, first differences, demeaning, dummy variables,
 event studies, omitted-variable bias and more. Result objects also expose broom-style
 `.tidy()` / `.glance()`. **Concept sandboxes** simulate data so a learner can *see* and tune a
-concept — `sandbox_omitted_variable_bias`, `sandbox_pooled_vs_fixed_effects`,
-`sandbox_clustering_se`, `sandbox_first_differences`, and `sandbox_within_vs_lsdv` (which shows
+concept — `learn_omitted_variable_bias`, `learn_pooled_vs_fixed_effects`,
+`learn_clustering_se`, `learn_first_differences`, and `learn_within_vs_lsdv` (which shows
 first differences ≈ demeaning ≈ least-squares dummy variables).
 
 ### Three no-code apps — Streamlit
@@ -132,12 +132,19 @@ pip install "expdpy[streamlit] @ git+https://github.com/cmg777/expdpy.git"
 Pin to a release, branch, or commit for reproducible installs:
 
 ```bash
-pip install "expdpy==0.4.1"
-pip install "git+https://github.com/cmg777/expdpy.git@v0.4.1"
+pip install "expdpy==0.5.0"
+pip install "git+https://github.com/cmg777/expdpy.git@v0.5.0"
 pip install "git+https://github.com/cmg777/expdpy.git@main"
 ```
 
 Requires Python 3.10+.
+
+> **Upgrading from 0.4.x?** In **0.5.0** every analysis function gained a module prefix:
+> `prepare_*` → `explore_*` / `analyze_*` and `sandbox_*` → `learn_*`, with figures ending in
+> `_plot`, tables in `_table`, and scope qualifiers moved to the end (e.g.
+> `prepare_by_group_violin_graph` → `explore_violin_plot_by_group`). The utilities `set_panel`,
+> `resolve_panel`, `treat_outliers`, `explain` and `list_topics` keep their names. See the
+> [changelog](https://cmg777.github.io/expdpy/changelog.html) for the full rename map.
 
 ## At a glance
 
@@ -151,7 +158,7 @@ from expdpy.data import load_kuznets
 
 df = load_kuznets()
 # The N-shaped regional Kuznets curve: regional inequality vs (log) GDP per capita
-ex.prepare_scatter_plot(
+ex.explore_scatter_plot(
     df, x="log_gdp_pc", y="gini_regional", color="continent", size="population", loess=1
 ).fig
 ```
@@ -162,16 +169,16 @@ into across-unit (between) and over-time (within) parts, or trace every unit at 
 ```python
 df = ex.set_panel(load_kuznets(), entity="country", time="year")
 
-ex.prepare_xtsum_table(df, var=["gini_regional", "log_gdp_pc"]).gt   # within/between table
-ex.prepare_spaghetti_graph(df, var="gini_regional").fig              # one line per country
-ex.prepare_within_between_scatter(df, x="log_gdp_pc", y="gini_regional").fig
+ex.explore_xtsum_table(df, var=["gini_regional", "log_gdp_pc"]).gt   # within/between table
+ex.explore_spaghetti_plot(df, var="gini_regional").fig              # one line per country
+ex.explore_scatter_plot_within_between(df, x="log_gdp_pc", y="gini_regional").fig
 ```
 
 **Run a regression and let it explain itself.** Two-way fixed effects, clustered standard
 errors, a plain-language reading, and a coefficient plot:
 
 ```python
-res = ex.prepare_regression_table(
+res = ex.analyze_regression_table(
     df,
     dvs="gini_regional",
     idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"],
@@ -179,7 +186,7 @@ res = ex.prepare_regression_table(
     clusters=["country"],
 )
 print(res.interpret())            # plain-language, associational reading
-ex.prepare_coefficient_plot(res)  # themed coefficient plot with confidence intervals
+ex.analyze_coefficient_plot(res)  # themed coefficient plot with confidence intervals
 ```
 
 **Bring within estimates into a random-effects frame** with the correlated-random-effects
@@ -187,7 +194,7 @@ ex.prepare_coefficient_plot(res)  # themed coefficient plot with confidence inte
 unit-mean terms is the regression-form Hausman test:
 
 ```python
-ex.prepare_cre_table(
+ex.analyze_cre_table(
     df, dv="gini_regional", idvs=["log_gdp_pc"], entity="country", time="year"
 ).etable
 ```
@@ -198,8 +205,8 @@ ex.prepare_cre_table(
 from expdpy.data import load_staggered_did
 
 did = load_staggered_did()
-ex.prepare_panel_view(did, unit="unit", time="year", cohort="cohort")   # treatment structure
-ex.prepare_event_study(                                                  # dynamic effects
+ex.analyze_panel_view(did, unit="unit", time="year", cohort="cohort")   # treatment structure
+ex.analyze_event_study(                                                  # dynamic effects
     did, outcome="outcome", unit="unit", time="year", cohort="cohort", estimator="did2s"
 ).fig
 ```
@@ -207,14 +214,14 @@ ex.prepare_event_study(                                                  # dynam
 **Classic panel models and the Hausman test:**
 
 ```python
-ex.prepare_panel_table(did, dv="outcome", idvs=["treated"], entity="unit", time="year").etable
-print(ex.prepare_hausman_test(did, dv="outcome", idvs=["treated"], entity="unit", time="year").interpret())
+ex.analyze_panel_table(did, dv="outcome", idvs=["treated"], entity="unit", time="year").etable
+print(ex.analyze_hausman_test(did, dv="outcome", idvs=["treated"], entity="unit", time="year").interpret())
 ```
 
 **Learn as you go** — concept sandboxes and explainers:
 
 ```python
-ex.sandbox_first_differences()      # first differences ≈ demeaning ≈ dummy variables
+ex.learn_first_differences()      # first differences ≈ demeaning ≈ dummy variables
 print(ex.explain("fixed_effects"))  # a concept explainer; ex.list_topics() lists them all
 ```
 
