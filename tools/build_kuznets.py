@@ -46,74 +46,143 @@ CONTINENTS = np.array(
 )
 CONTINENT_OFFSET = np.array([-0.02, -0.01, 0.0, 0.01, 0.02])
 
-# (column, original Table-4 name, data-def type, human description)
+# (column, original Table-4 name, data-def type, human description, concise display label)
 SCHEMA = [
     (
         "country",
         "Country_NAME",
         "entity",
         "Country identifier (synthetic, generic names)",
+        "Country",
     ),
-    ("iso", "Country_ISO", "entity", "Country ISO code (synthetic, generic codes)"),
-    ("year", "year", "time", "Calendar year"),
-    ("continent", "(new)", "factor", "Synthetic continent (grouping factor)"),
+    (
+        "iso",
+        "Country_ISO",
+        "entity",
+        "Country ISO code (synthetic, generic codes)",
+        "ISO code",
+    ),
+    ("year", "year", "time", "Calendar year", "Year"),
+    (
+        "continent",
+        "(new)",
+        "factor",
+        "Synthetic continent (grouping factor)",
+        "Continent",
+    ),
     (
         "gini_regional",
         "GINIW_pred_GDP_pc",
         "numeric",
         "Regional inequality Gini — the N-shaped Kuznets outcome (GINIW_pred_GDP_pc)",
+        "Regional inequality (Gini)",
     ),
     (
         "gdp_pc",
         "GDP_pc_Country",
         "numeric",
         "National GDP per capita, USD (GDP_pc_Country)",
+        "GDP per capita (USD)",
     ),
-    ("population", "Pop_Country", "numeric", "National population (Pop_Country)"),
+    (
+        "population",
+        "Pop_Country",
+        "numeric",
+        "National population (Pop_Country)",
+        "Population",
+    ),
     (
         "resource_rents",
         "Resources_rents_share_of_GDP",
         "numeric",
         "Natural-resource rents, % of GDP (Resources_rents_share_of_GDP)",
+        "Resource rents (% of GDP)",
     ),
-    ("arable_land", "Arable_land", "numeric", "Arable land share (Arable_land)"),
+    (
+        "arable_land",
+        "Arable_land",
+        "numeric",
+        "Arable land share (Arable_land)",
+        "Arable land (share)",
+    ),
     (
         "trade_share",
         "Trade_GDP_share",
         "numeric",
         "Trade openness, trade/GDP (Trade_GDP_share)",
+        "Trade openness (trade/GDP)",
     ),
     (
         "fdi_share",
         "FDI_share_of_GDP",
         "numeric",
         "FDI inflows, share of GDP (FDI_share_of_GDP)",
+        "FDI inflows (% of GDP)",
     ),
-    ("area", "area", "numeric", "Country area, km^2 (area)"),
+    ("area", "area", "numeric", "Country area, km^2 (area)", "Area (km²)"),
     (
         "gasoline_price",
         "price_gasoline",
         "numeric",
         "Gasoline price, USD/litre (price_gasoline)",
+        "Gasoline price (USD/litre)",
     ),
-    ("aid", "Aid", "numeric", "Net official development aid received, USD (Aid)"),
+    (
+        "aid",
+        "Aid",
+        "numeric",
+        "Net official development aid received, USD (Aid)",
+        "Official development aid (USD)",
+    ),
     (
         "school_enrollment",
         "School_enrollment_secondary",
         "numeric",
         "Secondary-school enrollment, % gross (School_enrollment_secondary)",
+        "Secondary enrollment (% gross)",
     ),
     (
         "gini_lights",
         "GINIW_Eth_light",
         "numeric",
         "Light-based inequality measure, control (GINIW_Eth_light)",
+        "Light-based inequality (Gini)",
     ),
-    ("polity2", "Polity2", "numeric", "Democracy score, -10..10 (Polity2)"),
-    ("federal", "fedelupd2", "factor", "Federal-state dummy, 0/1 (fedelupd2)"),
-    ("log_gdp_pc", "(derived)", "numeric", "Natural log of gdp_pc (derived)"),
-    ("log_gdp_pc_sq", "(derived)", "numeric", "log_gdp_pc squared (derived)"),
-    ("log_gdp_pc_cu", "(derived)", "numeric", "log_gdp_pc cubed (derived)"),
+    (
+        "polity2",
+        "Polity2",
+        "numeric",
+        "Democracy score, -10..10 (Polity2)",
+        "Democracy score (Polity2)",
+    ),
+    (
+        "federal",
+        "fedelupd2",
+        "factor",
+        "Federal-state dummy, 0/1 (fedelupd2)",
+        "Federal state",
+    ),
+    (
+        "log_gdp_pc",
+        "(derived)",
+        "numeric",
+        "Natural log of gdp_pc (derived)",
+        "Log GDP per capita",
+    ),
+    (
+        "log_gdp_pc_sq",
+        "(derived)",
+        "numeric",
+        "log_gdp_pc squared (derived)",
+        "Log GDP per capita²",
+    ),
+    (
+        "log_gdp_pc_cu",
+        "(derived)",
+        "numeric",
+        "log_gdp_pc cubed (derived)",
+        "Log GDP per capita³",
+    ),
 ]
 
 # Per-column missingness rate (averaged over years; early years are missed more often).
@@ -311,9 +380,10 @@ def build_data_def() -> pd.DataFrame:
     return pd.DataFrame(
         {
             "var_name": [name for name, *_ in SCHEMA],
-            "var_def": [desc for *_, desc in SCHEMA],
-            "type": [typ for _, _, typ, _ in SCHEMA],
-            "can_be_na": [typ not in ("entity", "time") for _, _, typ, _ in SCHEMA],
+            "var_def": [desc for _, _, _, desc, _ in SCHEMA],
+            "label": [label for *_, label in SCHEMA],
+            "type": [typ for _, _, typ, *_ in SCHEMA],
+            "can_be_na": [typ not in ("entity", "time") for _, _, typ, *_ in SCHEMA],
         }
     )
 

@@ -9,6 +9,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from expdpy._corr import cor_mat
+from expdpy._labels import resolve_labels
 from expdpy._theme import DIVERGING_SCALE, apply_default_layout, diverging_color
 from expdpy._types import CorrelationGraphResult
 from expdpy._validation import ensure_dataframe, numeric_logical_columns
@@ -74,6 +75,7 @@ def explore_correlation_plot(
     ```
     """
     df = ensure_dataframe(df)
+    labels_src = df  # resolve labels before the column reslice drops df.attrs
     df = df[numeric_logical_columns(df)]
     if len(df) < 5 or df.shape[1] < 2:
         raise ValueError(
@@ -91,6 +93,7 @@ def explore_correlation_plot(
     n = np.where(lower, scorr.n.to_numpy(), pcorr.n.to_numpy())
 
     names = list(df.columns)
+    name_labels = resolve_labels(labels_src, names)
     corr_r = pd.DataFrame(r, index=names, columns=names)
     corr_p = pd.DataFrame(p, index=names, columns=names)
     corr_n = pd.DataFrame(n, index=names, columns=names).astype("Int64")
@@ -100,8 +103,8 @@ def explore_correlation_plot(
         fig = go.Figure(
             go.Heatmap(
                 z=r,
-                x=names,
-                y=names,
+                x=name_labels,
+                y=name_labels,
                 zmid=0.0,
                 zmin=-1.0,
                 zmax=1.0,
@@ -133,20 +136,20 @@ def explore_correlation_plot(
                         line={"color": "rgba(120,120,120,0.5)", "width": 0.5},
                         fillcolor=diverging_color(r[i, j]),
                         hoverinfo="text",
-                        text=f"{names[i]} vs {names[j]}: {r[i, j]:.3f}",
+                        text=f"{name_labels[i]} vs {name_labels[j]}: {r[i, j]:.3f}",
                         showlegend=False,
                     )
                 )
         fig.update_xaxes(
             tickmode="array",
             tickvals=list(range(k)),
-            ticktext=names,
+            ticktext=name_labels,
             range=[-0.6, k - 0.4],
         )
         fig.update_yaxes(
             tickmode="array",
             tickvals=list(range(k)),
-            ticktext=list(reversed(names)),
+            ticktext=list(reversed(name_labels)),
             range=[-0.6, k - 0.4],
             scaleanchor="x",
             scaleratio=1,

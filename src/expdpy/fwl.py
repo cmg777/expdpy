@@ -19,6 +19,7 @@ import pyfixest as pf
 import statsmodels.api as sm
 from pandas.api import types as pdt
 
+from expdpy._labels import resolve_label
 from expdpy._theme import apply_default_layout, color_for
 from expdpy._types import FWLPlotResult
 from expdpy._validation import ensure_dataframe
@@ -135,6 +136,8 @@ def analyze_fwl_plot(
             f"dependent variable '{dv}' is non-numeric (OLS only)"
         )
 
+    var_label = resolve_label(df, var)
+    dv_label = resolve_label(df, dv)
     used = list(dict.fromkeys(needed))
     data = df[used].dropna().copy()
     for f in fe:
@@ -162,11 +165,11 @@ def analyze_fwl_plot(
         rhs = " + ".join(controls) if has_controls else "1"
         y_resid = _residualize(data, dv, rhs, fe_part)
         x_resid = _residualize(data, var, rhs, fe_part)
-        x_label, y_label = f"Residualized {var}", f"Residualized {dv}"
+        x_label, y_label = f"Residualized {var_label}", f"Residualized {dv_label}"
     else:
         y_resid = data[dv].to_numpy(dtype=float)
         x_resid = data[var].to_numpy(dtype=float)
-        x_label, y_label = var, dv
+        x_label, y_label = var_label, dv_label
 
     if len(x_resid) != len(y_resid):  # pragma: no cover - aligned by construction
         raise RuntimeError("residual vectors misaligned; cannot build FWL plot")

@@ -3,6 +3,15 @@ title: "Learn panel data"
 jupyter: python3
 ---
 
+```{=html}
+<p style="margin: 0.25rem 0 1.25rem;">
+  <strong>Run this page interactively in Google Colab — no install required:</strong><br>
+  <a href="https://colab.research.google.com/github/cmg777/expdpy/blob/main/notebooks/learn.ipynb" target="_blank" rel="noopener">
+    <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab">
+  </a>
+</p>
+```
+
 The **Learn** module is the teaching layer. Every result speaks plain language through
 `.interpret()` and `.explain()`; **concept sandboxes** simulate data so you can *see* and tune
 an idea; and **concept explainers** give a what / when / caveats summary for every method.
@@ -13,9 +22,11 @@ and explainer galleries.
 
 ```{python}
 import expdpy as ex
-from expdpy.data import load_kuznets
+from expdpy.data import load_kuznets, load_kuznets_data_def
 
-df = load_kuznets()
+# `set_labels` attaches the data dictionary's human-readable labels, so the figures and
+# tables on this page read with full labels.
+df = ex.set_labels(load_kuznets(), load_kuznets_data_def())
 ```
 
 ## Read a model in plain language

@@ -128,8 +128,10 @@ def build_one(slug: str, title: str, build_stamp: str) -> Path:
             cell["source"] = _strip_raw_html(cell.source)
     cells = [c for c in cells if c.cell_type != "markdown" or c.source.strip()]
 
+    # ``.format`` above collapses the template's ``{{BUILD_STAMP}}`` to a single-braced
+    # ``{BUILD_STAMP}``, which is what we substitute the build time into here.
     title_md = TITLE_TEMPLATE.format(title=title, slug=slug).replace(
-        "{{BUILD_STAMP}}", build_stamp
+        "{BUILD_STAMP}", build_stamp
     )
     title_cell = new_markdown_cell(title_md)
     install = new_code_cell(INSTALL_CELL)

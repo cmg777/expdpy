@@ -55,27 +55,37 @@ def build_data_def() -> pd.DataFrame:
             {
                 "var_name": "unit",
                 "var_def": "Unit identifier (cross-section id)",
+                "label": "Unit",
                 "type": "entity",
             },
-            {"var_name": "year", "var_def": "Year (time-series id)", "type": "time"},
+            {
+                "var_name": "year",
+                "var_def": "Year (time-series id)",
+                "label": "Year",
+                "type": "time",
+            },
             {
                 "var_name": "cohort",
                 "var_def": "First treated year (0 = never treated)",
+                "label": "Treatment cohort",
                 "type": "factor",
             },
             {
                 "var_name": "treated",
                 "var_def": "Treatment status indicator (0/1)",
+                "label": "Treated",
                 "type": "numeric",
             },
             {
                 "var_name": "rel_year",
                 "var_def": "Event time = year - cohort (NaN if never treated)",
+                "label": "Event time",
                 "type": "numeric",
             },
             {
                 "var_name": "outcome",
                 "var_def": "Outcome with a dynamic treatment effect",
+                "label": "Outcome",
                 "type": "numeric",
             },
         ]

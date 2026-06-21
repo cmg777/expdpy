@@ -18,6 +18,7 @@ import plotly.graph_objects as go
 import pyfixest as pf
 
 from expdpy._estimation import SSC
+from expdpy._labels import resolve_label
 from expdpy._theme import COLOR_SEQUENCE, apply_default_layout, color_for
 from expdpy._types import EventStudyResult, PanelViewResult
 from expdpy._validation import ensure_dataframe
@@ -323,6 +324,10 @@ def analyze_panel_view(
             "provide either 'treat' (binary) or 'cohort' (first-treated period)"
         )
 
+    unit_label = resolve_label(df, unit)
+    time_label = resolve_label(df, time)
+    outcome_label = resolve_label(df, outcome) if outcome else None
+
     work = df.copy()
     if treat is None:
         never = work[cohort] == never_treated_value
@@ -357,8 +362,12 @@ def analyze_panel_view(
                     hoverinfo="skip",
                 )
             )
-        apply_default_layout(fig, xaxis={"title": time}, yaxis={"title": outcome})
-        fig.update_layout(title=title or f"{outcome} by {unit} over {time}")
+        apply_default_layout(
+            fig, xaxis={"title": time_label}, yaxis={"title": outcome_label}
+        )
+        fig.update_layout(
+            title=title or f"{outcome_label} by {unit_label} over {time_label}"
+        )
         return PanelViewResult(df=sub.reset_index(drop=True), fig=fig)
 
     quilt = work.pivot_table(
@@ -397,9 +406,12 @@ def analyze_panel_view(
             },
             xgap=1,
             ygap=1,
-            hovertemplate=f"{unit}=%{{y}}<br>{time}=%{{x}}<br>treated=%{{z}}<extra></extra>",
+            hovertemplate=(
+                f"{unit_label}=%{{y}}<br>{time_label}=%{{x}}<br>"
+                "treated=%{z}<extra></extra>"
+            ),
         )
     )
-    apply_default_layout(fig, xaxis={"title": time}, yaxis={"title": unit})
+    apply_default_layout(fig, xaxis={"title": time_label}, yaxis={"title": unit_label})
     fig.update_layout(title=title or "Treatment structure")
     return PanelViewResult(df=quilt, fig=fig)

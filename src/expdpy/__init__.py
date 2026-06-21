@@ -12,7 +12,8 @@ conceptual modules:
 * **Learn** — a teaching layer: concept explainers (``explain`` / ``list_topics``),
   plain-language ``.interpret()`` on every result, and runnable concept sandboxes.
 * **Utilities** — shared helpers used across modules: ``set_panel`` / ``resolve_panel``
-  (declare the panel once), ``treat_outliers`` (winsorize/truncate), and the
+  (declare the panel once), ``set_labels`` / ``resolve_label`` (declare human-readable
+  variable labels once), ``treat_outliers`` (winsorize/truncate), and the
   concept-explainer registry entry points (``explain`` / ``list_topics``).
 
 Three no-code ``ExPdPy`` apps (one per module) build on the same functions — see
@@ -21,6 +22,7 @@ Three no-code ``ExPdPy`` apps (one per module) build on the same functions — s
 
 from __future__ import annotations
 
+from expdpy._labels import resolve_label, set_labels
 from expdpy._panel import resolve_panel, set_panel
 from expdpy._types import (
     BarChartResult,
@@ -107,7 +109,7 @@ from expdpy.tables import (
 )
 from expdpy.trends import explore_quantile_trend_plot, explore_trend_plot
 
-__version__ = "0.4.3"
+__version__ = "0.4.4"
 
 __all__ = [
     # ===== EXPLORE =====
@@ -177,6 +179,9 @@ __all__ = [
     # panel declaration
     "set_panel",
     "resolve_panel",
+    # variable labels (human-readable display names)
+    "set_labels",
+    "resolve_label",
     # outlier treatment
     "treat_outliers",
     # concept explainers (registry entry points)

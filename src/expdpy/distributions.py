@@ -7,6 +7,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from pandas.api import types as pdt
 
+from expdpy._labels import resolve_label
 from expdpy._theme import apply_default_layout, color_for
 from expdpy._types import BarChartResult, HistogramResult
 from expdpy._validation import ensure_dataframe
@@ -61,6 +62,7 @@ def explore_histogram(
         raise ValueError("var needs to be in df")
     if not pdt.is_numeric_dtype(df[var]):
         raise ValueError(f"var ({var!r}) needs to be numeric")
+    var_label = resolve_label(df, var)
     values = df[var].to_numpy(dtype=float)
     values = values[np.isfinite(values)]
     if values.size == 0:
@@ -85,7 +87,7 @@ def explore_histogram(
     )
     apply_default_layout(
         fig,
-        xaxis={"title": var},
+        xaxis={"title": var_label},
         yaxis={"title": "Count"},
         bargap=0,
         updatemenus=[
@@ -164,6 +166,7 @@ def explore_bar_plot(
     df = ensure_dataframe(df)
     if var not in df.columns:
         raise ValueError("var needs to be in df")
+    var_label = resolve_label(df, var)
     counts = df[var].value_counts(dropna=False)
     out = counts.rename_axis(var).reset_index(name="count")
     if not order_by_count:
@@ -177,10 +180,10 @@ def explore_bar_plot(
             x=out[var].astype(str),
             y=out["count"],
             marker={"color": bar_color, "line": {"color": "white", "width": 0.5}},
-            hovertemplate=f"{var}=%{{x}}<br>count=%{{y}}<extra></extra>",
+            hovertemplate=f"{var_label}=%{{x}}<br>count=%{{y}}<extra></extra>",
         )
     )
-    xaxis: dict = {"title": var}
+    xaxis: dict = {"title": var_label}
     if len(out) > 8:
         xaxis["tickangle"] = -40
     apply_default_layout(fig, xaxis=xaxis, yaxis={"title": "Count"})

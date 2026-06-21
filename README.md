@@ -8,6 +8,7 @@
 [![CI](https://github.com/cmg777/expdpy/actions/workflows/ci.yml/badge.svg)](https://github.com/cmg777/expdpy/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/cmg777/expdpy/branch/main/graph/badge.svg)](https://codecov.io/gh/cmg777/expdpy)
 [![Docs](https://github.com/cmg777/expdpy/actions/workflows/docs.yml/badge.svg)](https://cmg777.github.io/expdpy/)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/cmg777/expdpy/blob/main/notebooks/explore.ipynb)
 [![PyPI](https://img.shields.io/pypi/v/expdpy.svg)](https://pypi.org/project/expdpy/)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://pypi.org/project/expdpy/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -132,8 +133,8 @@ pip install "expdpy[streamlit] @ git+https://github.com/cmg777/expdpy.git"
 Pin to a release, branch, or commit for reproducible installs:
 
 ```bash
-pip install "expdpy==0.4.3"
-pip install "git+https://github.com/cmg777/expdpy.git@v0.4.3"
+pip install "expdpy==0.4.4"
+pip install "git+https://github.com/cmg777/expdpy.git@v0.4.4"
 pip install "git+https://github.com/cmg777/expdpy.git@main"
 ```
 

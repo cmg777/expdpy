@@ -16,6 +16,7 @@ import plotly.graph_objects as go
 from great_tables import GT
 from pandas.api import types as pdt
 
+from expdpy._labels import resolve_label
 from expdpy._panel import resolve_panel
 from expdpy._panel_math import panel_decompose
 from expdpy._theme import apply_default_layout, color_for
@@ -139,6 +140,8 @@ def explore_xtsum_table(
         }
     )
     disp["Statistic"] = disp["Statistic"].str.capitalize()
+    # Group rows by the readable variable label (the returned .df keeps raw names).
+    disp["variable"] = disp["variable"].map(lambda v: resolve_label(df, v))
     # N / n / T-bar belong to the variable as a whole — show them only on the Overall row.
     not_overall = disp["Statistic"] != "Overall"
     disp.loc[not_overall, ["N", "n units", "T-bar"]] = np.nan
@@ -230,6 +233,8 @@ def explore_scatter_plot_within_between(
     for axis_name, col in (("x", x), ("y", y)):
         if not pdt.is_numeric_dtype(df[col]):
             raise ValueError(f"{axis_name} ({col!r}) needs to be numeric")
+    x_label = resolve_label(df, x)
+    y_label = resolve_label(df, y)
     cols = list(dict.fromkeys([entity, x, y, *([time] if time else [])]))
     sub = df[cols].dropna(subset=[entity, x, y])
     if sub[entity].nunique() < 2:
@@ -343,8 +348,8 @@ def explore_scatter_plot_within_between(
     ]
     apply_default_layout(
         fig,
-        xaxis={"title": x},
-        yaxis={"title": y},
+        xaxis={"title": x_label},
+        yaxis={"title": y_label},
         updatemenus=[
             {
                 "type": "dropdown",

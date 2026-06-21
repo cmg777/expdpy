@@ -11,6 +11,7 @@ import plotly.graph_objects as go
 from great_tables import GT
 from pandas.api import types as pdt
 
+from expdpy._labels import resolve_label
 from expdpy._panel import resolve_panel
 from expdpy._theme import DIVERGING_SCALE, SEQUENTIAL_SCALE, apply_default_layout
 from expdpy._types import PanelStructureResult, ValueHeatmapResult
@@ -90,6 +91,10 @@ def explore_panel_structure(
     if var is not None and var not in df.columns:
         raise ValueError("var needs to be in df")
 
+    entity_label = resolve_label(df, entity)
+    time_label = resolve_label(df, time)
+    var_label = resolve_label(df, var) if var else None
+
     keep = [entity, time, *([var] if var else [])]
     work = df[keep].dropna(subset=[entity, time]).copy()
     work[time] = _try_convert_ts_id(work[time])[0]
@@ -141,7 +146,7 @@ def explore_panel_structure(
         .tab_header(title=caption)
         .tab_source_note(
             "A cell is 'present' when the unit is observed in that period"
-            + (f" with a non-missing {var}." if var else ".")
+            + (f" with a non-missing {var_label}." if var else ".")
             + " An interior gap is a missing period between a unit's first and last."
         )
     )
@@ -173,11 +178,15 @@ def explore_panel_structure(
                 "tickvals": [0, 1],
                 "ticktext": ["absent", "present"],
             },
-            hovertemplate=f"{entity}=%{{y}}<br>{time}=%{{x}}<br>%{{z}}<extra></extra>",
+            hovertemplate=(
+                f"{entity_label}=%{{y}}<br>{time_label}=%{{x}}<br>%{{z}}<extra></extra>"
+            ),
         )
     )
     apply_default_layout(
-        fig, xaxis={"title": time, "tickangle": -40}, yaxis={"title": entity}
+        fig,
+        xaxis={"title": time_label, "tickangle": -40},
+        yaxis={"title": entity_label},
     )
     return PanelStructureResult(df_summary=summary, df_grid=grid, gt=gt, fig=fig)
 
@@ -242,6 +251,10 @@ def explore_value_heatmap(
     if not pdt.is_numeric_dtype(df[var]):
         raise ValueError(f"var ({var!r}) needs to be numeric")
 
+    entity_label = resolve_label(df, entity)
+    time_label = resolve_label(df, time)
+    var_label = resolve_label(df, var)
+
     work = df[[entity, time, var]].dropna(subset=[entity, time]).copy()
     work[time] = _try_convert_ts_id(work[time])[0]
     pivot = work.pivot_table(index=entity, columns=time, values=var, aggfunc=aggfunc)
@@ -280,7 +293,7 @@ def explore_value_heatmap(
         z = np.divide(z - mu, sd, out=np.zeros_like(z), where=sd != 0)
         cbar = "z (within unit)"
     else:
-        cbar = var
+        cbar = var_label
 
     fig = go.Figure(
         go.Heatmap(
@@ -292,10 +305,15 @@ def explore_value_heatmap(
             xgap=1,
             ygap=1,
             colorbar={"title": cbar},
-            hovertemplate=f"{entity}=%{{y}}<br>{time}=%{{x}}<br>{var}=%{{z:.3g}}<extra></extra>",
+            hovertemplate=(
+                f"{entity_label}=%{{y}}<br>{time_label}=%{{x}}<br>"
+                f"{var_label}=%{{z:.3g}}<extra></extra>"
+            ),
         )
     )
     apply_default_layout(
-        fig, xaxis={"title": time, "tickangle": -40}, yaxis={"title": entity}
+        fig,
+        xaxis={"title": time_label, "tickangle": -40},
+        yaxis={"title": entity_label},
     )
     return ValueHeatmapResult(df=pivot, fig=fig)

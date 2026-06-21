@@ -18,7 +18,7 @@ Guidance for working in this repository. Keep it current when commands or conven
   every result.
 
 Three no-code **Streamlit** apps (one per module). `src/` layout, Python ≥ 3.10, managed with
-**pixi**. Current version: 0.4.3.
+**pixi**. Current version: 0.4.4.
 
 ## Commands
 

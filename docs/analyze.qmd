@@ -3,6 +3,15 @@ title: "Analyze panel data"
 jupyter: python3
 ---
 
+```{=html}
+<p style="margin: 0.25rem 0 1.25rem;">
+  <strong>Run this page interactively in Google Colab — no install required:</strong><br>
+  <a href="https://colab.research.google.com/github/cmg777/expdpy/blob/main/notebooks/analyze.ipynb" target="_blank" rel="noopener">
+    <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab">
+  </a>
+</p>
+```
+
 The **Analyze** module estimates models on a panel: OLS with **multi-way fixed effects** and
 **clustered standard errors**, **random effects**, **correlated random effects** (the Mundlak
 device), the **Frisch–Waugh–Lovell** plot, classic **pooled / between** models, the **Hausman
@@ -11,9 +20,11 @@ designs.
 
 ```{python}
 import expdpy as ex
-from expdpy.data import load_kuznets
+from expdpy.data import load_kuznets, load_kuznets_data_def
 
-df = load_kuznets()
+# `set_labels` attaches the data dictionary's human-readable labels, so the FWL axes,
+# panel view and tables below read with full labels.
+df = ex.set_labels(load_kuznets(), load_kuznets_data_def())
 ```
 
 ## Guided tour

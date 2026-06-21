@@ -17,18 +17,30 @@ applied researchers alike.
 ### [🔍 Explore](explore.qmd)
 Describe and visualize your panel: descriptive and correlation tables, distributions,
 missing-value maps, time trends, group comparisons, scatter plots and outlier treatment.
+
+```{=html}
+<a href="https://colab.research.google.com/github/cmg777/expdpy/blob/main/notebooks/explore.ipynb" target="_blank" rel="noopener"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open Explore in Colab"></a>
+```
 :::
 
 ::: {.g-col-12 .g-col-md-4}
 ### [🧮 Analyze](analyze.qmd)
 Estimate models: fixed effects, random effects, correlated random effects (Mundlak), pooled /
 between, FWL, the Hausman test, robust inference and event-study / difference-in-differences.
+
+```{=html}
+<a href="https://colab.research.google.com/github/cmg777/expdpy/blob/main/notebooks/analyze.ipynb" target="_blank" rel="noopener"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open Analyze in Colab"></a>
+```
 :::
 
 ::: {.g-col-12 .g-col-md-4}
 ### [📚 Learn](learn.qmd)
 See the ideas behind the methods: first differences, demeaning and dummy variables, with
 runnable concept sandboxes and a browsable index of concept explainers.
+
+```{=html}
+<a href="https://colab.research.google.com/github/cmg777/expdpy/blob/main/notebooks/learn.ipynb" target="_blank" rel="noopener"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open Learn in Colab"></a>
+```
 :::
 
 :::

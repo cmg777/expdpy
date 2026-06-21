@@ -2,6 +2,37 @@
 title: "Changelog"
 ---
 
+## 0.4.4 (2026-06-21)
+
+### Added
+
+- **Human-readable labels on every figure and table.** Variables can now carry a concise
+  `label` (a new column in the data dictionary, `df_def`); declare them once with
+  `set_labels(df, df_def, set_panel=True)` and every Explore/Analyze axis title, legend title
+  and table header reads with the full label (e.g. "Regional inequality (Gini)") instead of the
+  bare column name, falling back to `var_def` and then the name when no label exists. The four
+  bundled datasets (`kuznets`, `gapminder`, `firms`, `staggered_did`) ship curated labels. The
+  returned `.df` / `.df_corr` keep the raw names. See the [data model](explanation/data-model.qmd)
+  page for how to structure the data and dictionary.
+- **"Run in Google Colab" call-out on every module page.** `explore`, `analyze` and `learn` now
+  show the official Colab badge under the title, opening the matching `notebooks/<slug>.ipynb`
+  straight from GitHub — no install required. A Colab badge was also added to the README badge
+  row and to each module card on the docs landing page.
+
+### Fixed
+
+- **`explore_trend_plot` now labels its y-axis** (it was blank): a single variable shows that
+  variable's label, several variables show "Value".
+- **Notebook title timestamp.** The generated Colab notebooks showed the literal `{BUILD_STAMP}`
+  instead of the build time; the title cell now reads `built <YYYY-MM-DD HH:MM UTC>`, so each
+  notebook states when it was last regenerated.
+
+### Changed
+
+- **CI now guarantees the committed notebooks never drift from their `.qmd` sources.** A new
+  docs-workflow job rebuilds the notebooks and fails if they differ (ignoring the per-build
+  timestamp line).
+
 ## 0.4.3 (2026-06-21)
 
 ### Changed

@@ -24,7 +24,6 @@ import sys
 from pathlib import Path
 
 import pandas as pd
-import pyreadr
 
 REPO = Path(__file__).resolve().parents[1]
 SRC = REPO / "ExPanDaR" / "data"
@@ -37,6 +36,8 @@ FRAMES: list[tuple[str, str, str]] = []
 
 
 def _read_frame(rdata: str, obj: str) -> pd.DataFrame:
+    import pyreadr  # lazy: only needed for the (currently empty) RData FRAMES
+
     result = pyreadr.read_r(str(SRC / rdata))
     if obj in result:
         return result[obj]
@@ -54,6 +55,39 @@ def _infer_type(series: pd.Series) -> str:
     return "numeric"
 
 
+# Concise, human-readable display labels for the gapminder columns (the CSV ships none).
+GAPMINDER_LABELS = {
+    "country": "Country",
+    "iso3c": "ISO3 code",
+    "continent": "Continent",
+    "year": "Year",
+    "lifeExp": "Life expectancy (years)",
+    "pop": "Population",
+    "gdpPercap": "GDP per capita (USD)",
+}
+
+
+def build_gapminder_data_def(gap: pd.DataFrame) -> pd.DataFrame:
+    """Derive the gapminder variable-definition table (with display labels) from the frame."""
+    gap_def = pd.DataFrame(
+        {
+            "var_name": list(gap.columns),
+            "var_def": list(gap.columns),
+            "label": [GAPMINDER_LABELS.get(c, c) for c in gap.columns],
+            "type": [_infer_type(gap[c]) for c in gap.columns],
+            "can_be_na": [True] * gap.shape[1],
+        }
+    )
+    # Mark the conventional panel identifiers when present.
+    type_map = {"country": "entity", "iso3c": "entity", "year": "time"}
+    gap_def["type"] = [
+        type_map.get(name, t)
+        for name, t in zip(gap_def["var_name"], gap_def["type"], strict=False)
+    ]
+    gap_def["can_be_na"] = [t not in ("entity", "time") for t in gap_def["type"]]
+    return gap_def
+
+
 def build() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
 
@@ -67,21 +101,7 @@ def build() -> None:
     gap.to_parquet(OUT / "gapminder.parquet", index=False)
     print(f"wrote gapminder.parquet  ({gap.shape[0]} rows x {gap.shape[1]} cols)")
 
-    gap_def = pd.DataFrame(
-        {
-            "var_name": list(gap.columns),
-            "var_def": list(gap.columns),
-            "type": [_infer_type(gap[c]) for c in gap.columns],
-            "can_be_na": [True] * gap.shape[1],
-        }
-    )
-    # Mark the conventional panel identifiers when present.
-    type_map = {"country": "entity", "iso3c": "entity", "year": "time"}
-    gap_def["type"] = [
-        type_map.get(name, t)
-        for name, t in zip(gap_def["var_name"], gap_def["type"], strict=False)
-    ]
-    gap_def["can_be_na"] = [t not in ("entity", "time") for t in gap_def["type"]]
+    gap_def = build_gapminder_data_def(gap)
     gap_def.to_parquet(OUT / "gapminder_data_def.parquet", index=False)
     print("wrote gapminder_data_def.parquet")
 

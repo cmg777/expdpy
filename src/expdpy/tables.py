@@ -11,6 +11,7 @@ from great_tables import GT
 from pandas.api import types as pdt
 
 from expdpy._corr import cor_mat
+from expdpy._labels import resolve_label, resolve_labels
 from expdpy._panel import resolve_panel
 from expdpy._types import (
     CorrelationTableResult,
@@ -125,9 +126,10 @@ def explore_descriptive_table(
     keep_digits = [d for d in digits if d is not None]
     stats = stats[keep]
 
-    gt = GT(stats.reset_index(names="Variable"), rowname_col="Variable").tab_header(
-        title=caption
-    )
+    # Relabel the displayed rownames; the returned .df keeps the raw variable names.
+    disp = stats.reset_index(names="Variable")
+    disp["Variable"] = resolve_labels(df, disp["Variable"].tolist())
+    gt = GT(disp, rowname_col="Variable").tab_header(title=caption)
     for col, dec in zip(keep, keep_digits, strict=True):
         gt = gt.fmt_number(columns=col, decimals=int(dec), use_seps=True)
     if entity is not None and time is not None:
@@ -137,8 +139,9 @@ def explore_descriptive_table(
             len(df.dropna(subset=[entity])) / n_entities if n_entities else float("nan")
         )
         gt = gt.tab_source_note(
-            f"Panel: {n_entities:,} units ({entity}) over {n_periods:,} periods "
-            f"({time}); {t_bar:.1f} observations per unit on average."
+            f"Panel: {n_entities:,} units ({resolve_label(df, entity)}) over "
+            f"{n_periods:,} periods ({resolve_label(df, time)}); {t_bar:.1f} "
+            "observations per unit on average."
         )
     return DescriptiveTableResult(df=stats, gt=gt)
 
@@ -198,6 +201,7 @@ def explore_correlation_table(
     ```
     """
     df = ensure_dataframe(df)
+    labels_src = df  # resolve labels before the column reslice drops df.attrs
     df = df[numeric_logical_columns(df)]
     if len(df) < 5 or df.shape[1] < 2:
         raise ValueError(
@@ -227,6 +231,7 @@ def explore_correlation_table(
     np.fill_diagonal(corr_p.values, 1.0)
 
     names = list(df.columns)
+    name_labels = resolve_labels(labels_src, names)
     labels = _excel_letters(len(names))
     fmt = f"{{:.{digits}f}}"
     r_arr = corr_r.to_numpy(dtype=float)
@@ -244,7 +249,9 @@ def explore_correlation_table(
 
     disp_df = pd.DataFrame(display, columns=labels)
     disp_df.insert(
-        0, "term", [f"{lab}: {name}" for lab, name in zip(labels, names, strict=True)]
+        0,
+        "term",
+        [f"{lab}: {lbl}" for lab, lbl in zip(labels, name_labels, strict=True)],
     )
 
     n_min, n_max = int(corr_n.to_numpy().min()), int(corr_n.to_numpy().max())
@@ -374,6 +381,7 @@ def explore_ext_obs_table(
 
     gt = (
         GT(display, groupname_col=group_col)
+        .cols_label({c: resolve_label(df, c) for c in cols})
         .fmt_number(
             columns=[c for c in cols if pdt.is_numeric_dtype(df[c])],
             decimals=digits,

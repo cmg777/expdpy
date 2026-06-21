@@ -11,6 +11,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from pandas.api import types as pdt
 
+from expdpy._labels import resolve_label, resolve_labels
 from expdpy._panel import resolve_panel
 from expdpy._theme import apply_default_layout, blank_rangeslider, color_for
 from expdpy._types import QuantileTrendGraphResult, TrendGraphResult
@@ -66,9 +67,14 @@ def _se(s: pd.Series) -> float:
     return float(s.std(ddof=1) / np.sqrt(cnt))
 
 
-def _xaxis(time: str, ordered: bool, ts_values: pd.Series) -> dict:
-    """Build x-axis layout kwargs, fixing category order when discrete."""
-    axis: dict = {"title": time}
+def _xaxis(
+    time: str, ordered: bool, ts_values: pd.Series, title: str | None = None
+) -> dict:
+    """Build x-axis layout kwargs, fixing category order when discrete.
+
+    ``title`` overrides the axis title (default: the bare ``time`` name).
+    """
+    axis: dict = {"title": title if title is not None else time}
     if ordered:
         cats = [str(c) for c in ts_values.cat.categories]
         axis.update(type="category", categoryorder="array", categoryarray=cats)
@@ -166,6 +172,10 @@ def explore_trend_plot(
         )
         spaghetti = False
 
+    # Resolve display labels before slicing (column selection drops df.attrs).
+    time_label = resolve_label(df, time)
+    var_labels = resolve_labels(df, var)
+
     id_cols = [time, *([entity] if spaghetti else [])]
     sub = df[[*id_cols, *var]].copy()
     ts_conv, ordered = _try_convert_ts_id(sub[time])
@@ -209,16 +219,17 @@ def explore_trend_plot(
                 y=part["mean"],
                 error_y={"type": "data", "array": part["se"], "visible": True},
                 mode="lines+markers",
-                name=str(v),
+                name=var_labels[idx],
                 line={"color": color_for(idx), "width": 2.5},
-                hovertemplate=f"%{{fullData.name}}<br>{time}=%{{x}}<br>"
+                hovertemplate=f"%{{fullData.name}}<br>{time_label}=%{{x}}<br>"
                 "mean=%{y:.4g}<extra></extra>",
             )
         )
-    xaxis = _xaxis(time, ordered, ts_conv)
+    xaxis = _xaxis(time, ordered, ts_conv, title=time_label)
     if not ordered:
         xaxis["rangeslider"] = blank_rangeslider(fig)
-    apply_default_layout(fig, xaxis=xaxis, yaxis={"title": ""})
+    yaxis_title = var_labels[0] if len(var) == 1 else "Value"
+    apply_default_layout(fig, xaxis=xaxis, yaxis={"title": yaxis_title})
     return TrendGraphResult(df=gf, fig=fig)
 
 
@@ -287,6 +298,10 @@ def explore_quantile_trend_plot(
     if var not in df.columns:
         raise ValueError("var needs to be in df")
 
+    # Resolve display labels before slicing (column selection drops df.attrs).
+    time_label = resolve_label(df, time)
+    var_label = resolve_label(df, var)
+
     sub = df[[time, var]].dropna()
     ts_conv, ordered = _try_convert_ts_id(sub[time])
     sub = sub.assign(**{time: ts_conv})
@@ -322,11 +337,13 @@ def explore_quantile_trend_plot(
                 line={"color": ramp[idx]},
                 fill=fill,
                 fillcolor="rgba(78,121,167,0.08)",
-                hovertemplate=f"q={q}<br>{time}=%{{x}}<br>{var}=%{{y:.4g}}<extra></extra>",
+                hovertemplate=(
+                    f"q={q}<br>{time_label}=%{{x}}<br>{var_label}=%{{y:.4g}}<extra></extra>"
+                ),
             )
         )
-    xaxis = _xaxis(time, ordered, ts_conv)
+    xaxis = _xaxis(time, ordered, ts_conv, title=time_label)
     if not ordered:
         xaxis["rangeslider"] = blank_rangeslider(fig)
-    apply_default_layout(fig, xaxis=xaxis, yaxis={"title": var})
+    apply_default_layout(fig, xaxis=xaxis, yaxis={"title": var_label})
     return QuantileTrendGraphResult(df=gf, fig=fig)

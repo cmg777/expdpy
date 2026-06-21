@@ -12,6 +12,7 @@ import plotly.graph_objects as go
 from pandas.api import types as pdt
 from plotly.subplots import make_subplots
 
+from expdpy._labels import resolve_label
 from expdpy._panel import resolve_panel
 from expdpy._theme import apply_default_layout, blank_rangeslider, color_for
 from expdpy._types import SpaghettiGraphResult
@@ -33,6 +34,9 @@ def _draw_unit_lines(
     highlight: list[str],
     line_alpha: float,
     overlay: str,
+    entity_label: str,
+    time_label: str,
+    var_label: str,
     row: int | None = None,
     col: int | None = None,
     show_overlay_legend: bool = False,
@@ -53,8 +57,8 @@ def _draw_unit_lines(
                 name=str(uid),
                 line=({"color": color_for(hl_idx), "width": 2.5} if is_hl else faint),
                 showlegend=is_hl,
-                hovertemplate=f"{entity}=%{{fullData.name}}<br>{time}=%{{x}}<br>"
-                f"{var}=%{{y:.4g}}<extra></extra>",
+                hovertemplate=f"{entity_label}=%{{fullData.name}}<br>{time_label}=%{{x}}<br>"
+                f"{var_label}=%{{y:.4g}}<extra></extra>",
                 hoverinfo="skip" if not is_hl else None,
             ),
             **add_kw,
@@ -72,10 +76,12 @@ def _draw_unit_lines(
                 x=x,
                 y=central[var],
                 mode="lines",
-                name=f"{agg} ({var})",
+                name=f"{agg} ({var_label})",
                 line={"color": "#1a1a1a", "width": 3},
                 showlegend=show_overlay_legend,
-                hovertemplate=f"{agg}<br>{time}=%{{x}}<br>{var}=%{{y:.4g}}<extra></extra>",
+                hovertemplate=(
+                    f"{agg}<br>{time_label}=%{{x}}<br>{var_label}=%{{y:.4g}}<extra></extra>"
+                ),
             ),
             **add_kw,
         )
@@ -148,6 +154,12 @@ def explore_spaghetti_plot(
     if facet is not None and facet not in df.columns:
         raise ValueError("facet needs to be in df")
 
+    # Resolve display labels before slicing (column selection drops df.attrs).
+    entity_label = resolve_label(df, entity)
+    time_label = resolve_label(df, time)
+    var_label = resolve_label(df, var)
+    facet_label = resolve_label(df, facet) if facet else None
+
     cols = list(dict.fromkeys([entity, time, var, *([facet] if facet else [])]))
     sub = df[cols].dropna(subset=[entity, time, var])
     if sub.empty:
@@ -195,12 +207,15 @@ def explore_spaghetti_plot(
             highlight=highlight,
             line_alpha=line_alpha,
             overlay=overlay,
+            entity_label=entity_label,
+            time_label=time_label,
+            var_label=var_label,
             show_overlay_legend=True,
         )
-        xaxis = _xaxis(time, ordered, ts_conv)
+        xaxis = _xaxis(time, ordered, ts_conv, title=time_label)
         if not ordered:
             xaxis["rangeslider"] = blank_rangeslider(fig)
-        apply_default_layout(fig, xaxis=xaxis, yaxis={"title": var})
+        apply_default_layout(fig, xaxis=xaxis, yaxis={"title": var_label})
     else:
         levels = sorted(sub[facet].dropna().astype(str).unique())
         ncols = min(3, len(levels)) or 1
@@ -208,7 +223,7 @@ def explore_spaghetti_plot(
         fig = make_subplots(
             rows=nrows,
             cols=ncols,
-            subplot_titles=[f"{facet} = {lvl}" for lvl in levels],
+            subplot_titles=[f"{facet_label} = {lvl}" for lvl in levels],
             shared_yaxes=True,
         )
         for i, lvl in enumerate(levels):
@@ -224,11 +239,14 @@ def explore_spaghetti_plot(
                 highlight=highlight,
                 line_alpha=line_alpha,
                 overlay=overlay,
+                entity_label=entity_label,
+                time_label=time_label,
+                var_label=var_label,
                 row=r + 1,
                 col=c + 1,
                 show_overlay_legend=(i == 0),
             )
-        apply_default_layout(fig, yaxis={"title": var})
+        apply_default_layout(fig, yaxis={"title": var_label})
 
     return SpaghettiGraphResult(
         df=sub[[entity, time, var]].reset_index(drop=True),

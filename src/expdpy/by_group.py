@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
+from expdpy._labels import resolve_label
 from expdpy._panel import resolve_panel
 from expdpy._theme import apply_default_layout, color_for
 from expdpy._types import (
@@ -102,6 +103,8 @@ def explore_bar_plot_by_group(
         if col not in df.columns:
             raise ValueError(f"{col} needs to be in df")
 
+    by_label = resolve_label(df, by_var)
+    var_label = resolve_label(df, var)
     stat_col = f"stat_{var}"
 
     def _stat(s: pd.Series) -> float:
@@ -129,14 +132,14 @@ def explore_bar_plot_by_group(
             y=grouped[by_var].astype(str),
             orientation="h",
             marker={"color": bar_color, "line": {"color": "white", "width": 0.5}},
-            hovertemplate=f"{by_var}=%{{y}}<br>{stat_col}=%{{x:.4g}}<extra></extra>",
+            hovertemplate=f"{by_label}=%{{y}}<br>{var_label}=%{{x:.4g}}<extra></extra>",
         )
     )
     apply_default_layout(
         fig,
-        xaxis={"title": stat_col},
+        xaxis={"title": var_label},
         yaxis={
-            "title": by_var,
+            "title": by_label,
             "categoryorder": "array",
             "categoryarray": display_order[::-1],
         },
@@ -206,6 +209,10 @@ def explore_trend_plot_by_group(
         if col not in df.columns:
             raise ValueError(f"{col} needs to be in df")
 
+    time_label = resolve_label(df, time)
+    group_label = resolve_label(df, group_var)
+    var_label = resolve_label(df, var)
+
     sub = df[[time, group_var, var]].dropna()
     ts_conv, ordered = _try_convert_ts_id(sub[time])
     sub = sub.assign(**{time: ts_conv})
@@ -235,15 +242,15 @@ def explore_trend_plot_by_group(
                 mode=mode,
                 name=str(level),
                 line={"color": color_for(idx)},
-                hovertemplate=f"{group_var}=%{{fullData.name}}<br>{time}=%{{x}}<br>"
+                hovertemplate=f"{group_label}=%{{fullData.name}}<br>{time_label}=%{{x}}<br>"
                 "mean=%{y:.4g}<extra></extra>",
             )
         )
     apply_default_layout(
         fig,
-        xaxis=_xaxis(time, ordered, ts_conv),
-        yaxis={"title": var},
-        legend_title_text=group_var,
+        xaxis=_xaxis(time, ordered, ts_conv, title=time_label),
+        yaxis={"title": var_label},
+        legend_title_text=group_label,
         hovermode="x unified",
     )
     return ByGroupTrendGraphResult(df=gf, fig=fig)
@@ -301,6 +308,8 @@ def explore_violin_plot_by_group(
     for col in (by_var, var):
         if col not in df.columns:
             raise ValueError(f"{col} needs to be in df")
+    by_label = resolve_label(df, by_var)
+    var_label = resolve_label(df, var)
     sub = df[[by_var, var]].dropna()
     if sub.empty:
         raise ValueError("no complete observations of by_var and var")
@@ -330,15 +339,19 @@ def explore_violin_plot_by_group(
     if group_on_y:
         fig.update_layout(
             yaxis={
-                "title": by_var,
+                "title": by_label,
                 "categoryorder": "array",
                 "categoryarray": levels[::-1],
             },
-            xaxis={"title": var},
+            xaxis={"title": var_label},
         )
     else:
         fig.update_layout(
-            xaxis={"title": by_var, "categoryorder": "array", "categoryarray": levels},
-            yaxis={"title": var},
+            xaxis={
+                "title": by_label,
+                "categoryorder": "array",
+                "categoryarray": levels,
+            },
+            yaxis={"title": var_label},
         )
     return ByGroupViolinResult(df=sub, fig=fig)

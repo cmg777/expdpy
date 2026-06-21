@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
+from expdpy._labels import resolve_label, resolve_labels
 from expdpy._panel import resolve_panel
 from expdpy._theme import SEQUENTIAL_SCALE, apply_default_layout
 from expdpy._types import MissingValuesResult
@@ -110,12 +111,14 @@ def explore_missing_values_plot(
         mat = grouped.apply(lambda g: g.isna().mean())
     mat = mat.iloc[_ordered_levels(mat.index, as_time=(by == "time"))]
 
+    axis_label = resolve_label(df, axis_col)
+    col_labels = resolve_labels(df, cols)
     y = [str(lvl) for lvl in mat.index]
     z = mat.to_numpy(dtype=float)
     if binary:
         heatmap = go.Heatmap(
             z=z,
-            x=cols,
+            x=col_labels,
             y=y,
             colorscale=[[0.0, "#EDEDED"], [1.0, "#4E79A7"]],
             zmin=0,
@@ -127,12 +130,12 @@ def explore_missing_values_plot(
             },
             xgap=1,
             ygap=1,
-            hovertemplate=f"%{{x}} @ {axis_col}=%{{y}}: %{{z}}<extra></extra>",
+            hovertemplate=f"%{{x}} @ {axis_label}=%{{y}}: %{{z}}<extra></extra>",
         )
     else:
         heatmap = go.Heatmap(
             z=z,
-            x=cols,
+            x=col_labels,
             y=y,
             colorscale=SEQUENTIAL_SCALE,
             zmin=0,
@@ -140,8 +143,10 @@ def explore_missing_values_plot(
             colorbar={"title": "% missing", "tickformat": ".0%"},
             xgap=1,
             ygap=1,
-            hovertemplate=f"%{{x}} @ {axis_col}=%{{y}}: %{{z:.1%}} missing<extra></extra>",
+            hovertemplate=(
+                f"%{{x}} @ {axis_label}=%{{y}}: %{{z:.1%}} missing<extra></extra>"
+            ),
         )
     fig = go.Figure(heatmap)
-    apply_default_layout(fig, xaxis={"tickangle": -40}, yaxis={"title": axis_col})
+    apply_default_layout(fig, xaxis={"tickangle": -40}, yaxis={"title": axis_label})
     return MissingValuesResult(df=mat, fig=fig)

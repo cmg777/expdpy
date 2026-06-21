@@ -12,6 +12,7 @@ import plotly.graph_objects as go
 from pandas.api import types as pdt
 from statsmodels.nonparametric.smoothers_lowess import lowess
 
+from expdpy._labels import resolve_label
 from expdpy._panel import resolve_panel
 from expdpy._theme import SEQUENTIAL_SCALE, apply_default_layout, color_for
 from expdpy._types import ScatterPlotResult
@@ -141,6 +142,11 @@ def explore_scatter_plot(
         )
         connect = False
 
+    # Resolve display labels before slicing (column selection drops df.attrs).
+    x_label = resolve_label(df, x)
+    y_label = resolve_label(df, y)
+    color_label = resolve_label(df, color) if color else None
+
     extra = [entity, time] if connect else []
     cols = list(dict.fromkeys(c for c in (x, y, color, size, *extra) if c))
     sub = df[cols].dropna()
@@ -214,14 +220,16 @@ def explore_scatter_plot(
                         "color": sub[color].to_numpy(dtype=float),
                         "colorscale": SEQUENTIAL_SCALE,
                         "showscale": True,
-                        "colorbar": {"title": color},
+                        "colorbar": {"title": color_label},
                     }
                 ),
-                name=y,
+                name=y_label,
             )
         )
     else:
-        fig.add_trace(go.Scatter(x=xv, y=yv, mode="markers", marker=_marker(), name=y))
+        fig.add_trace(
+            go.Scatter(x=xv, y=yv, mode="markers", marker=_marker(), name=y_label)
+        )
 
     if loess > 0 and n >= 4:
         weights = size_vals if loess == 2 and size else None
@@ -249,5 +257,5 @@ def explore_scatter_plot(
             )
         )
 
-    apply_default_layout(fig, xaxis={"title": x}, yaxis={"title": y})
+    apply_default_layout(fig, xaxis={"title": x_label}, yaxis={"title": y_label})
     return ScatterPlotResult(df=sub, fig=fig)

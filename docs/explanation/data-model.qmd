@@ -2,7 +2,32 @@
 title: "Data model"
 ---
 
-`expdpy` follows ExPanDaR's panel-data model.
+`expdpy` follows ExPanDaR's panel-data model. This page describes how to structure both the
+**data** and its **data dictionary** (`df_def`) so that every figure and table renders clearly
+— in particular, so axes, legends and headers carry **full, human-readable labels** rather than
+bare column names.
+
+## The data: a tidy panel
+
+Your data frame should be **tidy (long)**:
+
+- **one row per `entity` × `time` observation** (e.g. one row per country-year);
+- **one column per variable** — the entity id(s) and the time id are ordinary columns, sitting
+  alongside the variables you analyse;
+- **balanced or unbalanced** panels both work (units may enter, exit or have interior gaps), and
+  a pure **cross-section** simply omits the `time` column.
+
+A few rows of the bundled `kuznets` panel illustrate the shape — each `(country, year)` pair is
+one row, every variable its own column:
+
+| country   | year | gini_regional | gdp_pc | log_gdp_pc |
+|-----------|------|---------------|--------|------------|
+| country 1 | 2015 | 0.31          | 812    | 6.70       |
+| country 1 | 2016 | 0.30          | 845    | 6.74       |
+| country 2 | 2015 | 0.12          | 41 980 | 10.65      |
+
+Do **not** pre-aggregate or pivot to wide form — the Explore and Analyze functions reshape
+internally (melting, grouping, demeaning) and need the long layout.
 
 ## Identifiers
 
@@ -12,19 +37,67 @@ title: "Data model"
   factor (e.g. fiscal year).
 
 Declare them once with `set_panel(df, entity=..., time=...)`, pass them directly to a
-function, or describe them via a **`df_def`** table:
+function, or describe them via a **`df_def`** table (below) and let `set_labels(df, df_def,
+set_panel=True)` declare them for you.
 
-| column      | meaning                                                            |
-|-------------|-------------------------------------------------------------------|
-| `var_name`  | the column name                                                   |
-| `var_def`   | a human description (or, for `var_def` tables, an expression)     |
-| `type`      | one of `entity`, `time`, `factor`, `logical`, `numeric`           |
-| `can_be_na` | optional; if `False`, rows missing this variable are dropped      |
+## The data dictionary (`df_def`)
+
+`df_def` is a small DataFrame with **one row per variable** you want to expose. At a minimum
+include the **entity** row(s) and the **time** row (so panel views know the identifiers), plus
+the numeric/factor variables you analyse. Variables absent from `df_def` simply fall back to
+default type inference and their bare column name.
+
+Its columns:
+
+| column      | required?            | meaning                                                                                                   |
+|-------------|----------------------|-----------------------------------------------------------------------------------------------------------|
+| `var_name`  | **required**         | the column name in the data (must match exactly)                                                          |
+| `type`      | **required**         | one of `entity`, `time`, `factor`, `logical`, `numeric`                                                   |
+| `label`     | recommended          | a **concise, human-readable label** used for axis titles, legends and table headers (with units where helpful, e.g. `"GDP per capita (USD)"`) |
+| `var_def`   | optional             | a longer description (or, for `var_def` tables, an expression). Used as the label only when `label` is absent |
+| `can_be_na` | optional             | if `False`, rows missing this variable are dropped                                                         |
 
 ```python
 from expdpy.data import load_kuznets_data_def
+
+# columns: var_name, var_def, label, type, can_be_na
 load_kuznets_data_def()  # entity (country, iso), time (year), factors and numerics
 ```
+
+The bundled `*_data_def` tables (`kuznets`, `gapminder`, `firms`, `staggered_did`) now ship a
+curated `label` for every variable.
+
+## Readable labels in figures and tables
+
+Readability is a key component of any figure or table, so the best practice is to **label with
+the data dictionary**. Attach the labels once and every downstream figure and table picks them
+up automatically:
+
+```python
+import expdpy as ex
+from expdpy.data import load_kuznets, load_kuznets_data_def
+
+df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
+
+ex.explore_trend_plot(df, var="gini_regional").fig   # y-axis: "Regional inequality (Gini)"
+ex.explore_descriptive_table(df).gt                  # rows labelled, not "gini_regional"
+```
+
+`set_labels` stores the labels on `df.attrs` (just as `set_panel` stores the panel ids), so they
+survive across calls — though, like the panel ids, some pandas operations drop `attrs`; re-apply
+`set_labels` after such steps, or pass labels explicitly.
+
+The label for each variable is resolved in order of preference:
+
+1. an explicit per-call `label=` / `labels=` argument (always wins),
+2. the `label` stored on `df.attrs` (from `set_labels`),
+3. the variable's `label` column in `df_def`, then its `var_def`,
+4. finally the bare **`var_name`** when no readable label exists.
+
+So a dictionary without a `label` column still works (it falls back to `var_def`, then the
+name), and a data frame with no labels at all simply shows column names — labelling is a
+readability upgrade, never a requirement. The returned `.df` / `.df_corr` of every result keeps
+the **raw** variable names; only the displayed axes and headers use the labels.
 
 ## Variable categories
 

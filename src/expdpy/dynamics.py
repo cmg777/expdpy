@@ -13,6 +13,7 @@ from great_tables import GT
 from pandas.api import types as pdt
 from scipy.stats import gaussian_kde
 
+from expdpy._labels import resolve_label
 from expdpy._panel import resolve_panel
 from expdpy._theme import (
     SEQUENTIAL_SCALE,
@@ -129,6 +130,9 @@ def explore_distribution_over_time(
     if not pdt.is_numeric_dtype(df[var]):
         raise ValueError(f"var ({var!r}) needs to be numeric")
 
+    var_label = resolve_label(df, var)
+    time_label = resolve_label(df, time)
+
     sub = df[[time, var]].dropna()
     if sub.empty:
         raise ValueError(f"var ({var!r}) has no complete observations")
@@ -143,13 +147,19 @@ def explore_distribution_over_time(
 
     lo, hi = float(sub[var].min()), float(sub[var].max())
     if style == "ridgeline":
-        fig = _ridgeline(sub, time, var, periods, lo, hi, bandwidth, bins)
+        fig = _ridgeline(
+            sub, time, var, periods, lo, hi, bandwidth, bins, var_label, time_label
+        )
     else:
-        fig = _animated(sub, time, var, periods, lo, hi, bins, style)
+        fig = _animated(
+            sub, time, var, periods, lo, hi, bins, style, var_label, time_label
+        )
     return DistributionOverTimeResult(df=sub.reset_index(drop=True), fig=fig)
 
 
-def _ridgeline(sub, time, var, periods, lo, hi, bandwidth, bins) -> go.Figure:
+def _ridgeline(
+    sub, time, var, periods, lo, hi, bandwidth, bins, var_label, time_label
+) -> go.Figure:
     """Build a ridgeline (joyplot) of per-period densities on a shared x-grid."""
     xs = np.linspace(lo, hi, 200)
     dens = {
@@ -180,9 +190,9 @@ def _ridgeline(sub, time, var, periods, lo, hi, bandwidth, bins) -> go.Figure:
         )
     apply_default_layout(
         fig,
-        xaxis={"title": var},
+        xaxis={"title": var_label},
         yaxis={
-            "title": time,
+            "title": time_label,
             "tickmode": "array",
             "tickvals": [i * spacing for i in range(n)],
             "ticktext": [str(p) for p in periods],
@@ -191,7 +201,9 @@ def _ridgeline(sub, time, var, periods, lo, hi, bandwidth, bins) -> go.Figure:
     return fig
 
 
-def _animated(sub, time, var, periods, lo, hi, bins, style) -> go.Figure:
+def _animated(
+    sub, time, var, periods, lo, hi, bins, style, var_label, time_label
+) -> go.Figure:
     """Build an animated histogram / violin with a play button and a period slider."""
 
     def _trace(p):
@@ -217,10 +229,10 @@ def _animated(sub, time, var, periods, lo, hi, bins, style) -> go.Figure:
     frames = [go.Frame(data=[_trace(p)], name=str(p)) for p in periods]
     fig = go.Figure(data=[_trace(periods[0])], frames=frames)
     if style == "animated_hist":
-        fig.update_xaxes(title=var, range=[lo, hi])
+        fig.update_xaxes(title=var_label, range=[lo, hi])
         fig.update_yaxes(title="Count")
     else:
-        fig.update_yaxes(title=var)
+        fig.update_yaxes(title=var_label)
     fig.update_layout(
         updatemenus=[
             {
@@ -257,7 +269,7 @@ def _animated(sub, time, var, periods, lo, hi, bins, style) -> go.Figure:
         sliders=[
             {
                 "active": 0,
-                "currentvalue": {"prefix": f"{time} = "},
+                "currentvalue": {"prefix": f"{time_label} = "},
                 "steps": [
                     {
                         "label": str(p),
@@ -512,6 +524,8 @@ def explore_within_persistence(
     if not pdt.is_numeric_dtype(df[var]):
         raise ValueError(f"var ({var!r}) needs to be numeric")
 
+    var_label = resolve_label(df, var)
+
     sub = df[[entity, time, var]].dropna().copy()
     sub[time] = _try_convert_ts_id(sub[time])[0]
     if sub[time].nunique() < 2:
@@ -582,8 +596,8 @@ def explore_within_persistence(
     suffix = " (within, demeaned)" if demean else ""
     apply_default_layout(
         fig,
-        xaxis={"title": f"{var} at t-{lag}{suffix}"},
-        yaxis={"title": f"{var} at t{suffix}"},
+        xaxis={"title": f"{var_label} at t-{lag}{suffix}"},
+        yaxis={"title": f"{var_label} at t{suffix}"},
     )
     out = pairs[[entity, time]].copy()
     out["lag_value"] = lag_v
