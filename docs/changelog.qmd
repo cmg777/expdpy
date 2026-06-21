@@ -2,6 +2,16 @@
 title: "Changelog"
 ---
 
+## 0.4.5 (2026-06-21)
+
+### Fixed
+
+- **Saturated / Sun–Abraham event study crashed on older NumPy** (e.g. Google Colab's default
+  NumPy 2.0.x): `analyze_event_study(..., estimator="saturated")` raised
+  `TypeError: reshape() got an unexpected keyword argument 'shape'`. The underlying `pyfixest`
+  estimator uses NumPy 2.1's `np.reshape(..., shape=...)`, so expdpy now requires `numpy>=2.1`
+  (was `>=1.24`). In Colab, re-run the install cell and restart the runtime when prompted.
+
 ## 0.4.4 (2026-06-21)
 
 ### Added

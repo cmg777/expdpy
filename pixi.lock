@@ -17124,7 +17124,7 @@ packages:
   name: expdpy
   requires_dist:
   - pandas>=2.0,<3
-  - numpy>=1.24
+  - numpy>=2.1
   - scipy>=1.10
   - plotly>=5.18
   - pyfixest>=0.60
