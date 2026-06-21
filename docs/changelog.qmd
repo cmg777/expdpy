@@ -2,6 +2,15 @@
 title: "Changelog"
 ---
 
+## 0.4.3 (2026-06-21)
+
+### Changed
+
+- **Trend range sliders are now a near-invisible sliver.** The shared `blank_rangeslider`
+  helper renders a much thinner strip (`thickness` 0.06 → 0.02) in a near-white `#FAFAFA`
+  fill, so the slider beneath `explore_trend_plot`, `explore_quantile_trend_plot`, and
+  `explore_spaghetti_plot` stays draggable but no longer competes with the chart.
+
 ## 0.4.2 (2026-06-21)
 
 **API-wide function rename.** Every analysis function is now prefixed with its module, so the

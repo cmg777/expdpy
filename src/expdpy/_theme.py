@@ -194,7 +194,7 @@ def color_for(index: int) -> str:
     return COLOR_SEQUENCE[index % len(COLOR_SEQUENCE)]
 
 
-def blank_rangeslider(fig: go.Figure, *, thickness: float = 0.06) -> dict[str, object]:
+def blank_rangeslider(fig: go.Figure, *, thickness: float = 0.02) -> dict[str, object]:
     """Return an x-axis ``rangeslider`` config that renders a clean, line-free strip.
 
     Plotly always mirrors a chart's traces inside the rangeslider and offers no switch to
@@ -207,7 +207,8 @@ def blank_rangeslider(fig: go.Figure, *, thickness: float = 0.06) -> dict[str, o
     fig
         The figure whose traces drive the off-strip y-window. Must already be populated.
     thickness
-        Slider height as a fraction of the plot area.
+        Slider height as a fraction of the plot area (default ``0.02``: a thin sliver
+        that stays draggable without competing with the chart).
 
     Returns
     -------
@@ -230,7 +231,7 @@ def blank_rangeslider(fig: go.Figure, *, thickness: float = 0.06) -> dict[str, o
     return {
         "visible": True,
         "thickness": thickness,
-        "bgcolor": "rgba(0,0,0,0.03)",  # faint neutral strip
+        "bgcolor": "#FAFAFA",  # near-white strip, minimal contrast
         "borderwidth": 0,
         "yaxis": {"rangemode": "fixed", "range": [lo, hi]},
     }
