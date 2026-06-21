@@ -13,7 +13,7 @@ from pandas.api import types as pdt
 from plotly.subplots import make_subplots
 
 from expdpy._panel import resolve_panel
-from expdpy._theme import apply_default_layout, color_for
+from expdpy._theme import apply_default_layout, blank_rangeslider, color_for
 from expdpy._types import SpaghettiGraphResult
 from expdpy._validation import ensure_dataframe
 from expdpy.scatter import _default_alpha
@@ -199,7 +199,7 @@ def prepare_spaghetti_graph(
         )
         xaxis = _xaxis(time, ordered, ts_conv)
         if not ordered:
-            xaxis["rangeslider"] = {"visible": True, "thickness": 0.06}
+            xaxis["rangeslider"] = blank_rangeslider(fig)
         apply_default_layout(fig, xaxis=xaxis, yaxis={"title": var})
     else:
         levels = sorted(sub[facet].dropna().astype(str).unique())

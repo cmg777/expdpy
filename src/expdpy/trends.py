@@ -12,7 +12,7 @@ import plotly.graph_objects as go
 from pandas.api import types as pdt
 
 from expdpy._panel import resolve_panel
-from expdpy._theme import apply_default_layout, color_for
+from expdpy._theme import apply_default_layout, blank_rangeslider, color_for
 from expdpy._types import QuantileTrendGraphResult, TrendGraphResult
 from expdpy._validation import ensure_dataframe
 
@@ -217,7 +217,7 @@ def prepare_trend_graph(
         )
     xaxis = _xaxis(time, ordered, ts_conv)
     if not ordered:
-        xaxis["rangeslider"] = {"visible": True, "thickness": 0.06}
+        xaxis["rangeslider"] = blank_rangeslider(fig)
     apply_default_layout(fig, xaxis=xaxis, yaxis={"title": ""})
     return TrendGraphResult(df=gf, fig=fig)
 
@@ -327,6 +327,6 @@ def prepare_quantile_trend_graph(
         )
     xaxis = _xaxis(time, ordered, ts_conv)
     if not ordered:
-        xaxis["rangeslider"] = {"visible": True, "thickness": 0.06}
+        xaxis["rangeslider"] = blank_rangeslider(fig)
     apply_default_layout(fig, xaxis=xaxis, yaxis={"title": var})
     return QuantileTrendGraphResult(df=gf, fig=fig)

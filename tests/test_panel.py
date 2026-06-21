@@ -10,8 +10,10 @@ import pytest
 from expdpy import (
     prepare_distribution_over_time,
     prepare_panel_structure,
+    prepare_quantile_trend_graph,
     prepare_spaghetti_graph,
     prepare_transition_matrix,
+    prepare_trend_graph,
     prepare_value_heatmap,
     prepare_within_between_scatter,
     prepare_within_persistence,
@@ -151,6 +153,32 @@ def test_spaghetti_sampling_and_highlight(sample_df):
         )
     assert res.n_shown == 5
     assert res.n_units == sample_df["firm"].nunique()
+
+
+# --------------------------------------------------------------------- blank rangeslider ---
+def _trace_y_min(fig: go.Figure) -> float:
+    ys = np.concatenate(
+        [np.asarray(tr.y, dtype=float) for tr in fig.data if tr.y is not None]
+    )
+    return float(np.nanmin(ys))
+
+
+@pytest.mark.parametrize(
+    "build",
+    [
+        lambda df: prepare_trend_graph(df, var=["x1"], time="year").fig,
+        lambda df: prepare_quantile_trend_graph(df, var="x1", time="year").fig,
+        lambda df: prepare_spaghetti_graph(df, "x1", entity="firm", time="year").fig,
+    ],
+)
+def test_rangeslider_is_blank_strip_below_data(sample_df, build):
+    # Continuous (numeric) time axis -> a rangeslider is added, but its internal y-axis is
+    # fixed to a window strictly below the data so no trend lines render inside the strip.
+    fig = build(sample_df)
+    rs = fig.layout.xaxis.rangeslider
+    assert rs.visible is True
+    assert rs.yaxis.rangemode == "fixed"
+    assert rs.yaxis.range[1] < _trace_y_min(fig)
 
 
 # -------------------------------------------------------------------------- panel structure ---

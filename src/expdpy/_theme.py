@@ -14,6 +14,7 @@ consistent across notebooks, scripts, static exports and the Streamlit app:
 
 from __future__ import annotations
 
+import numpy as np
 import plotly.graph_objects as go
 import plotly.io as pio
 
@@ -31,6 +32,7 @@ __all__ = [
     "TEMPLATE_NAME",
     "TEMPLATE_NAME_DARK",
     "apply_default_layout",
+    "blank_rangeslider",
     "color_for",
     "diverging_color",
 ]
@@ -190,6 +192,48 @@ def apply_default_layout(
 def color_for(index: int) -> str:
     """Return the palette color for a 0-based series ``index`` (wraps around)."""
     return COLOR_SEQUENCE[index % len(COLOR_SEQUENCE)]
+
+
+def blank_rangeslider(fig: go.Figure, *, thickness: float = 0.06) -> dict[str, object]:
+    """Return an x-axis ``rangeslider`` config that renders a clean, line-free strip.
+
+    Plotly always mirrors a chart's traces inside the rangeslider and offers no switch to
+    hide them (plotly/plotly.js#2010, closed wontfix). We fix the slider's internal y-axis to
+    a window strictly below the data so every mirrored trace clips out of view, leaving an
+    empty but fully draggable strip. ``fig`` must already contain all its traces.
+
+    Parameters
+    ----------
+    fig
+        The figure whose traces drive the off-strip y-window. Must already be populated.
+    thickness
+        Slider height as a fraction of the plot area.
+
+    Returns
+    -------
+    dict
+        A ``rangeslider`` config suitable for ``xaxis["rangeslider"]``.
+    """
+    arrays = [
+        np.asarray(tr.y, dtype=float)
+        for tr in fig.data
+        if getattr(tr, "y", None) is not None and len(tr.y)
+    ]
+    ys = np.concatenate(arrays) if arrays else np.array([], dtype=float)
+    ys = ys[np.isfinite(ys)]
+    if ys.size:
+        ymin, ymax = float(ys.min()), float(ys.max())
+        span = (ymax - ymin) or abs(ymin) or 1.0
+        lo, hi = ymin - 3.0 * span, ymin - 2.0 * span  # window entirely below the data
+    else:
+        lo, hi = 0.0, 1.0
+    return {
+        "visible": True,
+        "thickness": thickness,
+        "bgcolor": "rgba(0,0,0,0.03)",  # faint neutral strip
+        "borderwidth": 0,
+        "yaxis": {"rangemode": "fixed", "range": [lo, hi]},
+    }
 
 
 def diverging_color(value: float) -> str:
