@@ -113,7 +113,7 @@ df = load_kuznets()
 # The N-shaped regional Kuznets curve: regional inequality vs (log) GDP per capita
 ex.prepare_scatter_plot(
     df, x="log_gdp_pc", y="gini_regional", color="continent", size="population", loess=1
-)
+).fig
 ```
 
 **Run a regression and let it explain itself.** Two-way fixed effects, clustered standard

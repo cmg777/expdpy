@@ -44,15 +44,15 @@ _ALLOWED_FUNCS = {"isna", "exp", "log", "lag", "lead"}
 
 
 class _Evaluator(ast.NodeVisitor):
-    def __init__(self, df: pd.DataFrame, cs_id: Sequence[str]):
+    def __init__(self, df: pd.DataFrame, entities: Sequence[str]):
         self.df = df
-        self.cs_id = list(cs_id)
+        self.entities = list(entities)
 
     # --- functions -----------------------------------------------------------
     def _grouped_shift(self, series: pd.Series, n: int) -> pd.Series:
-        if not self.cs_id:
+        if not self.entities:
             return series.shift(n)
-        return series.groupby([self.df[c] for c in self.cs_id]).shift(n)
+        return series.groupby([self.df[c] for c in self.entities]).shift(n)
 
     def _call(self, name: str, args: list):
         if name == "isna":
@@ -134,8 +134,8 @@ class _Evaluator(ast.NodeVisitor):
 def evaluate_var_def(
     expr: str,
     df: pd.DataFrame,
-    cs_id: Sequence[str] | None = None,
-    ts_id: str | None = None,
+    entities: Sequence[str] | None = None,
+    time: str | None = None,
 ) -> pd.Series:
     """Safely evaluate a user-defined-variable expression against ``df``.
 
@@ -146,9 +146,9 @@ def evaluate_var_def(
         functions ``isna``/``exp``/``log``/``lag``/``lead``.
     df
         The data frame providing the columns.
-    cs_id, ts_id
-        Panel identifiers; ``lag``/``lead`` shift within ``cs_id`` groups ordered by
-        ``ts_id``.
+    entities, time
+        Panel identifiers; ``lag``/``lead`` shift within ``entities`` groups ordered by
+        ``time``.
 
     Returns
     -------
@@ -160,17 +160,17 @@ def evaluate_var_def(
     UDVError
         If the expression is syntactically invalid or uses a disallowed construct.
     """
-    cs_id = list(cs_id) if cs_id else []
+    entities = list(entities) if entities else []
     try:
         tree = ast.parse(expr, mode="eval")
     except SyntaxError as exc:  # pragma: no cover - message passthrough
         raise UDVError(f"invalid expression: {exc}") from exc
 
     work = df
-    if cs_id and ts_id and ts_id in df.columns:
-        work = df.sort_values([*cs_id, ts_id])
+    if entities and time and time in df.columns:
+        work = df.sort_values([*entities, time])
 
-    result = _Evaluator(work, cs_id).visit(tree.body)
+    result = _Evaluator(work, entities).visit(tree.body)
     if not isinstance(result, pd.Series):
         # A scalar expression broadcast across all rows.
         result = pd.Series(result, index=work.index)

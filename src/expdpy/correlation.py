@@ -85,7 +85,7 @@ def prepare_correlation_graph(
     lower = np.tril(np.ones(pcorr.r.shape, dtype=bool), k=-1)
     r = pcorr.r.to_numpy(dtype=float).copy()
     r[lower] = scorr.r.to_numpy(dtype=float)[lower]
-    r = np.minimum(r, 1.0)
+    r = np.clip(r, -1.0, 1.0)
     p = pcorr.p.to_numpy(dtype=float).copy()
     p[lower] = scorr.p.to_numpy(dtype=float)[lower]
     n = np.where(lower, scorr.n.to_numpy(), pcorr.n.to_numpy())
@@ -107,6 +107,10 @@ def prepare_correlation_graph(
                 zmax=1.0,
                 colorscale=DIVERGING_SCALE,
                 colorbar={"title": "corr"},
+                xgap=1,
+                ygap=1,
+                text=np.round(r, 2),
+                texttemplate="%{text}" if k <= 12 else None,
                 hovertemplate="%{y} vs %{x}<br>corr=%{z:.3f}<extra></extra>",
             )
         )
@@ -115,7 +119,7 @@ def prepare_correlation_graph(
         fig = go.Figure()
         for i in range(k):
             for j in range(k):
-                if i == j:
+                if i == j or not np.isfinite(r[i, j]):
                     continue
                 # place row i at top: invert y
                 cy = k - 1 - i
@@ -149,4 +153,13 @@ def prepare_correlation_graph(
         )
 
     apply_default_layout(fig, title="Correlations")
+    fig.add_annotation(
+        text="Pearson above the diagonal · Spearman below",
+        xref="paper",
+        yref="paper",
+        x=0,
+        y=1.06,
+        showarrow=False,
+        font={"size": 13},
+    )
     return CorrelationGraphResult(df_corr=corr_r, df_prob=corr_p, df_n=corr_n, fig=fig)

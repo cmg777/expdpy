@@ -40,6 +40,16 @@ optional LOESS smoother; a missing-value heatmap across the panel; and outlier t
 `treat_outliers`. Each function takes a `pandas` DataFrame and returns an interactive Plotly
 figure or a Great Tables object you can drop straight into a notebook or report.
 
+A dedicated set of **panel-aware** views makes the cross-unit-vs-over-time structure explicit:
+the **within/between variation** table `prepare_xtsum_table` (Stata `xtsum`-style) and the
+**within-vs-between scatter** `prepare_within_between_scatter`; **per-unit trajectories**
+(`prepare_spaghetti_graph`); **panel-structure diagnostics** — a balance/gaps summary and
+unit-by-period presence grid (`prepare_panel_structure`) plus a unit-by-time value heatmap
+(`prepare_value_heatmap`); and **distribution & transition dynamics** — `prepare_distribution_over_time`
+(ridgeline or animated), `prepare_transition_matrix`, and within-unit serial-correlation via
+`prepare_within_persistence`. Panel functions take an `entity` (unit) and a `time` id; declare
+them once with `set_panel(df, entity=..., time=...)` and the rest of Explore can omit them.
+
 ### Analyze panel data
 
 OLS with **multi-way fixed effects** and **clustered standard errors** via
@@ -86,8 +96,10 @@ that shift within each cross-section.
 ### Bundled datasets
 
 `expdpy.data` ships ready-to-explore panels — **`kuznets`** (the flagship N-shaped
-Kuznets-curve demo), `gapminder`, and **`staggered_did`** (a synthetic staggered-adoption panel
-for the event-study / DiD tools). See the
+Kuznets-curve demo), `gapminder`, **`staggered_did`** (a synthetic staggered-adoption panel
+for the event-study / DiD tools), and **`firms`** (a small *unbalanced* panel — staggered
+entry/exit, interior gaps, a discrete size class and persistent revenue — for the
+panel-structure, transition and persistence views). See the
 [kuznets dataset](https://cmg777.github.io/expdpy/explanation/kuznets-dataset.html) page for the
 data dictionary.
 
@@ -120,8 +132,8 @@ pip install "expdpy[streamlit] @ git+https://github.com/cmg777/expdpy.git"
 Pin to a release, branch, or commit for reproducible installs:
 
 ```bash
-pip install "expdpy==0.4.0"
-pip install "git+https://github.com/cmg777/expdpy.git@v0.4.0"
+pip install "expdpy==0.4.1"
+pip install "git+https://github.com/cmg777/expdpy.git@v0.4.1"
 pip install "git+https://github.com/cmg777/expdpy.git@main"
 ```
 
@@ -141,7 +153,18 @@ df = load_kuznets()
 # The N-shaped regional Kuznets curve: regional inequality vs (log) GDP per capita
 ex.prepare_scatter_plot(
     df, x="log_gdp_pc", y="gini_regional", color="continent", size="population", loess=1
-)
+).fig
+```
+
+**Explore the panel structure.** Declare the panel once, then split a variable's variation
+into across-unit (between) and over-time (within) parts, or trace every unit at once:
+
+```python
+df = ex.set_panel(load_kuznets(), entity="country", time="year")
+
+ex.prepare_xtsum_table(df, var=["gini_regional", "log_gdp_pc"]).gt   # within/between table
+ex.prepare_spaghetti_graph(df, var="gini_regional").fig              # one line per country
+ex.prepare_within_between_scatter(df, x="log_gdp_pc", y="gini_regional").fig
 ```
 
 **Run a regression and let it explain itself.** Two-way fixed effects, clustered standard

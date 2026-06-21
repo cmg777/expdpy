@@ -42,8 +42,8 @@ _DEFAULT_TITLES = {
 def _launch(
     module: str,
     df: Any = None,
-    cs_id: Sequence[str] | str | None = None,
-    ts_id: str | None = None,
+    entity: Sequence[str] | str | None = None,
+    time: str | None = None,
     df_def: pd.DataFrame | None = None,
     var_def: pd.DataFrame | None = None,
     config_list: dict | None = None,
@@ -58,17 +58,25 @@ def _launch(
     **run_kwargs: Any,
 ) -> Any:
     """Launch (or describe) one module's ExPdPy app — the shared engine behind the three."""
+    # The panel identifiers were renamed in 0.4.1; reject the old names with a clear message
+    # rather than silently swallowing them into the Streamlit server kwargs.
+    for legacy, new in (("cs_id", "entity"), ("ts_id", "time")):
+        if legacy in run_kwargs:
+            raise TypeError(
+                f"{legacy!r} is no longer accepted — use {new!r} instead "
+                "(renamed in expdpy 0.4.1)"
+            )
     from expdpy.streamlit_app import _handoff as handoff
     from expdpy.streamlit_app import _launcher
 
     samples = handoff.normalize_samples(df, df_name)
-    cs_list, ts = handoff.resolve_ids(df_def, cs_id, ts_id)
+    entities, time = handoff.resolve_ids(df_def, entity, time)
     return _launcher.launch(
         samples,
         df_def=df_def,
         var_def=var_def,
-        cs_list=cs_list,
-        ts=ts,
+        entities=entities,
+        time=time,
         components=components,
         factor_cutoff=factor_cutoff,
         title=title or _DEFAULT_TITLES[module],
@@ -84,9 +92,10 @@ def _launch(
 def ExploreApp(df: Any = None, *args: Any, **kwargs: Any) -> Any:
     """Launch the **Explore** app — exploratory analysis of panel / cross-sectional data.
 
-    Same parameters as the other launchers (``df``, ``cs_id``, ``ts_id``, ``df_def``,
+    Same parameters as the other launchers (``df``, ``entity``, ``time``, ``df_def``,
     ``var_def``, ``config_list``, ``title``, ``components``, server ``run_kwargs`` …); see
-    the module docstring. Pass a :class:`pandas.DataFrame` (or ``None`` for the dataset
+    the module docstring. ``entity`` (the cross-section/unit id) may be a string or a list;
+    ``time`` is the time id. Pass a :class:`pandas.DataFrame` (or ``None`` for the dataset
     picker / upload dialog).
     """
     return _launch("explore", df, *args, **kwargs)

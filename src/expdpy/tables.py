@@ -8,8 +8,10 @@ from string import ascii_uppercase
 import numpy as np
 import pandas as pd
 from great_tables import GT
+from pandas.api import types as pdt
 
 from expdpy._corr import cor_mat
+from expdpy._panel import resolve_panel
 from expdpy._types import (
     CorrelationTableResult,
     DescriptiveTableResult,
@@ -39,6 +41,8 @@ def prepare_descriptive_table(
     df: pd.DataFrame,
     digits: Sequence[int | None] = (0, 3, 3, 3, 3, 3, 3, 3),
     *,
+    entity: str | None = None,
+    time: str | None = None,
     caption: str = "Descriptive Statistics",
 ) -> DescriptiveTableResult:
     """Report descriptive statistics for the numeric/logical variables of ``df``.
@@ -55,6 +59,11 @@ def prepare_descriptive_table(
         Sequence of length 8 giving the number of decimals for each statistic column
         (``N, Mean, Std. dev., Min., 25 %, Median, 75 %, Max.``). A value of ``None``
         drops that column from the output.
+    entity, time
+        Optional panel identifiers (defaulting to those declared via
+        :func:`expdpy.set_panel`). When both resolve, a source note reports the panel
+        dimensions (number of units, periods and average observations per unit). For the
+        within/between split of each variable see :func:`expdpy.prepare_xtsum_table`.
     caption
         Table title used for the Great Tables header.
 
@@ -89,6 +98,7 @@ def prepare_descriptive_table(
     ```
     """
     df = ensure_dataframe(df)
+    entity, time = resolve_panel(df, entity, time)
     cols = numeric_logical_columns(df)
     if len(cols) < 1 or len(df) < 2:
         raise ValueError("unsuitable data frame (does it contain numerical data?)")
@@ -120,6 +130,16 @@ def prepare_descriptive_table(
     )
     for col, dec in zip(keep, keep_digits, strict=True):
         gt = gt.fmt_number(columns=col, decimals=int(dec), use_seps=True)
+    if entity is not None and time is not None:
+        n_entities = int(df[entity].nunique())
+        n_periods = int(df[time].nunique())
+        t_bar = (
+            len(df.dropna(subset=[entity])) / n_entities if n_entities else float("nan")
+        )
+        gt = gt.tab_source_note(
+            f"Panel: {n_entities:,} units ({entity}) over {n_periods:,} periods "
+            f"({time}); {t_bar:.1f} observations per unit on average."
+        )
     return DescriptiveTableResult(df=stats, gt=gt)
 
 
@@ -230,6 +250,11 @@ def prepare_correlation_table(
     n_min, n_max = int(corr_n.to_numpy().min()), int(corr_n.to_numpy().max())
     if n_min == n_max:
         n_note = f"Number of observations: {n_min:,}."
+    elif n_min == 0:
+        n_note = (
+            f"The number of overlapping observations ranges from 0 (no pair of complete "
+            f"cases) to {n_max:,}."
+        )
     else:
         n_note = f"The number of observations ranges from {n_min:,} to {n_max:,}."
     note = (
@@ -253,10 +278,10 @@ def prepare_correlation_table(
 def prepare_ext_obs_table(
     df: pd.DataFrame,
     n: int = 5,
-    cs_id: Sequence[str] | str | None = None,
-    ts_id: str | None = None,
     var: str | None = None,
     *,
+    entity: Sequence[str] | str | None = None,
+    time: str | None = None,
     digits: int = 3,
 ) -> ExtObsTableResult:
     """Display the top and bottom ``n`` observations sorted by ``var``.
@@ -267,21 +292,23 @@ def prepare_ext_obs_table(
         Data frame.
     n
         Number of extreme observations on each side (``2 * n <= len(df)``).
-    cs_id
-        Cross-sectional identifier column(s). If both ``cs_id`` and ``ts_id`` are omitted,
-        all variables are tabulated; otherwise only the identifiers and ``var``.
-    ts_id
-        Time-series identifier column.
     var
-        Variable to sort by. Defaults to the last numeric column that is not an identifier.
+        Variable to sort by (must be numeric). Defaults to the last numeric column that is
+        not an identifier.
+    entity
+        Cross-sectional identifier column(s). Defaults to the panel ``entity`` declared via
+        :func:`expdpy.set_panel`. If both ``entity`` and ``time`` are unset (and none is
+        declared), all variables are tabulated; otherwise only the identifiers and ``var``.
+    time
+        Time identifier column. Defaults to the panel ``time``.
     digits
         Number of decimals for numeric cells.
 
     Returns
     -------
     ExtObsTableResult
-        ``df`` (the ``2 * n`` extreme rows) and ``gt`` (a Great Tables object with a
-        separator row between the top and bottom blocks).
+        ``df`` (the ``2 * n`` extreme rows) and ``gt`` (a Great Tables object grouping the
+        highest and lowest blocks).
 
     Examples
     --------
@@ -301,7 +328,7 @@ def prepare_ext_obs_table(
 
     ```python
     ex.prepare_ext_obs_table(
-        df, n=10, cs_id=["country"], ts_id="year", var="gini_regional"
+        df, n=10, var="gini_regional", entity=["country"], time="year"
     ).gt
     ```
     """
@@ -309,19 +336,23 @@ def prepare_ext_obs_table(
     if 2 * n > len(df):
         raise ValueError("'n' needs to be <= nrow(df) / 2")
 
-    cs_list = [cs_id] if isinstance(cs_id, str) else (list(cs_id) if cs_id else [])
-    id_cols = cs_list + ([ts_id] if ts_id else [])
+    if entity is None and time is None:
+        entity, time = resolve_panel(df, None, None)
+    entity_list = (
+        [entity] if isinstance(entity, str) else (list(entity) if entity else [])
+    )
+    id_cols = entity_list + ([time] if time else [])
     if var is None:
         candidates = [
-            c
-            for c in df.columns
-            if c not in id_cols and pd.api.types.is_numeric_dtype(df[c])
+            c for c in df.columns if c not in id_cols and pdt.is_numeric_dtype(df[c])
         ]
         if not candidates:
             raise ValueError("no numeric variable available to sort by")
         var = candidates[-1]
     if var not in df.columns:
         raise ValueError("var needs to be in df")
+    if not pdt.is_numeric_dtype(df[var]):
+        raise ValueError(f"var ({var!r}) needs to be numeric to sort by")
 
     cols = [*id_cols, var] if id_cols else [c for c in df.columns if c != var] + [var]
 
@@ -331,16 +362,20 @@ def prepare_ext_obs_table(
     bottom = ordered.tail(n)
     out = pd.concat([top, bottom])
 
-    # A blank separator row between the top and bottom blocks. Build it as its own all-NaN
-    # frame so concat unifies dtypes (int -> float) cleanly, instead of assigning NaN into
-    # the existing int columns in place (which pandas now warns will become an error).
-    separator = pd.DataFrame([[np.nan] * len(top.columns)], columns=top.columns)
-    display = pd.concat([top, separator, bottom], ignore_index=True)
+    # Group the highest and lowest blocks rather than separating them with a blank row.
+    group_col = "  "  # a near-invisible header for the grouping stub
+    display = pd.concat(
+        [
+            top.assign(**{group_col: f"Highest {n}"}),
+            bottom.assign(**{group_col: f"Lowest {n}"}),
+        ],
+        ignore_index=True,
+    )
 
     gt = (
-        GT(display)
+        GT(display, groupname_col=group_col)
         .fmt_number(
-            columns=[c for c in cols if pd.api.types.is_numeric_dtype(df[c])],
+            columns=[c for c in cols if pdt.is_numeric_dtype(df[c])],
             decimals=digits,
             use_seps=True,
         )

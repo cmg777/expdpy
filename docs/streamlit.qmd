@@ -100,7 +100,7 @@ ExploreApp()  # bundled-dataset picker + upload box
 Omit the time-series identifier and the time-trend pages/components disappear:
 
 ```python
-ExploreApp(load_kuznets().query("year == 2025"))  # no ts_id -> cross-sectional
+ExploreApp(load_kuznets().query("year == 2025"))  # no time id -> cross-sectional
 ```
 
 ### The sample pipeline
@@ -200,7 +200,7 @@ that app's module, and time-series components are dropped for cross-sectional da
 
 Provide a `var_def` frame (or fill the sidebar editor) to compute the analysis sample from the
 base data. Each `var_def` is a safe expression (`isna`, `exp`, `log`, `lag`, `lead`,
-arithmetic, comparisons, `& |`); `lag`/`lead` shift within `cs_id` groups ordered by `ts_id`.
+arithmetic, comparisons, `& |`); `lag`/`lead` shift within `entity` groups ordered by `time`.
 
 ```python
 import pandas as pd
@@ -211,7 +211,7 @@ var_def = pd.DataFrame(
     {
         "var_name": ["country", "year", "gdp_pc_growth"],
         "var_def": ["country", "year", "(gdp_pc - lag(gdp_pc, 1)) / lag(gdp_pc, 1)"],
-        "type": ["cs_id", "ts_id", "numeric"],
+        "type": ["entity", "time", "numeric"],
         "can_be_na": [False, False, True],
     }
 )

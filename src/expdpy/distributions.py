@@ -5,6 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+from pandas.api import types as pdt
 
 from expdpy._theme import apply_default_layout, color_for
 from expdpy._types import BarChartResult, HistogramResult
@@ -58,17 +59,62 @@ def prepare_histogram(
     df = ensure_dataframe(df)
     if var not in df.columns:
         raise ValueError("var needs to be in df")
+    if not pdt.is_numeric_dtype(df[var]):
+        raise ValueError(f"var ({var!r}) needs to be numeric")
     values = df[var].to_numpy(dtype=float)
     values = values[np.isfinite(values)]
+    if values.size == 0:
+        raise ValueError(f"var ({var!r}) has no finite observations to bin")
     counts, edges = np.histogram(values, bins=bins)
+    widths = np.diff(edges)
     out = pd.DataFrame(
         {"bin_left": edges[:-1], "bin_right": edges[1:], "count": counts}
     )
     centers = (edges[:-1] + edges[1:]) / 2.0
+    density = counts / (counts.sum() * widths)
     fig = go.Figure(
-        go.Bar(x=centers, y=counts, width=np.diff(edges), marker_color=color_for(0))
+        go.Bar(
+            x=centers,
+            y=counts,
+            width=widths,
+            marker={"color": color_for(0), "line": {"color": "white", "width": 0.5}},
+            customdata=np.stack([edges[:-1], edges[1:]], axis=1),
+            hovertemplate="[%{customdata[0]:.4g}, %{customdata[1]:.4g})<br>"
+            "count=%{y}<extra></extra>",
+        )
     )
-    apply_default_layout(fig, xaxis={"title": var}, yaxis={"title": "Count"}, bargap=0)
+    apply_default_layout(
+        fig,
+        xaxis={"title": var},
+        yaxis={"title": "Count"},
+        bargap=0,
+        updatemenus=[
+            {
+                "type": "buttons",
+                "direction": "right",
+                "x": 0,
+                "y": 1.14,
+                "xanchor": "left",
+                "showactive": True,
+                "buttons": [
+                    {
+                        "label": "Count",
+                        "method": "update",
+                        "args": [{"y": [counts]}, {"yaxis.title.text": "Count"}, [0]],
+                    },
+                    {
+                        "label": "Density",
+                        "method": "update",
+                        "args": [
+                            {"y": [density]},
+                            {"yaxis.title.text": "Density"},
+                            [0],
+                        ],
+                    },
+                ],
+            }
+        ],
+    )
     return HistogramResult(df=out, fig=fig)
 
 
@@ -119,12 +165,23 @@ def prepare_bar_chart(
     if var not in df.columns:
         raise ValueError("var needs to be in df")
     counts = df[var].value_counts(dropna=False)
-    if not order_by_count:
-        counts = counts.sort_index()
     out = counts.rename_axis(var).reset_index(name="count")
+    if not order_by_count:
+        # Sort by category as text so a missing/NaN level cannot raise on a mixed-type index.
+        out = out.sort_values(
+            var, key=lambda s: s.astype(str), kind="stable"
+        ).reset_index(drop=True)
     bar_color = color if color is not None else color_for(0)
     fig = go.Figure(
-        go.Bar(x=out[var].astype(str), y=out["count"], marker_color=bar_color)
+        go.Bar(
+            x=out[var].astype(str),
+            y=out["count"],
+            marker={"color": bar_color, "line": {"color": "white", "width": 0.5}},
+            hovertemplate=f"{var}=%{{x}}<br>count=%{{y}}<extra></extra>",
+        )
     )
-    apply_default_layout(fig, xaxis={"title": var}, yaxis={"title": "Count"})
+    xaxis: dict = {"title": var}
+    if len(out) > 8:
+        xaxis["tickangle"] = -40
+    apply_default_layout(fig, xaxis=xaxis, yaxis={"title": "Count"})
     return BarChartResult(df=out, fig=fig)

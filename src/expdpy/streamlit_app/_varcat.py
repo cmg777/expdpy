@@ -15,8 +15,8 @@ __all__ = ["VarCats", "create_var_categories"]
 class VarCats:
     """Classification of a sample's columns, used to populate the app's selectors."""
 
-    cs_id: list[str] = field(default_factory=list)
-    ts_id: list[str] = field(default_factory=list)
+    entities: list[str] = field(default_factory=list)
+    times: list[str] = field(default_factory=list)
     numeric: list[str] = field(default_factory=list)
     logical: list[str] = field(default_factory=list)
     factor: list[str] = field(default_factory=list)
@@ -36,17 +36,17 @@ class VarCats:
     def fe_choices(self) -> list[str]:
         """Columns usable as fixed effects: panel identifiers + grouping factors.
 
-        Unlike :attr:`grouping`, this includes the cross-sectional and time-series
-        identifiers (``cs_id`` / ``ts_id``) so a panel can absorb the natural two-way
-        (e.g. country + year) fixed effects.
+        Unlike :attr:`grouping`, this includes the entity (unit) and time identifiers
+        (``entities`` / ``times``) so a panel can absorb the natural two-way (e.g. country +
+        year) fixed effects.
         """
-        return [*self.cs_id, *self.ts_id, *self.factor, *self.logical]
+        return [*self.entities, *self.times, *self.factor, *self.logical]
 
 
 def create_var_categories(
     df: pd.DataFrame,
-    cs_id: Sequence[str] | None = None,
-    ts_id: str | None = None,
+    entities: Sequence[str] | None = None,
+    time: str | None = None,
     *,
     factor_cutoff: int = 10,
 ) -> VarCats:
@@ -60,8 +60,8 @@ def create_var_categories(
     ----------
     df
         The analysis sample.
-    cs_id, ts_id
-        Cross-sectional / time-series identifier column names.
+    entities, time
+        Entity (unit) / time identifier column names.
     factor_cutoff
         Numeric columns with at most this many unique values are treated as factors.
 
@@ -70,9 +70,9 @@ def create_var_categories(
     VarCats
         The classification.
     """
-    cs_id = list(cs_id) if cs_id else []
-    ids = set(cs_id) | ({ts_id} if ts_id else set())
-    vc = VarCats(cs_id=list(cs_id), ts_id=[ts_id] if ts_id else [])
+    entities = list(entities) if entities else []
+    ids = set(entities) | ({time} if time else set())
+    vc = VarCats(entities=list(entities), times=[time] if time else [])
 
     for col in df.columns:
         if col in ids:

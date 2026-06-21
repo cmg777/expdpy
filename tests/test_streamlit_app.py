@@ -70,8 +70,8 @@ def test_app_runs_bundle_kuznets(monkeypatch):
         {"Kuznets": load_kuznets()},
         df_def=None,
         var_def=None,
-        cs_list=["country"],
-        ts="year",
+        entities=["country"],
+        time="year",
         components=None,
         factor_cutoff=10,
         title="t",
@@ -139,17 +139,17 @@ def test_explainers_page_lists_topics():
 
 
 # --- time-series component hiding --------------------------------------------
-def _active(ts: str | None, cs_list: list[str] | None = None) -> Active:
+def _active(time: str | None, entities: list[str] | None = None) -> Active:
     return Active(
         source_name="x",
         data_id="x",
         base_df=None,
         df_def=None,
-        cs_list=cs_list or [],
-        ts=ts,
+        entities=entities or [],
+        time=time,
         sample=None,
         var_cats=None,
-        active_components=handoff.active_components(None, ts),
+        active_components=handoff.active_components(None, time),
     )
 
 
@@ -161,9 +161,23 @@ def test_trends_page_only_for_panel():
     assert "Overview & Data" in panel and "Overview & Data" in cross
 
 
+def test_panel_structure_page_needs_full_panel():
+    full = [spec[0] for spec in selected_specs(_active("year", entities=["country"]))]
+    ts_only = [spec[0] for spec in selected_specs(_active("year"))]  # no entity id
+    cross = [spec[0] for spec in selected_specs(_active(None))]
+    assert "Panel structure" in full
+    assert "Panel structure" not in ts_only
+    assert "Panel structure" not in cross
+
+
+def test_panel_structure_page_renders():
+    at = _page("panel_structure")  # default dataset (Kuznets) is a full panel
+    assert not at.exception
+
+
 # --- per-module page filtering ------------------------------------------------
 def test_each_module_shows_only_its_pages():
-    active = _active("year", cs_list=["country"])  # a true panel: all gates pass
+    active = _active("year", entities=["country"])  # a true panel: all gates pass
     explore = {spec[0] for spec in selected_specs(active, module="explore")}
     analyze = {spec[0] for spec in selected_specs(active, module="analyze")}
     learn = {spec[0] for spec in selected_specs(active, module="learn")}
@@ -212,8 +226,8 @@ def test_launcher_command_and_bundle(monkeypatch):
 
     cmd = ExploreApp(
         load_kuznets(),
-        cs_id=["country"],
-        ts_id="year",
+        entity=["country"],
+        time="year",
         run=False,
         headless=True,
         port=8765,
@@ -228,11 +242,19 @@ def test_launcher_command_and_bundle(monkeypatch):
     try:
         loaded = handoff.read_bundle(bundle)
         assert list(loaded.samples) == ["Sample"]
-        assert loaded.ts == "year"
-        assert loaded.cs_list == ["country"]
+        assert loaded.time == "year"
+        assert loaded.entities == ["country"]
     finally:
         handoff.cleanup_bundle(bundle)
         monkeypatch.delenv(handoff.EXPDPY_BUNDLE_ENV, raising=False)
+
+
+@pytest.mark.parametrize("legacy", ["cs_id", "ts_id"])
+def test_launcher_rejects_legacy_id_kwargs(legacy):
+    from expdpy.data import load_kuznets
+
+    with pytest.raises(TypeError, match="no longer accepted"):
+        ExploreApp(load_kuznets(), **{legacy: ["country"]}, run=False)
 
 
 @pytest.mark.parametrize(
@@ -243,6 +265,6 @@ def test_module_launchers_tag_the_module(monkeypatch, launch, module):
     from expdpy.data import load_kuznets
 
     monkeypatch.delenv(handoff.EXPDPY_MODULE_ENV, raising=False)
-    launch(load_kuznets(), cs_id=["country"], ts_id="year", run=False)
+    launch(load_kuznets(), entity=["country"], time="year", run=False)
     assert os.environ[handoff.EXPDPY_MODULE_ENV] == module
     monkeypatch.delenv(handoff.EXPDPY_BUNDLE_ENV, raising=False)

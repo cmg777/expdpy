@@ -55,9 +55,9 @@ def build_data_def() -> pd.DataFrame:
             {
                 "var_name": "unit",
                 "var_def": "Unit identifier (cross-section id)",
-                "type": "cs_id",
+                "type": "entity",
             },
-            {"var_name": "year", "var_def": "Year (time-series id)", "type": "ts_id"},
+            {"var_name": "year", "var_def": "Year (time-series id)", "type": "time"},
             {
                 "var_name": "cohort",
                 "var_def": "First treated year (0 = never treated)",

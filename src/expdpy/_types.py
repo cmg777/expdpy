@@ -21,12 +21,19 @@ from expdpy.pedagogy._interpret import (
     interpret_correlation,
     interpret_cre,
     interpret_descriptive,
+    interpret_distribution_over_time,
     interpret_estimation,
     interpret_event_study,
     interpret_fwl,
+    interpret_panel_structure,
     interpret_regression,
     interpret_sandbox,
+    interpret_spaghetti,
+    interpret_transition_matrix,
     interpret_trend,
+    interpret_within_between,
+    interpret_within_persistence,
+    interpret_xtsum,
 )
 
 if TYPE_CHECKING:
@@ -40,11 +47,13 @@ __all__ = [
     "BarChartResult",
     "ByGroupBarGraphResult",
     "ByGroupTrendGraphResult",
+    "ByGroupViolinResult",
     "CRETableResult",
     "CoefficientPlotResult",
     "CorrelationGraphResult",
     "CorrelationTableResult",
     "DescriptiveTableResult",
+    "DistributionOverTimeResult",
     "EstimationResult",
     "EventStudyResult",
     "ExtObsTableResult",
@@ -53,13 +62,22 @@ __all__ = [
     "HausmanTestResult",
     "HistogramResult",
     "JointTestResult",
+    "MissingValuesResult",
+    "PanelStructureResult",
     "PanelViewResult",
     "PredictionResult",
     "QuantileTrendGraphResult",
     "RegressionTableResult",
     "RobustInferenceResult",
     "SandboxResult",
+    "ScatterPlotResult",
+    "SpaghettiGraphResult",
+    "TransitionMatrixResult",
     "TrendGraphResult",
+    "ValueHeatmapResult",
+    "WithinBetweenScatterResult",
+    "WithinPersistenceResult",
+    "XtsumTableResult",
 ]
 
 
@@ -170,8 +188,39 @@ class ByGroupTrendGraphResult:
 
 
 @dataclass(frozen=True)
+class ByGroupViolinResult:
+    """Result of :func:`expdpy.prepare_by_group_violin_graph`."""
+
+    df: pd.DataFrame
+    fig: go.Figure
+
+
+@dataclass(frozen=True)
 class HistogramResult:
     """Result of :func:`expdpy.prepare_histogram`."""
+
+    df: pd.DataFrame
+    fig: go.Figure
+
+
+@dataclass(frozen=True)
+class MissingValuesResult:
+    """Result of :func:`expdpy.prepare_missing_values_graph`.
+
+    ``df`` is the missingness frame (rows = time periods or units, columns = variables, cells
+    = fraction missing or a 0/1 flag); ``fig`` is the Plotly heatmap.
+    """
+
+    df: pd.DataFrame
+    fig: go.Figure
+
+
+@dataclass(frozen=True)
+class ScatterPlotResult:
+    """Result of :func:`expdpy.prepare_scatter_plot`.
+
+    ``df`` is the complete-case frame actually plotted; ``fig`` is the Plotly scatter.
+    """
 
     df: pd.DataFrame
     fig: go.Figure
@@ -518,3 +567,192 @@ class RobustInferenceResult:
     conf_int: tuple[float, float]
     reps: int
     raw: Any
+
+
+# ===================================================================== panel exploration ===
+@dataclass(frozen=True)
+class XtsumTableResult(Interpretable):
+    """Result of :func:`expdpy.prepare_xtsum_table`.
+
+    ``df`` is a long frame with one row per ``(variable, component)`` where ``component`` is
+    ``"overall"`` / ``"between"`` / ``"within"`` (columns ``mean``, ``sd``, ``min``, ``max``,
+    ``n_obs``, ``n_entities``, ``t_bar``); ``gt`` is the Great Tables rendering.
+    """
+
+    df: pd.DataFrame
+    gt: GT
+
+    def interpret(self, *, lang: str = "en") -> str:
+        """Plain-language reading of where each variable's variation lives."""
+        return interpret_xtsum(self, lang=lang)
+
+    def explain(self, *, lang: str = "en") -> Explainer:
+        """Concept explainer for within/between variation."""
+        return _explain("within_between_variation", lang=lang)
+
+    def tidy(self) -> pd.DataFrame:
+        """Return the long within/between frame."""
+        return self.df
+
+
+@dataclass(frozen=True)
+class WithinBetweenScatterResult(Interpretable):
+    """Result of :func:`expdpy.prepare_within_between_scatter`.
+
+    ``df`` is the long frame of plotted points (columns ``component``, ``x``, ``y``,
+    ``entity``, ``time``); ``fig`` the Plotly figure; ``slope_pooled`` / ``slope_between`` /
+    ``slope_within`` the three OLS slopes whose comparison the plot turns on.
+    """
+
+    df: pd.DataFrame
+    fig: go.Figure
+    slope_pooled: float
+    slope_between: float
+    slope_within: float
+
+    def interpret(self, *, lang: str = "en") -> str:
+        """Plain-language reading of how the pooled slope splits into between and within."""
+        return interpret_within_between(self, lang=lang)
+
+    def explain(self, *, lang: str = "en") -> Explainer:
+        """Concept explainer for within/between variation."""
+        return _explain("within_between_variation", lang=lang)
+
+
+@dataclass(frozen=True)
+class SpaghettiGraphResult(Interpretable):
+    """Result of :func:`expdpy.prepare_spaghetti_graph`.
+
+    ``df`` is the plotted long frame (columns ``entity``, ``time``, ``<var>``); ``fig`` the
+    Plotly figure; ``n_units`` the number of units in the data and ``n_shown`` how many were
+    drawn (fewer when sampled).
+    """
+
+    df: pd.DataFrame
+    fig: go.Figure
+    n_units: int
+    n_shown: int
+
+    def interpret(self, *, lang: str = "en") -> str:
+        """Plain-language reading of the central path and trajectory dispersion."""
+        return interpret_spaghetti(self, lang=lang)
+
+    def explain(self, *, lang: str = "en") -> Explainer:
+        """Concept explainer for time trends."""
+        return _explain("time_trends", lang=lang)
+
+
+@dataclass(frozen=True)
+class PanelStructureResult(Interpretable):
+    """Result of :func:`expdpy.prepare_panel_structure`.
+
+    ``df_summary`` is a tidy ``(statistic, value)`` frame (units, periods, balanced, gaps,
+    obs-per-unit); ``df_grid`` the unit-by-period presence matrix; ``gt`` the summary table;
+    ``fig`` the presence-grid heatmap.
+    """
+
+    df_summary: pd.DataFrame
+    df_grid: pd.DataFrame
+    gt: GT
+    fig: go.Figure
+
+    def interpret(self, *, lang: str = "en") -> str:
+        """Plain-language reading of the panel's balance, coverage and gaps."""
+        return interpret_panel_structure(self, lang=lang)
+
+    def explain(self, *, lang: str = "en") -> Explainer:
+        """Concept explainer for panel structure (balance and gaps)."""
+        return _explain("panel_structure", lang=lang)
+
+    def tidy(self) -> pd.DataFrame:
+        """Return the tidy summary frame."""
+        return self.df_summary
+
+
+@dataclass(frozen=True)
+class ValueHeatmapResult:
+    """Result of :func:`expdpy.prepare_value_heatmap`.
+
+    ``df`` is the unit-by-time pivot of the variable; ``fig`` is the Plotly heatmap.
+    """
+
+    df: pd.DataFrame
+    fig: go.Figure
+
+
+@dataclass(frozen=True)
+class DistributionOverTimeResult(Interpretable):
+    """Result of :func:`expdpy.prepare_distribution_over_time`.
+
+    ``df`` is the complete-case ``(time, <var>)`` frame whose per-period distributions are
+    drawn; ``fig`` is the Plotly figure (ridgeline or animated).
+    """
+
+    df: pd.DataFrame
+    fig: go.Figure
+
+    def interpret(self, *, lang: str = "en") -> str:
+        """Plain-language reading of how the distribution's center and spread shift."""
+        return interpret_distribution_over_time(self, lang=lang)
+
+    def explain(self, *, lang: str = "en") -> Explainer:
+        """Concept explainer for descriptive statistics."""
+        return _explain("descriptive_stats", lang=lang)
+
+
+@dataclass(frozen=True)
+class TransitionMatrixResult(Interpretable):
+    """Result of :func:`expdpy.prepare_transition_matrix`.
+
+    ``df`` is the K-by-K transition matrix (row-normalized probabilities or raw counts,
+    per ``normalize``); ``counts`` the raw K-by-K counts; ``fig`` the heatmap; ``gt`` the
+    Great Tables rendering; ``states`` the ordered state labels.
+    """
+
+    df: pd.DataFrame
+    counts: pd.DataFrame
+    fig: go.Figure
+    gt: GT
+    states: tuple[str, ...]
+
+    def interpret(self, *, lang: str = "en") -> str:
+        """Plain-language reading of persistence and the stickiest/least-sticky states."""
+        return interpret_transition_matrix(self, lang=lang)
+
+    def explain(self, *, lang: str = "en") -> Explainer:
+        """Concept explainer for transition matrices."""
+        return _explain("transition_matrix", lang=lang)
+
+    def tidy(self) -> pd.DataFrame:
+        """Return the transition matrix in long ``(from, to, value)`` form."""
+        long = self.df.stack().rename("value").reset_index()
+        long.columns = ["from", "to", "value"]
+        return long
+
+
+@dataclass(frozen=True)
+class WithinPersistenceResult(Interpretable):
+    """Result of :func:`expdpy.prepare_within_persistence`.
+
+    ``df`` holds the lagged within-unit pairs (columns ``entity``, ``time``, ``lag_value``,
+    ``value``); ``fig`` the scatter; ``rho`` the within-unit serial correlation; ``slope`` the
+    AR fit slope; ``n_pairs`` the number of consecutive pairs; ``demeaned`` whether entity
+    means were removed first.
+    """
+
+    df: pd.DataFrame
+    fig: go.Figure
+    rho: float
+    slope: float
+    n_pairs: int
+    demeaned: bool
+
+    def interpret(self, *, lang: str = "en") -> str:
+        """Plain-language reading of the within-unit persistence."""
+        return interpret_within_persistence(self, lang=lang)
+
+    def explain(self, *, lang: str = "en") -> Explainer:
+        """Concept explainer keyed to whether the within transform was applied."""
+        return _explain(
+            "within_transformation" if self.demeaned else "time_trends", lang=lang
+        )

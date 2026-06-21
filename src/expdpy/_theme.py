@@ -74,9 +74,12 @@ SEQUENTIAL_SCALE: list[list[float | str]] = [
 ]
 
 # --- Fonts -------------------------------------------------------------------------
-# Arial/Helvetica renders identically across machines and static exports. Sizes follow
-# a "presentation" tier so axis labels remain legible when projected on slides.
-FONT_FAMILY: str = "Arial, Helvetica, sans-serif"
+# A modern sans (Inter) with system + Arial/Helvetica fallbacks: browsers and notebooks pick
+# up the refreshed look, while the Arial fallback keeps static (Kaleido) exports identical
+# across machines. Sizes follow a "presentation" tier so labels stay legible on slides.
+FONT_FAMILY: str = (
+    "Inter, -apple-system, 'Segoe UI', Roboto, Arial, Helvetica, sans-serif"
+)
 FONT_SIZE_BASE: int = 16
 FONT_SIZE_TICK: int = 15
 FONT_SIZE_AXIS_TITLE: int = 18
@@ -100,15 +103,18 @@ PLOTLY_CONFIG: dict[str, object] = {
 def _build_template(*, dark: bool = False) -> go.layout.Template:
     """Construct an ``expdpy`` Plotly template (light by default, dark when ``dark=True``)."""
     font_color = "#e6e6e6" if dark else "#2a2a2a"
-    grid = "rgba(255,255,255,0.12)" if dark else "rgba(0,0,0,0.08)"
-    zeroline = "rgba(255,255,255,0.25)" if dark else "rgba(0,0,0,0.15)"
+    # Softer gridlines with a slightly stronger zeroline reads as cleaner and more modern.
+    grid = "rgba(255,255,255,0.10)" if dark else "rgba(0,0,0,0.06)"
+    zeroline = "rgba(255,255,255,0.28)" if dark else "rgba(0,0,0,0.18)"
     legend_bg = "rgba(0,0,0,0.35)" if dark else "rgba(255,255,255,0.6)"
+    hover_bg = "rgba(30,30,30,0.92)" if dark else "rgba(255,255,255,0.95)"
     axis = {
         "title": {"font": {"family": FONT_FAMILY, "size": FONT_SIZE_AXIS_TITLE}},
         "tickfont": {"family": FONT_FAMILY, "size": FONT_SIZE_TICK},
         "automargin": True,
         "gridcolor": grid,
         "zerolinecolor": zeroline,
+        "zerolinewidth": 1,
     }
     template = go.layout.Template()
     template.layout = go.Layout(
@@ -119,13 +125,28 @@ def _build_template(*, dark: bool = False) -> go.layout.Template:
         margin={"l": 70, "r": 30, "t": 60, "b": 60},
         legend={
             "bgcolor": legend_bg,
+            "borderwidth": 0,
+            "itemsizing": "constant",
             "font": {"family": FONT_FAMILY, "size": FONT_SIZE_LEGEND},
             "title": {"font": {"family": FONT_FAMILY, "size": FONT_SIZE_LEGEND}},
         },
-        hoverlabel={"font": {"family": FONT_FAMILY, "size": FONT_SIZE_TICK}},
+        hoverlabel={
+            "bgcolor": hover_bg,
+            "bordercolor": grid,
+            "align": "left",
+            "font": {
+                "family": FONT_FAMILY,
+                "size": FONT_SIZE_TICK,
+                "color": font_color,
+            },
+        },
         xaxis=dict(axis),
         yaxis=dict(axis),
     )
+    # Shared colorbar geometry so heatmaps (correlation / missing / value) look uniform.
+    template.data.heatmap = [
+        go.Heatmap(colorbar={"thickness": 14, "len": 0.85, "outlinewidth": 0})
+    ]
     return template
 
 

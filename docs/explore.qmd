@@ -57,7 +57,7 @@ ex.prepare_bar_chart(df, "continent").fig
 A heatmap of where data is missing across the panel — essential before you model:
 
 ```{python}
-ex.prepare_missing_values_graph(df, ts_id="year")
+ex.prepare_missing_values_graph(df, time="year").fig
 ```
 
 ### Relationships between variables
@@ -76,18 +76,18 @@ The most extreme observations of a variable:
 
 ```{python}
 ex.prepare_ext_obs_table(
-    df, n=5, cs_id=["country"], ts_id="year", var="gini_regional"
+    df, n=5, entity=["country"], time="year", var="gini_regional"
 ).gt
 ```
 
 ### Trends over time
 
 ```{python}
-ex.prepare_trend_graph(df, ts_id="year", var=["gini_regional"]).fig
+ex.prepare_trend_graph(df, time="year", var=["gini_regional"]).fig
 ```
 
 ```{python}
-ex.prepare_quantile_trend_graph(df, ts_id="year", var="gini_regional").fig
+ex.prepare_quantile_trend_graph(df, time="year", var="gini_regional").fig
 ```
 
 ### Comparing groups
@@ -97,12 +97,12 @@ ex.prepare_by_group_bar_graph(df, "continent", "gini_regional", np.nanmedian).fi
 ```
 
 ```{python}
-ex.prepare_by_group_violin_graph(df, "continent", "gini_regional")
+ex.prepare_by_group_violin_graph(df, "continent", "gini_regional").fig
 ```
 
 ```{python}
 ex.prepare_by_group_trend_graph(
-    df, ts_id="year", group_var="continent", var="gini_regional"
+    df, time="year", group_var="continent", var="gini_regional"
 ).fig
 ```
 
@@ -114,7 +114,7 @@ population and colored by continent. The LOESS smoother traces the rise–fall�
 ```{python}
 ex.prepare_scatter_plot(
     df, x="log_gdp_pc", y="gini_regional", color="continent", size="population", loess=1
-)
+).fig
 ```
 
 ## Examples
@@ -188,7 +188,7 @@ Advanced — the ten most extreme observations of a chosen variable:
 
 ```{python}
 ex.prepare_ext_obs_table(
-    df, n=10, cs_id=["country"], ts_id="year", var="gini_regional"
+    df, n=10, entity=["country"], time="year", var="gini_regional"
 ).gt
 ```
 
@@ -214,13 +214,13 @@ ex.prepare_correlation_graph(
 Basic — the mean of one variable over time, with standard-error bars:
 
 ```{python}
-ex.prepare_trend_graph(df, ts_id="year", var=["gini_regional"]).fig
+ex.prepare_trend_graph(df, time="year", var=["gini_regional"]).fig
 ```
 
 Advanced — several variables on one chart:
 
 ```{python}
-ex.prepare_trend_graph(df, ts_id="year", var=["gini_regional", "trade_share"]).fig
+ex.prepare_trend_graph(df, time="year", var=["gini_regional", "trade_share"]).fig
 ```
 
 ### `prepare_quantile_trend_graph`
@@ -228,14 +228,14 @@ ex.prepare_trend_graph(df, ts_id="year", var=["gini_regional", "trade_share"]).f
 Basic — the default quantiles of a variable over time:
 
 ```{python}
-ex.prepare_quantile_trend_graph(df, ts_id="year", var="gini_regional").fig
+ex.prepare_quantile_trend_graph(df, time="year", var="gini_regional").fig
 ```
 
 Advanced — custom quantile levels and no per-observation points:
 
 ```{python}
 ex.prepare_quantile_trend_graph(
-    df, ts_id="year", var="gini_regional", quantiles=(0.1, 0.5, 0.9), points=False
+    df, time="year", var="gini_regional", quantiles=(0.1, 0.5, 0.9), points=False
 ).fig
 ```
 
@@ -262,7 +262,7 @@ Basic — one line per group over time:
 
 ```{python}
 ex.prepare_by_group_trend_graph(
-    df, ts_id="year", group_var="continent", var="gini_regional"
+    df, time="year", group_var="continent", var="gini_regional"
 ).fig
 ```
 
@@ -270,7 +270,7 @@ Advanced — add standard-error bars and drop the markers:
 
 ```{python}
 ex.prepare_by_group_trend_graph(
-    df, ts_id="year", group_var="continent", var="gini_regional",
+    df, time="year", group_var="continent", var="gini_regional",
     error_bars=True, points=False,
 ).fig
 ```
@@ -280,7 +280,7 @@ ex.prepare_by_group_trend_graph(
 Basic — the distribution of a variable across groups:
 
 ```{python}
-ex.prepare_by_group_violin_graph(df, "continent", "gini_regional")
+ex.prepare_by_group_violin_graph(df, "continent", "gini_regional").fig
 ```
 
 Advanced — order groups by mean and orient the violins vertically:
@@ -288,7 +288,7 @@ Advanced — order groups by mean and orient the violins vertically:
 ```{python}
 ex.prepare_by_group_violin_graph(
     df, "continent", "gini_regional", order_by_mean=True, group_on_y=False
-)
+).fig
 ```
 
 ### `prepare_histogram`
@@ -324,13 +324,13 @@ ex.prepare_bar_chart(df, "continent", order_by_count=True, color="red").fig
 Basic — the fraction of missing values by variable and year:
 
 ```{python}
-ex.prepare_missing_values_graph(df, ts_id="year")
+ex.prepare_missing_values_graph(df, time="year").fig
 ```
 
 Advanced — restrict to numeric variables and show only whether values are missing:
 
 ```{python}
-ex.prepare_missing_values_graph(df, ts_id="year", no_factors=True, binary=True)
+ex.prepare_missing_values_graph(df, time="year", no_factors=True, binary=True).fig
 ```
 
 ### `prepare_scatter_plot`
@@ -338,7 +338,7 @@ ex.prepare_missing_values_graph(df, ts_id="year", no_factors=True, binary=True)
 Basic — a plain scatter of two variables:
 
 ```{python}
-ex.prepare_scatter_plot(df, x="log_gdp_pc", y="gini_regional")
+ex.prepare_scatter_plot(df, x="log_gdp_pc", y="gini_regional").fig
 ```
 
 Advanced — map color and size to other columns and add a size-weighted LOESS smoother:
@@ -347,7 +347,7 @@ Advanced — map color and size to other columns and add a size-weighted LOESS s
 ex.prepare_scatter_plot(
     df, x="log_gdp_pc", y="gini_regional",
     color="continent", size="population", loess=2, alpha=0.6,
-)
+).fig
 ```
 
 ## Where to go next

@@ -2,6 +2,65 @@
 title: "Changelog"
 ---
 
+## 0.4.1 (2026-06-21)
+
+A panel-aware **Explore** release: the exploratory functions now make the
+across-units-vs-over-time structure of panel data explicit, and the identifier vocabulary is
+standardized. **This includes breaking changes to the Explore API.**
+
+### Added
+
+- **Within / between variation** — `prepare_xtsum_table` (Stata `xtsum`-style decomposition of
+  each variable into overall / between / within standard deviations) and
+  `prepare_within_between_scatter` (the pooled, between and within slopes of an `x`–`y`
+  relationship, side by side).
+- **Per-unit trajectories** — `prepare_spaghetti_graph` draws every unit's path over time with
+  a bold central-tendency overlay, optional highlighting, sampling for large panels and
+  small-multiple faceting.
+- **Panel-structure diagnostics** — `prepare_panel_structure` (balance/gaps summary +
+  unit-by-period presence grid) and `prepare_value_heatmap` (a unit-by-time value heatmap,
+  optionally standardized within period or unit).
+- **Distribution & transition dynamics** — `prepare_distribution_over_time` (ridgeline or
+  animated), `prepare_transition_matrix` (period-to-period state transitions, binning numeric
+  variables) and `prepare_within_persistence` (within-unit serial correlation).
+- **`set_panel(df, entity=, time=)`** stores the panel identifiers on the frame so Explore
+  functions can omit them; explicit per-call arguments always win.
+- New explainer topics (`within_between_variation`, `panel_structure`, `transition_matrix`)
+  and `.interpret()` on every new result, plus a new **`firms`** bundled dataset — a small
+  *unbalanced* panel (staggered entry/exit, interior gaps, a discrete size class, persistent
+  revenue) for the structure / transition / persistence views.
+- A **Panel structure** page in the Explore app surfacing all of the above.
+
+### Changed (breaking)
+
+- **Identifiers standardized to `entity` (unit) and `time`.** The Explore functions that took
+  `ts_id` now take `time` (keyword-only): `prepare_trend_graph`, `prepare_quantile_trend_graph`,
+  `prepare_by_group_trend_graph`, `prepare_missing_values_graph`. `prepare_ext_obs_table`'s
+  `cs_id` / `ts_id` become `entity` / `time`. `prepare_by_group_trend_graph` now takes
+  `group_var`, `var` positionally with `time` keyword-only.
+- **Every `prepare_*` Explore function returns a wrapped result.** `prepare_scatter_plot`,
+  `prepare_missing_values_graph` and `prepare_by_group_violin_graph` previously returned a bare
+  Plotly figure; they now return a result object — access the figure via `.fig`.
+- **The app launchers, dataset metadata and bundle format use `entity`/`time` too.** The
+  `ExploreApp` / `AnalyzeApp` / `LearnApp` keyword arguments `cs_id` / `ts_id` are renamed to
+  `entity` / `time` (hard rename — the old names are no longer accepted). The bundled
+  `df_def` `type` values `cs_id` / `ts_id` (returned by `load_*_data_def()`) become
+  `entity` / `time`, and the launch bundle manifest keys change to match. So the whole package
+  now speaks one panel vocabulary.
+
+### Fixed
+
+- `prepare_trend_graph` no longer drops a row from *all* series when *any* one variable is
+  missing (it now drops missing values per series), removing a multi-variable mean bias.
+- `prepare_missing_values_graph` orders periods by their true (numeric/date) value rather than
+  lexically; `prepare_by_group_trend_graph` orders group levels numerically when possible.
+
+### Visual
+
+- A refreshed Plotly theme (modern font stack with Arial fallback for stable static exports,
+  softer gridlines, theme-aware hover cards, unified heatmap colorbars) and richer hover
+  detail, range sliders and toggles across the figures.
+
 ## 0.4.0 (2026-06-20)
 
 A reorganization release. expdpy is now structured around three conceptual modules —

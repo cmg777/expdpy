@@ -76,7 +76,7 @@ def test_correlation_requires_five_obs():
 
 def test_ext_obs_top_and_bottom(kuznets):
     res = prepare_ext_obs_table(
-        kuznets, n=5, cs_id=["country"], ts_id="year", var="gini_regional"
+        kuznets, n=5, var="gini_regional", entity=["country"], time="year"
     )
     assert res.df.shape[0] == 10
     top = res.df["gini_regional"].iloc[:5].to_numpy()

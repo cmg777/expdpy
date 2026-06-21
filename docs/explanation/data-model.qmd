@@ -6,22 +6,24 @@ title: "Data model"
 
 ## Identifiers
 
-- **`cs_id`** — one or more columns identifying the cross-section (e.g. country + ISO code).
-- **`ts_id`** — a single column identifying the time dimension, coercible to an ordered
+- **`entity`** — one or more columns identifying the cross-section / unit (e.g. country + ISO
+  code).
+- **`time`** — a single column identifying the time dimension, coercible to an ordered
   factor (e.g. fiscal year).
 
-Provide them directly, or via a **`df_def`** table:
+Declare them once with `set_panel(df, entity=..., time=...)`, pass them directly to a
+function, or describe them via a **`df_def`** table:
 
 | column      | meaning                                                            |
 |-------------|-------------------------------------------------------------------|
 | `var_name`  | the column name                                                   |
 | `var_def`   | a human description (or, for `var_def` tables, an expression)     |
-| `type`      | one of `cs_id`, `ts_id`, `factor`, `logical`, `numeric`           |
+| `type`      | one of `entity`, `time`, `factor`, `logical`, `numeric`           |
 | `can_be_na` | optional; if `False`, rows missing this variable are dropped      |
 
 ```python
 from expdpy.data import load_kuznets_data_def
-load_kuznets_data_def()  # cs_id (country, iso), ts_id (year), factors and numerics
+load_kuznets_data_def()  # entity (country, iso), time (year), factors and numerics
 ```
 
 ## Variable categories
@@ -32,6 +34,6 @@ or a numeric column with at most `factor_cutoff` (default 10) distinct values; a
 
 ## Time-axis conversion
 
-The time-trend functions coerce `ts_id` for nicer ticks: full date strings become dates,
-numeric-looking values (including factor years like `"2013"`) become numbers, and anything
-else becomes an ordered categorical — matching ExPanDaR's `try_convert_ts_id`.
+The time-trend functions coerce the `time` id for nicer ticks: full date strings become
+dates, numeric-looking values (including factor years like `"2013"`) become numbers, and
+anything else becomes an ordered categorical — matching ExPanDaR's `try_convert_ts_id`.

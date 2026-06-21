@@ -15,6 +15,8 @@ from __future__ import annotations
 import math
 from typing import Any
 
+import numpy as np
+
 from expdpy.pedagogy._format import (
     direction_word,
     fmt_num,
@@ -25,12 +27,19 @@ __all__ = [
     "interpret_correlation",
     "interpret_cre",
     "interpret_descriptive",
+    "interpret_distribution_over_time",
     "interpret_estimation",
     "interpret_event_study",
     "interpret_fwl",
+    "interpret_panel_structure",
     "interpret_regression",
     "interpret_sandbox",
+    "interpret_spaghetti",
+    "interpret_transition_matrix",
     "interpret_trend",
+    "interpret_within_between",
+    "interpret_within_persistence",
+    "interpret_xtsum",
 ]
 
 _ASSOC_NOTE = (
@@ -379,4 +388,206 @@ def interpret_descriptive(result: Any, *, lang: str = "en") -> str:
         )
     if len(df.index) > _MAX_VARS:
         lines.append(f"(Showing the first {_MAX_VARS} of {len(df.index)} variables.)")
+    return "\n".join(lines)
+
+
+def interpret_xtsum(result: Any, *, lang: str = "en") -> str:
+    """Interpret a within/between (xtsum) table: where each variable's variation lives."""
+    df = result.df
+    variables = list(dict.fromkeys(df["variable"]))[:_MAX_VARS]
+    lines = [
+        "Splitting each variable's variation into **between** (differences across units) "
+        "and **within** (variation over time inside a unit):"
+    ]
+    for var in variables:
+        g = df[df["variable"] == var].set_index("component")
+        try:
+            b = float(g.loc["between", "sd"])
+            w = float(g.loc["within", "sd"])
+        except KeyError:  # pragma: no cover - defensive
+            continue
+        if math.isnan(b) or math.isnan(w) or (b == 0 and w == 0):
+            continue
+        share = b * b / (b * b + w * w)
+        where = (
+            "mostly **across units** (between)"
+            if share > 0.6
+            else "mostly **over time within units** (within)"
+            if share < 0.4
+            else "split between cross-unit and over-time"
+        )
+        lines.append(
+            f"- **{var}**: between SD {fmt_num(b)}, within SD {fmt_num(w)} — variation is "
+            f"{where}."
+        )
+    if len(set(df["variable"])) > _MAX_VARS:
+        lines.append(f"(Showing the first {_MAX_VARS} variables.)")
+    lines += [
+        "",
+        "_Between variation drives cross-sectional comparisons; within variation is what "
+        "fixed-effects (within) estimators rely on._",
+    ]
+    return "\n".join(lines)
+
+
+def interpret_within_between(result: Any, *, lang: str = "en") -> str:
+    """Interpret a within-vs-between scatter: how the pooled slope decomposes."""
+    bp, bb, bw = (
+        float(result.slope_pooled),
+        float(result.slope_between),
+        float(result.slope_within),
+    )
+    try:
+        x = result.fig.layout.xaxis.title.text or "x"
+        y = result.fig.layout.yaxis.title.text or "y"
+    except AttributeError:  # pragma: no cover - figures carry axis titles
+        x, y = "x", "y"
+    lines = [
+        f"The pooled association between **{x}** and **{y}** has slope {fmt_num(bp)}. It "
+        f"blends a **between-unit** slope of {fmt_num(bb)} (comparing unit averages) with a "
+        f"**within-unit** slope of {fmt_num(bw)} (variation over time inside a unit)."
+    ]
+    if not (math.isnan(bb) or math.isnan(bw)) and abs(bb - bw) > 0.5 * max(
+        abs(bb), abs(bw), 1e-9
+    ):
+        lines.append(
+            "The two diverge markedly — the cross-unit and over-time relationships tell "
+            "different stories, a sign that unit-level confounders matter and that a "
+            "fixed-effects specification would change the estimate."
+        )
+    lines += ["", _ASSOC_NOTE]
+    return "\n".join(lines)
+
+
+def interpret_spaghetti(result: Any, *, lang: str = "en") -> str:
+    """Interpret a spaghetti plot: central trend and whether trajectories fan out."""
+    df = result.df
+    time_col, val_col = df.columns[1], df.columns[2]
+    by_t = df.groupby(time_col, observed=True)[val_col]
+    mean_t = by_t.mean()
+    sd_t = by_t.std(ddof=1)
+    head = f"Each faint line is one of {result.n_shown:,} unit trajectories"
+    if result.n_shown < result.n_units:
+        head += f" (a sample of {result.n_units:,})"
+    head += "; the bold line is the cross-unit central tendency."
+    lines = [head]
+    if len(mean_t) > 1:
+        delta = float(mean_t.iloc[-1] - mean_t.iloc[0])
+        lines.append(
+            f"The central path moved {direction_word(delta)} overall (change {fmt_num(delta)})."
+        )
+        first_sd, last_sd = float(sd_t.iloc[0]), float(sd_t.iloc[-1])
+        if not (math.isnan(first_sd) or math.isnan(last_sd)):
+            spread = (
+                "widened — units diverged"
+                if last_sd > first_sd * 1.1
+                else "narrowed — units converged"
+                if last_sd < first_sd * 0.9
+                else "stayed about the same"
+            )
+            lines.append(
+                f"Cross-unit dispersion {spread} (SD {fmt_num(first_sd)} → {fmt_num(last_sd)})."
+            )
+    return "\n".join(lines)
+
+
+def interpret_panel_structure(result: Any, *, lang: str = "en") -> str:
+    """Interpret a panel-structure summary: balance, coverage and gaps."""
+    d = dict(
+        zip(result.df_summary["statistic"], result.df_summary["value"], strict=True)
+    )
+    n_units, n_periods = int(d["units"]), int(d["periods"])
+    balanced, gaps = bool(d["balanced"]), int(d["internal gaps"])
+    mino, maxo = int(d["min obs per unit"]), int(d["max obs per unit"])
+    head = (
+        f"The panel has **{n_units:,} units** observed over **{n_periods:,} periods**."
+    )
+    if balanced:
+        body = "It is **balanced**: every unit appears in every period, with no gaps."
+    else:
+        gap_txt = (
+            f", with {gaps:,} interior gap(s)"
+            if gaps
+            else " (no interior gaps — only ragged starts/ends)"
+        )
+        body = (
+            f"It is **unbalanced**: units are observed between {mino} and {maxo} periods"
+            f"{gap_txt}."
+        )
+    tail = (
+        "Unbalanced panels and interior gaps reduce the information a within (fixed-effects) "
+        "estimator can use, and shifting unit composition over time can drive apparent trends."
+    )
+    return "\n".join([head, "", body, "", tail])
+
+
+def interpret_distribution_over_time(result: Any, *, lang: str = "en") -> str:
+    """Interpret a distribution-over-time view: shifts in center and spread."""
+    df = result.df
+    time_col, val_col = df.columns[0], df.columns[1]
+    grouped = df.groupby(time_col, observed=True)[val_col]
+    med = grouped.median()
+    iqr = grouped.quantile(0.75) - grouped.quantile(0.25)
+    if len(med) < 2:
+        return f"The distribution of **{val_col}** is shown for a single period."
+    dmed = float(med.iloc[-1] - med.iloc[0])
+    dspr = float(iqr.iloc[-1] - iqr.iloc[0])
+    spread_word = "widened" if dspr > 0 else "narrowed" if dspr < 0 else "was stable"
+    return "\n".join(
+        [
+            f"Tracking the distribution of **{val_col}** across periods:",
+            f"- The median moved {direction_word(dmed)} "
+            f"(from {fmt_num(float(med.iloc[0]))} to {fmt_num(float(med.iloc[-1]))}).",
+            f"- The spread (IQR) {spread_word} "
+            f"(from {fmt_num(float(iqr.iloc[0]))} to {fmt_num(float(iqr.iloc[-1]))}).",
+        ]
+    )
+
+
+def interpret_transition_matrix(result: Any, *, lang: str = "en") -> str:
+    """Interpret a transition matrix: overall persistence and the stickiest states."""
+    states = list(result.states)
+    c = result.counts.to_numpy(dtype=float)
+    row_sums = c.sum(axis=1, keepdims=True)
+    shares = np.divide(c, row_sums, out=np.zeros_like(c), where=row_sums > 0)
+    diag = np.diag(shares)
+    persistence = float(np.nanmean(diag))
+    stick_i, loose_i = int(np.nanargmax(diag)), int(np.nanargmin(diag))
+    return "\n".join(
+        [
+            f"Across {len(states)} states, the average **persistence** (probability of "
+            f"staying in the same state from one period to the next) is {fmt_num(persistence)}.",
+            f"- Stickiest: **{states[stick_i]}** (stays with probability "
+            f"{fmt_num(float(diag[stick_i]))}).",
+            f"- Least sticky: **{states[loose_i]}** (stays with probability "
+            f"{fmt_num(float(diag[loose_i]))}).",
+        ]
+    )
+
+
+def interpret_within_persistence(result: Any, *, lang: str = "en") -> str:
+    """Interpret within-unit persistence (serial correlation of the within component)."""
+    rho = float(result.rho)
+    scope = (
+        "within-unit (after removing each unit's mean)"
+        if bool(result.demeaned)
+        else "within-unit"
+    )
+    mag = "strong" if abs(rho) >= 0.7 else "moderate" if abs(rho) >= 0.4 else "weak"
+    if rho > 0:
+        shape = "positively — high values tend to follow high values (persistence)"
+    elif rho < 0:
+        shape = "negatively — high values tend to follow low values (mean reversion)"
+    else:
+        shape = "not at all"
+    lines = [
+        f"The {scope} serial correlation is rho = {fmt_num(rho)} "
+        f"(n = {int(result.n_pairs):,} consecutive pairs): a **{mag}** relationship — this "
+        f"period's value relates to the previous one {shape}.",
+    ]
+    if abs(rho) < 0.1:
+        lines.append(
+            "Near-zero persistence means the series behaves like noise within units."
+        )
+    lines += ["", _ASSOC_NOTE]
     return "\n".join(lines)

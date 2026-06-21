@@ -42,18 +42,18 @@ def _normalize_samples(
 
 
 def _resolve_ids(
-    df_def: pd.DataFrame | None, cs_id: Sequence[str] | str | None, ts_id: str | None
+    df_def: pd.DataFrame | None, entity: Sequence[str] | str | None, time: str | None
 ) -> tuple[list[str], str | None]:
     if df_def is not None:
-        cs = list(df_def.loc[df_def["type"] == "cs_id", "var_name"])
-        ts_rows = list(df_def.loc[df_def["type"] == "ts_id", "var_name"])
-        return cs, (ts_rows[0] if ts_rows else None)
-    if isinstance(cs_id, str):
-        cs_id = [cs_id]
-    return (list(cs_id) if cs_id else []), ts_id
+        entities = list(df_def.loc[df_def["type"] == "entity", "var_name"])
+        time_rows = list(df_def.loc[df_def["type"] == "time", "var_name"])
+        return entities, (time_rows[0] if time_rows else None)
+    if isinstance(entity, str):
+        entity = [entity]
+    return (list(entity) if entity else []), time
 
 
-def _active_components(components: Any, ts_id: str | None) -> list[str]:
+def _active_components(components: Any, time: str | None) -> list[str]:
     if isinstance(components, Mapping):
         selected = [c for c in COMPONENT_ORDER if components.get(c)]
     elif isinstance(components, (list, tuple)):
@@ -61,7 +61,7 @@ def _active_components(components: Any, ts_id: str | None) -> list[str]:
     else:
         selected = list(COMPONENT_ORDER)
     renderable = [c for c in selected if c in COMPONENT_KIND]
-    if not ts_id:
+    if not time:
         renderable = [c for c in renderable if c not in TS_COMPONENTS]
     return renderable
 

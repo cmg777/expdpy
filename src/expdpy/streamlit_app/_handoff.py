@@ -60,8 +60,8 @@ class Bundle:
     samples: dict[str, pd.DataFrame]
     df_def: pd.DataFrame | None = None
     var_def: pd.DataFrame | None = None
-    cs_list: list[str] = field(default_factory=list)
-    ts: str | None = None
+    entities: list[str] = field(default_factory=list)
+    time: str | None = None
     components: Any = None
     factor_cutoff: int = 10
     title: str = "ExPdPy — Explore your data!"
@@ -75,8 +75,8 @@ def write_bundle(
     *,
     df_def: pd.DataFrame | None,
     var_def: pd.DataFrame | None,
-    cs_list: list[str],
-    ts: str | None,
+    entities: list[str],
+    time: str | None,
     components: Any,
     factor_cutoff: int,
     title: str,
@@ -104,8 +104,8 @@ def write_bundle(
         "sample_files": sample_files,
         "has_df_def": df_def is not None,
         "has_var_def": var_def is not None,
-        "cs_list": list(cs_list),
-        "ts": ts,
+        "entities": list(entities),
+        "time": time,
         "components": components,
         "factor_cutoff": int(factor_cutoff),
         "title": title,
@@ -134,8 +134,8 @@ def read_bundle(path: str) -> Bundle:
         samples=samples,
         df_def=df_def,
         var_def=var_def,
-        cs_list=list(m.get("cs_list", [])),
-        ts=m.get("ts"),
+        entities=list(m.get("entities", [])),
+        time=m.get("time"),
         components=m.get("components"),
         factor_cutoff=int(m.get("factor_cutoff", 10)),
         title=m.get("title", "ExPdPy — Explore your data!"),
