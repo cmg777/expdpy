@@ -66,9 +66,11 @@ quartodoc:
     - title: Explore
       desc: >-
         Exploratory analysis — descriptive / correlation / extreme-observation tables,
-        distributions, time trends, group comparisons, missing-value maps, scatter plots and
-        outlier treatment.
+        distributions, time trends, group comparisons, missing-value maps, scatter plots,
+        within/between variation, per-unit trajectories, panel-structure diagnostics,
+        distribution & transition dynamics, and outlier treatment.
       contents:
+        - set_panel
         - prepare_descriptive_table
         - prepare_correlation_table
         - prepare_ext_obs_table
@@ -82,6 +84,14 @@ quartodoc:
         - prepare_by_group_violin_graph
         - prepare_missing_values_graph
         - prepare_scatter_plot
+        - prepare_xtsum_table
+        - prepare_within_between_scatter
+        - prepare_spaghetti_graph
+        - prepare_panel_structure
+        - prepare_value_heatmap
+        - prepare_distribution_over_time
+        - prepare_transition_matrix
+        - prepare_within_persistence
         - treat_outliers
     - title: Analyze
       desc: >-

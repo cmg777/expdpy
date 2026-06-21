@@ -18,15 +18,18 @@ Three no-code ``ExPdPy`` apps (one per module) build on the same functions — s
 
 from __future__ import annotations
 
+from expdpy._panel import resolve_panel, set_panel
 from expdpy._types import (
     BarChartResult,
     ByGroupBarGraphResult,
     ByGroupTrendGraphResult,
+    ByGroupViolinResult,
     CoefficientPlotResult,
     CorrelationGraphResult,
     CorrelationTableResult,
     CRETableResult,
     DescriptiveTableResult,
+    DistributionOverTimeResult,
     EstimationResult,
     EventStudyResult,
     ExtObsTableResult,
@@ -35,13 +38,22 @@ from expdpy._types import (
     HausmanTestResult,
     HistogramResult,
     JointTestResult,
+    MissingValuesResult,
+    PanelStructureResult,
     PanelViewResult,
     PredictionResult,
     QuantileTrendGraphResult,
     RegressionTableResult,
     RobustInferenceResult,
     SandboxResult,
+    ScatterPlotResult,
+    SpaghettiGraphResult,
+    TransitionMatrixResult,
     TrendGraphResult,
+    ValueHeatmapResult,
+    WithinBetweenScatterResult,
+    WithinPersistenceResult,
+    XtsumTableResult,
 )
 from expdpy.by_group import (
     prepare_by_group_bar_graph,
@@ -53,12 +65,19 @@ from expdpy.correlation import prepare_correlation_graph
 from expdpy.cre import prepare_cre_table
 from expdpy.did import prepare_event_study, prepare_panel_view
 from expdpy.distributions import prepare_bar_chart, prepare_histogram
+from expdpy.dynamics import (
+    prepare_distribution_over_time,
+    prepare_transition_matrix,
+    prepare_within_persistence,
+)
 from expdpy.estimation import prepare_estimation
 from expdpy.fwl import prepare_fwl_plot
 from expdpy.inference import prepare_robust_inference
 from expdpy.missing import prepare_missing_values_graph
 from expdpy.outliers import treat_outliers
 from expdpy.panel_models import prepare_hausman_test, prepare_panel_table
+from expdpy.panel_structure import prepare_panel_structure, prepare_value_heatmap
+from expdpy.panel_summary import prepare_within_between_scatter, prepare_xtsum_table
 from expdpy.pedagogy import Explainer, explain, list_topics
 from expdpy.postestimation import (
     prepare_fixef_plot,
@@ -74,6 +93,7 @@ from expdpy.sandbox import (
     sandbox_within_vs_lsdv,
 )
 from expdpy.scatter import prepare_scatter_plot
+from expdpy.spaghetti import prepare_spaghetti_graph
 from expdpy.tables import (
     prepare_correlation_table,
     prepare_descriptive_table,
@@ -81,10 +101,13 @@ from expdpy.tables import (
 )
 from expdpy.trends import prepare_quantile_trend_graph, prepare_trend_graph
 
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 
 __all__ = [
     # ===== EXPLORE =====
+    # panel declaration
+    "set_panel",
+    "resolve_panel",
     # outlier treatment
     "treat_outliers",
     # tables
@@ -107,6 +130,18 @@ __all__ = [
     "prepare_missing_values_graph",
     # scatter
     "prepare_scatter_plot",
+    # within/between variation
+    "prepare_xtsum_table",
+    "prepare_within_between_scatter",
+    # per-unit trajectories
+    "prepare_spaghetti_graph",
+    # panel structure
+    "prepare_panel_structure",
+    "prepare_value_heatmap",
+    # distribution & transition dynamics
+    "prepare_distribution_over_time",
+    "prepare_transition_matrix",
+    "prepare_within_persistence",
     # ===== ANALYZE =====
     # regression table (OLS / fixed effects / clustered SEs)
     "prepare_regression_table",
@@ -147,10 +182,21 @@ __all__ = [
     "HistogramResult",
     "BarChartResult",
     "CorrelationGraphResult",
+    "ScatterPlotResult",
+    "MissingValuesResult",
     "TrendGraphResult",
     "QuantileTrendGraphResult",
     "ByGroupBarGraphResult",
     "ByGroupTrendGraphResult",
+    "ByGroupViolinResult",
+    "XtsumTableResult",
+    "WithinBetweenScatterResult",
+    "SpaghettiGraphResult",
+    "PanelStructureResult",
+    "ValueHeatmapResult",
+    "DistributionOverTimeResult",
+    "TransitionMatrixResult",
+    "WithinPersistenceResult",
     # analyze
     "RegressionTableResult",
     "EstimationResult",

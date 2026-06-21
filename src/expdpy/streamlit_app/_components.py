@@ -127,11 +127,11 @@ def bar_chart(sample: pd.DataFrame, var: str | None):
     return prepare_bar_chart(sample, var).fig
 
 
-def missing(sample: pd.DataFrame, ts_id: str | None):
-    if not _ok(ts_id) or ts_id not in sample.columns:
+def missing(sample: pd.DataFrame, time: str | None):
+    if not _ok(time) or time not in sample.columns:
         return None
-    assert ts_id is not None
-    return prepare_missing_values_graph(sample, ts_id=ts_id)
+    assert time is not None
+    return prepare_missing_values_graph(sample, time=time).fig
 
 
 def scatter(sample, x, y, color, size, loess):
@@ -144,21 +144,21 @@ def scatter(sample, x, y, color, size, loess):
         color=color if _ok(color) else None,
         size=size if _ok(size) else None,
         loess=1 if loess else 0,
-    )
+    ).fig
 
 
-def trend(sample: pd.DataFrame, ts_id: str | None, variables: list[str]):
+def trend(sample: pd.DataFrame, time: str | None, variables: list[str]):
     variables = [v for v in variables if _ok(v) and v in sample.columns]
-    if not _ok(ts_id) or not variables:
+    if not _ok(time) or not variables:
         return None
-    assert ts_id is not None
-    return prepare_trend_graph(sample, ts_id=ts_id, var=variables).fig
+    assert time is not None
+    return prepare_trend_graph(sample, var=variables, time=time).fig
 
 
-def quantile_trend(sample, ts_id, var):
-    if not (_ok(ts_id) and _ok(var)) or var not in sample.columns:
+def quantile_trend(sample, time, var):
+    if not (_ok(time) and _ok(var)) or var not in sample.columns:
         return None
-    return prepare_quantile_trend_graph(sample, ts_id=ts_id, var=var).fig
+    return prepare_quantile_trend_graph(sample, var=var, time=time).fig
 
 
 def by_group_bar(sample, byvar, var):
@@ -170,15 +170,13 @@ def by_group_bar(sample, byvar, var):
 def by_group_violin(sample, byvar, var):
     if not (_ok(byvar) and _ok(var)):
         return None
-    return prepare_by_group_violin_graph(sample, byvar, var)
+    return prepare_by_group_violin_graph(sample, byvar, var).fig
 
 
-def by_group_trend(sample, ts_id, group, var):
-    if not (_ok(ts_id) and _ok(group) and _ok(var)):
+def by_group_trend(sample, time, group, var):
+    if not (_ok(time) and _ok(group) and _ok(var)):
         return None
-    return prepare_by_group_trend_graph(
-        sample, ts_id=ts_id, group_var=group, var=var
-    ).fig
+    return prepare_by_group_trend_graph(sample, group, var, time=time).fig
 
 
 def regression(sample, y, xs, fes, clusters):

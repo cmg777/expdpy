@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from math import log
 from typing import Literal
 
@@ -11,7 +12,9 @@ import plotly.graph_objects as go
 from pandas.api import types as pdt
 from statsmodels.nonparametric.smoothers_lowess import lowess
 
+from expdpy._panel import resolve_panel
 from expdpy._theme import SEQUENTIAL_SCALE, apply_default_layout, color_for
+from expdpy._types import ScatterPlotResult
 from expdpy._validation import ensure_dataframe
 
 __all__ = ["prepare_scatter_plot"]
@@ -69,7 +72,10 @@ def prepare_scatter_plot(
     size: str | None = None,
     loess: Literal[0, 1, 2] = 0,
     alpha: float | None = None,
-) -> go.Figure:
+    entity: str | None = None,
+    time: str | None = None,
+    connect: bool = False,
+) -> ScatterPlotResult:
     """Scatter plot of ``y`` against ``x`` with optional aesthetics and a LOESS smoother.
 
     Parameters
@@ -77,7 +83,7 @@ def prepare_scatter_plot(
     df
         Data frame containing the variables.
     x, y
-        Column names for the axes.
+        Column names for the axes (both must be numeric).
     color
         Optional column mapped to marker color (numeric -> colorbar, otherwise discrete).
     size
@@ -86,23 +92,31 @@ def prepare_scatter_plot(
         ``0`` no smoother, ``1`` unweighted LOESS, ``2`` LOESS weighted by ``size``.
     alpha
         Marker opacity. If ``None``, a sample-size-based default is used.
+    entity
+        Cross-sectional (unit) identifier. Defaults to the panel ``entity`` declared via
+        :func:`expdpy.set_panel`. Only used when ``connect=True``.
+    time
+        Time identifier used to order each unit's trajectory when ``connect=True``. Defaults
+        to the panel ``time``.
+    connect
+        If ``True`` (and an ``entity`` is available), draw a faint line connecting each
+        unit's points in time order — turning the scatter into a panel trajectory plot.
 
     Returns
     -------
-    plotly.graph_objects.Figure
-        The scatter figure.
+    ScatterPlotResult
+        ``df`` (the complete-case frame plotted) and ``fig`` (the Plotly scatter).
 
     Examples
     --------
-    Basic — a plain scatter of two variables (this function returns a Plotly figure
-    directly, so there is no ``.fig`` attribute):
+    Basic — a plain scatter of two variables:
 
     ```python
     import expdpy as ex
     from expdpy.data import load_kuznets
 
     df = load_kuznets()
-    ex.prepare_scatter_plot(df, x="log_gdp_pc", y="gini_regional")
+    ex.prepare_scatter_plot(df, x="log_gdp_pc", y="gini_regional").fig
     ```
 
     Advanced — map color and marker size to other columns, add a size-weighted LOESS
@@ -112,11 +126,23 @@ def prepare_scatter_plot(
     ex.prepare_scatter_plot(
         df, x="log_gdp_pc", y="gini_regional",
         color="continent", size="population", loess=2, alpha=0.6,
-    )
+    ).fig
     ```
     """
     df = ensure_dataframe(df)
-    cols = [c for c in (x, y, color, size) if c]
+    entity, time = resolve_panel(df, entity, time)
+    for axis_name, axis_col in (("x", x), ("y", y)):
+        if not pdt.is_numeric_dtype(df[axis_col]):
+            raise ValueError(f"{axis_name} ({axis_col!r}) needs to be numeric")
+    if connect and entity is None:
+        warnings.warn(
+            "connect=True needs an entity id (pass entity= or set_panel); ignoring it",
+            stacklevel=2,
+        )
+        connect = False
+
+    extra = [entity, time] if connect else []
+    cols = list(dict.fromkeys(c for c in (x, y, color, size, *extra) if c))
     sub = df[cols].dropna()
     n = len(sub)
     if alpha is None:
@@ -131,7 +157,10 @@ def prepare_scatter_plot(
         return 2.0 * peak / (22.0**2) if peak > 0 else 1.0
 
     def _marker(extra: dict | None = None) -> dict:
-        m: dict = {"opacity": alpha}
+        m: dict = {
+            "opacity": alpha,
+            "line": {"color": "rgba(255,255,255,0.5)", "width": 0.5},
+        }
         if size_vals is not None:
             m.update(
                 size=size_vals, sizemode="area", sizeref=_sizeref(size_vals), sizemin=3
@@ -141,10 +170,27 @@ def prepare_scatter_plot(
         return m
 
     fig = go.Figure()
+    if connect:
+        ordered = sub.sort_values(time) if time is not None else sub
+        for _uid, part in ordered.groupby(entity, observed=True):
+            fig.add_trace(
+                go.Scatter(
+                    x=part[x].to_numpy(dtype=float),
+                    y=part[y].to_numpy(dtype=float),
+                    mode="lines",
+                    line={"color": "rgba(78,121,167,0.25)", "width": 1},
+                    showlegend=False,
+                    hoverinfo="skip",
+                )
+            )
     if color and not pdt.is_numeric_dtype(sub[color]):
         for idx, level in enumerate(sorted(sub[color].astype(str).unique())):
             mask = sub[color].astype(str).to_numpy() == level
-            m = {"opacity": alpha, "color": color_for(idx)}
+            m = {
+                "opacity": alpha,
+                "color": color_for(idx),
+                "line": {"color": "rgba(255,255,255,0.5)", "width": 0.5},
+            }
             if size_vals is not None:
                 m.update(
                     size=size_vals[mask],
@@ -186,7 +232,7 @@ def prepare_scatter_plot(
                 x=np.concatenate([xs, xs[::-1]]),
                 y=np.concatenate([hi, lo[::-1]]),
                 fill="toself",
-                fillcolor="rgba(0,0,0,0.12)",
+                fillcolor="rgba(78,121,167,0.18)",
                 line={"color": "rgba(0,0,0,0)"},
                 hoverinfo="skip",
                 showlegend=False,
@@ -204,4 +250,4 @@ def prepare_scatter_plot(
         )
 
     apply_default_layout(fig, xaxis={"title": x}, yaxis={"title": y})
-    return fig
+    return ScatterPlotResult(df=sub, fig=fig)

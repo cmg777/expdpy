@@ -74,7 +74,7 @@ def page_overview() -> None:
         render.render_ext_obs(active.sample, var)
     if _has(active, "missing_values"):
         st.subheader("Missing values")
-        render.render_plotly(lambda: comp.missing(active.sample, active.ts))
+        render.render_plotly(lambda: comp.missing(active.sample, active.time))
 
 
 def page_distributions() -> None:
@@ -111,7 +111,7 @@ def page_by_group() -> None:
         byvar = w.selectbox("Group by", _factors(active), key="bgtg_byvar")
         var = w.selectbox("Variable", _numeric(active), key="bgtg_var")
         render.render_plotly(
-            lambda: comp.by_group_trend(active.sample, active.ts, byvar, var)
+            lambda: comp.by_group_trend(active.sample, active.time, byvar, var)
         )
 
 
@@ -130,11 +130,13 @@ def page_trends() -> None:
             )
             for i in (1, 2, 3)
         ]
-        render.render_plotly(lambda: comp.trend(active.sample, active.ts, variables))
+        render.render_plotly(lambda: comp.trend(active.sample, active.time, variables))
     if _has(active, "quantile_trend_graph"):
         st.subheader("Quantile trend graph")
         var = w.selectbox("Variable", _numeric(active), key="quantile_trend_graph_var")
-        render.render_plotly(lambda: comp.quantile_trend(active.sample, active.ts, var))
+        render.render_plotly(
+            lambda: comp.quantile_trend(active.sample, active.time, var)
+        )
 
 
 def page_correlations() -> None:
@@ -315,7 +317,135 @@ def page_sandboxes() -> None:
 
 def _is_panel(active: Active) -> bool:
     """Return ``True`` when the data has both a cross-section id and a time dimension."""
-    return bool(active.ts and active.cs_list)
+    return bool(active.time and active.entities)
+
+
+def page_panel_structure() -> None:
+    """Within/between variation, panel balance, spaghetti, dynamics and transitions."""
+    from expdpy import (
+        prepare_distribution_over_time,
+        prepare_panel_structure,
+        prepare_spaghetti_graph,
+        prepare_transition_matrix,
+        prepare_value_heatmap,
+        prepare_within_between_scatter,
+        prepare_within_persistence,
+        prepare_xtsum_table,
+    )
+
+    active = _active_or_stop()
+    st.header("Panel structure & dynamics")
+    if not _is_panel(active):
+        st.info("These views need a panel: a cross-section id and a time dimension.")
+        return
+    assert active.time is not None  # narrowed by _is_panel
+    entity, time = active.entities[0], active.time
+    st.caption(f"Entity: **{entity}** · Time: **{time}**")
+    nums = _numeric(active)
+    factors = _factors(active)
+
+    def _show(make, *, interpret=True) -> None:
+        """Render a result's figure (safely) plus its plain-language interpretation."""
+        try:
+            res = make()
+        except Exception as exc:  # surface the message, keep the page alive
+            st.info(str(exc))
+            return
+        if res is None:
+            return
+        st.plotly_chart(res.fig, width="stretch", config=PLOTLY_CONFIG)
+        if interpret:
+            st.markdown(res.interpret())
+
+    st.subheader("Within / between variation")
+    xtsum_vars = w.multiselect(
+        "Variables", nums, key="ps_xtsum_vars", default=nums[: min(4, len(nums))]
+    )
+    if [v for v in xtsum_vars if v not in (None, "None")]:
+        try:
+            res = prepare_xtsum_table(
+                active.sample, var=list(xtsum_vars), entity=entity, time=time
+            )
+            st.html(res.gt.as_raw_html())
+            st.markdown(res.interpret())
+        except Exception as exc:
+            st.info(str(exc))
+
+    st.divider()
+    st.subheader("Within-vs-between scatter")
+    c1, c2 = st.columns(2)
+    with c1:
+        wb_x = w.selectbox("X", nums, key="ps_wb_x")
+    with c2:
+        wb_y = w.selectbox(
+            "Y", nums, key="ps_wb_y", default=nums[1] if len(nums) > 1 else None
+        )
+    _show(
+        lambda: prepare_within_between_scatter(
+            active.sample, wb_x, wb_y, entity=entity, time=time
+        )
+    )
+
+    st.divider()
+    st.subheader("Panel balance & coverage")
+    try:
+        struct = prepare_panel_structure(active.sample, entity=entity, time=time)
+        st.markdown(struct.interpret())
+        st.plotly_chart(struct.fig, width="stretch", config=PLOTLY_CONFIG)
+        with st.expander("Balance summary"):
+            st.dataframe(struct.df_summary, width="stretch", hide_index=True)
+    except Exception as exc:
+        st.info(str(exc))
+    vh_var = w.selectbox("Value heatmap variable", nums, key="ps_vh_var")
+    standardize = w.selectbox(
+        "Standardize", ["none", "by_time", "by_entity", "global"], key="ps_vh_std"
+    )
+    _show(
+        lambda: prepare_value_heatmap(
+            active.sample, vh_var, entity=entity, time=time, standardize=standardize
+        ),
+        interpret=False,
+    )
+
+    st.divider()
+    st.subheader("Per-unit trajectories (spaghetti)")
+    spag_var = w.selectbox("Variable", nums, key="ps_spag_var")
+    _show(
+        lambda: prepare_spaghetti_graph(
+            active.sample, spag_var, entity=entity, time=time
+        )
+    )
+
+    st.divider()
+    st.subheader("Distribution over time")
+    dot_var = w.selectbox("Variable", nums, key="ps_dot_var")
+    dot_style = w.selectbox(
+        "Style", ["ridgeline", "animated_hist", "animated_violin"], key="ps_dot_style"
+    )
+    _show(
+        lambda: prepare_distribution_over_time(
+            active.sample, dot_var, time=time, style=dot_style
+        )
+    )
+
+    st.divider()
+    st.subheader("Transition matrix")
+    tm_var = w.selectbox("State variable", factors + nums, key="ps_tm_var")
+    tm_bins = w.slider("Bins (numeric only)", 2, 8, key="ps_tm_bins", default=4)
+    _show(
+        lambda: prepare_transition_matrix(
+            active.sample, tm_var, entity=entity, time=time, n_bins=int(tm_bins)
+        )
+    )
+
+    st.divider()
+    st.subheader("Within-unit persistence")
+    wp_var = w.selectbox("Variable", nums, key="ps_wp_var")
+    _show(
+        lambda: prepare_within_persistence(
+            active.sample, wp_var, entity=entity, time=time
+        )
+    )
 
 
 def page_event_study() -> None:
@@ -334,8 +464,8 @@ def page_event_study() -> None:
             "(0 = never treated)."
         )
         return
-    assert active.ts is not None  # narrowed by _is_panel
-    unit, time = active.cs_list[0], active.ts
+    assert active.time is not None  # narrowed by _is_panel
+    unit, time = active.entities[0], active.time
     st.caption(f"Unit: **{unit}** · Time: **{time}**")
     c1, c2, c3 = st.columns(3)
     with c1:
@@ -373,8 +503,8 @@ def page_panel_models() -> None:
     if not _is_panel(active):
         st.info("Panel models need a cross-section id and a time dimension.")
         return
-    assert active.ts is not None  # narrowed by _is_panel
-    entity, time = active.cs_list[0], active.ts
+    assert active.time is not None  # narrowed by _is_panel
+    entity, time = active.entities[0], active.time
     st.caption(f"Entity: **{entity}** · Time: **{time}**")
     dv = st.selectbox("Dependent variable", _numeric(active), key="pm_dv")
     xs = st.multiselect("Independent variables", _numeric(active), key="pm_xs")
@@ -443,6 +573,9 @@ def page_explainers() -> None:
 # Extra pages appended after the data-driven ones. Event study and panel models need a
 # panel structure (callable gate); the sandboxes and explainers pages are always available.
 _PAGE_SPECS.append(
+    ("Panel structure", "🧱", "panel_structure", page_panel_structure, _is_panel)
+)
+_PAGE_SPECS.append(
     ("Event study & DiD", "🎯", "event_study", page_event_study, _is_panel)
 )
 _PAGE_SPECS.append(("Panel models", "🪧", "panel_models", page_panel_models, _is_panel))
@@ -457,6 +590,7 @@ _MODULE: dict[str, str] = {
     "by_group": "explore",
     "trends": "explore",
     "correlations": "explore",
+    "panel_structure": "explore",
     "regression": "analyze",
     "event_study": "analyze",
     "panel_models": "analyze",

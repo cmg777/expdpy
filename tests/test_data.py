@@ -52,12 +52,29 @@ def test_load_kuznets():
 def test_load_kuznets_data_def():
     dd = data.load_kuznets_data_def()
     assert list(dd["var_name"]) == list(data.load_kuznets().columns)
-    assert set(dd["type"]).issubset({"cs_id", "ts_id", "factor", "logical", "numeric"})
+    assert set(dd["type"]).issubset({"entity", "time", "factor", "logical", "numeric"})
     assert dd["can_be_na"].dtype == bool
     # Panel identifiers are flagged and never missing.
-    ids = dd.loc[dd["type"].isin(["cs_id", "ts_id"]), "var_name"]
+    ids = dd.loc[dd["type"].isin(["entity", "time"]), "var_name"]
     assert set(ids) == {"country", "iso", "year"}
     assert not data.load_kuznets()[list(ids)].isna().any().any()
+
+
+def test_load_firms_is_unbalanced():
+    df = data.load_firms()
+    assert {"firm", "year", "sector", "revenue", "size_class"}.issubset(df.columns)
+    obs_per_firm = df.groupby("firm")["year"].nunique()
+    # the dataset is deliberately unbalanced (varying periods per firm)
+    assert obs_per_firm.min() < obs_per_firm.max()
+    assert set(df["size_class"]) == {"small", "medium", "large"}
+
+
+def test_load_firms_data_def():
+    dd = data.load_firms_data_def()
+    assert list(dd["var_name"]) == list(data.load_firms().columns)
+    assert set(dd["type"]).issubset({"entity", "time", "factor", "logical", "numeric"})
+    ids = dd.loc[dd["type"].isin(["entity", "time"]), "var_name"]
+    assert set(ids) == {"firm", "year"}
 
 
 def test_data_defs_have_can_be_na_bool():
@@ -68,7 +85,7 @@ def test_data_defs_have_can_be_na_bool():
 
 def test_data_def_types_valid():
     dd = data.load_gapminder_data_def()
-    assert set(dd["type"]).issubset({"cs_id", "ts_id", "factor", "logical", "numeric"})
+    assert set(dd["type"]).issubset({"entity", "time", "factor", "logical", "numeric"})
 
 
 def test_get_config():

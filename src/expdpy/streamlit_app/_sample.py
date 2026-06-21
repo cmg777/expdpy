@@ -24,8 +24,8 @@ _OUTLIER = {
 def apply_user_vars(
     df: pd.DataFrame,
     var_def: pd.DataFrame,
-    cs_id: Sequence[str] | None = None,
-    ts_id: str | None = None,
+    entities: Sequence[str] | None = None,
+    time: str | None = None,
 ) -> pd.DataFrame:
     """Build an analysis sample by evaluating ``var_def`` expressions (advanced mode).
 
@@ -36,7 +36,7 @@ def apply_user_vars(
     var_def
         A frame with at least ``var_name`` and ``var_def`` columns. Each ``var_def`` is a
         safe expression (see :func:`expdpy.streamlit_app._udv.evaluate_var_def`).
-    cs_id, ts_id
+    entities, time
         Panel identifiers for ``lag``/``lead``.
 
     Returns
@@ -50,14 +50,14 @@ def apply_user_vars(
         if expr in df.columns:  # plain rename / passthrough
             out[name] = df[expr].to_numpy()
         else:
-            out[name] = evaluate_var_def(str(expr), df, cs_id, ts_id).to_numpy()
+            out[name] = evaluate_var_def(str(expr), df, entities, time).to_numpy()
     return pd.DataFrame(out, index=df.index)
 
 
 def build_analysis_sample(
     df: pd.DataFrame,
-    cs_id: Sequence[str] | None,
-    ts_id: str | None,
+    entities: Sequence[str] | None,
+    time: str | None,
     config: dict,
 ) -> pd.DataFrame:
     """Apply subset, balanced-panel and outlier-treatment steps to ``df``.
@@ -69,7 +69,7 @@ def build_analysis_sample(
     ----------
     df
         The (already constructed) analysis sample.
-    cs_id, ts_id
+    entities, time
         Panel identifiers.
     config
         The app configuration (see :mod:`expdpy.streamlit_app._state`).
@@ -79,7 +79,7 @@ def build_analysis_sample(
     pandas.DataFrame
         The prepared sample.
     """
-    cs_id = list(cs_id) if cs_id else []
+    entities = list(entities) if entities else []
     out = df.copy()
 
     # 1. Subset by a factor level.
@@ -93,11 +93,11 @@ def build_analysis_sample(
         out = out[out[sf].astype(str) == str(sv)]
 
     # 2. Balanced panel: keep cross-sections present in every period.
-    if config.get("balanced_panel") and cs_id and ts_id and ts_id in out.columns:
-        n_periods = out[ts_id].nunique()
-        counts = out.groupby(cs_id, observed=True)[ts_id].nunique()
+    if config.get("balanced_panel") and entities and time and time in out.columns:
+        n_periods = out[time].nunique()
+        counts = out.groupby(entities, observed=True)[time].nunique()
         keep = counts[counts == n_periods].index
-        out = out.set_index(cs_id)
+        out = out.set_index(entities)
         out = out.loc[out.index.isin(keep)].reset_index()
 
     # 3. Outlier treatment.
@@ -107,7 +107,7 @@ def build_analysis_sample(
         num_cols = [
             c
             for c in out.columns
-            if c not in [*cs_id, ts_id]
+            if c not in [*entities, time]
             and pd.api.types.is_numeric_dtype(out[c])
             and not pd.api.types.is_bool_dtype(out[c])
         ]

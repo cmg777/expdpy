@@ -30,7 +30,7 @@ def test_correlation_graph(sample_df):
 
 
 def test_trend_graph_traces_and_means(sample_df):
-    res = prepare_trend_graph(sample_df, ts_id="year", var=["x1", "x2"])
+    res = prepare_trend_graph(sample_df, var=["x1", "x2"], time="year")
     assert len(res.fig.data) == 2
     assert {"variable", "year", "mean", "se"}.issubset(res.df.columns)
     # the mean for one cell matches a direct groupby mean
@@ -42,14 +42,14 @@ def test_trend_graph_traces_and_means(sample_df):
 
 
 def test_quantile_trend_graph(sample_df):
-    res = prepare_quantile_trend_graph(sample_df, ts_id="year", var="x3")
+    res = prepare_quantile_trend_graph(sample_df, var="x3", time="year")
     assert len(res.fig.data) == 5
     assert set(res.df["quantile"].cat.categories) == {"q05", "q25", "q50", "q75", "q95"}
 
 
 def test_quantile_median_matches_r(sample_df, goldens):
     res = prepare_quantile_trend_graph(
-        sample_df, ts_id="year", var="x3", quantiles=[0.5]
+        sample_df, quantiles=[0.5], var="x3", time="year"
     )
     q50 = res.df.set_index("year")["x3"]
     for year, gold in goldens["median_x3_by_year"].items():
@@ -63,14 +63,16 @@ def test_by_group_bar(sample_df):
 
 
 def test_by_group_trend(sample_df):
-    res = prepare_by_group_trend_graph(sample_df, "year", "grp", "x1", error_bars=True)
+    res = prepare_by_group_trend_graph(
+        sample_df, "grp", "x1", time="year", error_bars=True
+    )
     assert len(res.fig.data) == sample_df["grp"].nunique()
 
 
 def test_by_group_violin(sample_df):
-    fig = prepare_by_group_violin_graph(sample_df, "grp", "x1")
-    assert isinstance(fig, go.Figure)
-    assert len(fig.data) == sample_df["grp"].nunique()
+    res = prepare_by_group_violin_graph(sample_df, "grp", "x1")
+    assert isinstance(res.fig, go.Figure)
+    assert len(res.fig.data) == sample_df["grp"].nunique()
 
 
 def test_histogram_bins(sample_df):
@@ -85,37 +87,49 @@ def test_bar_chart_counts(sample_df):
 
 
 def test_missing_values_graph(kuznets):
-    fig = prepare_missing_values_graph(kuznets, ts_id="year")
-    assert isinstance(fig, go.Figure)
-    figb = prepare_missing_values_graph(kuznets, ts_id="year", binary=True)
-    assert isinstance(figb, go.Figure)
+    res = prepare_missing_values_graph(kuznets, time="year")
+    assert isinstance(res.fig, go.Figure)
+    resb = prepare_missing_values_graph(kuznets, time="year", binary=True)
+    assert isinstance(resb.fig, go.Figure)
+
+
+def test_missing_values_by_entity(kuznets):
+    res = prepare_missing_values_graph(kuznets, entity="country", by="entity")
+    assert res.df.shape[0] == kuznets["country"].nunique()
 
 
 def test_missing_values_requires_clean_ts(sample_df):
     df = sample_df.copy()
     df.loc[0, "year"] = np.nan
     with pytest.raises(ValueError):
-        prepare_missing_values_graph(df, ts_id="year")
+        prepare_missing_values_graph(df, time="year")
 
 
 def test_scatter_default_alpha_and_loess(sample_df):
     from expdpy.scatter import _default_alpha
 
-    fig = prepare_scatter_plot(sample_df, "x1", "x2", loess=1)
-    assert isinstance(fig, go.Figure)
-    assert any(t.name == "loess" for t in fig.data)
-    assert fig.data[0].marker.opacity == pytest.approx(_default_alpha(len(sample_df)))
+    res = prepare_scatter_plot(sample_df, "x1", "x2", loess=1)
+    assert isinstance(res.fig, go.Figure)
+    assert any(t.name == "loess" for t in res.fig.data)
+    assert res.fig.data[0].marker.opacity == pytest.approx(
+        _default_alpha(len(sample_df))
+    )
 
 
 def test_scatter_small_sample_alpha_one(sample_df):
-    fig = prepare_scatter_plot(sample_df.head(50), "x1", "x2")
-    assert fig.data[0].marker.opacity == pytest.approx(1.0)
+    res = prepare_scatter_plot(sample_df.head(50), "x1", "x2")
+    assert res.fig.data[0].marker.opacity == pytest.approx(1.0)
 
 
 def test_scatter_color_categorical(sample_df):
-    fig = prepare_scatter_plot(sample_df, "x1", "x2", color="grp")
-    names = {t.name for t in fig.data}
+    res = prepare_scatter_plot(sample_df, "x1", "x2", color="grp")
+    names = {t.name for t in res.fig.data}
     assert {"A", "B", "C"}.issubset(names)
+
+
+def test_scatter_requires_numeric_axes(sample_df):
+    with pytest.raises(ValueError):
+        prepare_scatter_plot(sample_df, "grp", "x1")
 
 
 @pytest.mark.parametrize(

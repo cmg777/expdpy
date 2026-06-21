@@ -30,8 +30,8 @@ def test_varcats(kuznets):
     vc = create_var_categories(kuznets, ["country"], "year", factor_cutoff=10)
     assert "gdp_pc" in vc.numeric
     assert "continent" in vc.factor
-    assert "year" in vc.ts_id
-    assert "country" in vc.cs_id
+    assert "year" in vc.times
+    assert "country" in vc.entities
     # Panel identifiers are usable as fixed effects, but not as grouping factors.
     assert {"country", "year"}.issubset(vc.fe_choices)
     assert "country" not in vc.grouping and "year" not in vc.grouping
@@ -83,7 +83,7 @@ def test_udv_grouped_lag():
     df = pd.DataFrame(
         {"a": [1.0, 2, 3, 4], "cs": [1, 1, 2, 2], "yr": [2010, 2011, 2010, 2011]}
     )
-    out = evaluate_var_def("lag(a, 1)", df, cs_id=["cs"], ts_id="yr")
+    out = evaluate_var_def("lag(a, 1)", df, entities=["cs"], time="yr")
     assert np.isnan(out.iloc[0]) and out.iloc[1] == 1.0
 
 
@@ -124,7 +124,7 @@ def test_export_script_and_zip(kuznets):
         "reg_y": "gini_regional",
         "reg_x": ["log_gdp_pc"],
     }
-    script = build_script(cfg, comps, ts_id="year")
+    script = build_script(cfg, comps, time="year")
     assert "ex.prepare_descriptive_table" in script
     assert "ex.prepare_regression_table" in script
     assert len(build_notebook(cfg, comps)) > 100

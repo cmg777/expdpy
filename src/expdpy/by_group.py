@@ -8,8 +8,13 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
+from expdpy._panel import resolve_panel
 from expdpy._theme import apply_default_layout, color_for
-from expdpy._types import ByGroupBarGraphResult, ByGroupTrendGraphResult
+from expdpy._types import (
+    ByGroupBarGraphResult,
+    ByGroupTrendGraphResult,
+    ByGroupViolinResult,
+)
 from expdpy._validation import ensure_dataframe
 from expdpy.trends import _se, _try_convert_ts_id, _xaxis
 
@@ -18,6 +23,18 @@ __all__ = [
     "prepare_by_group_trend_graph",
     "prepare_by_group_violin_graph",
 ]
+
+
+def _sorted_levels(values: pd.Series) -> list[str]:
+    """Return the distinct levels of ``values`` sorted numerically when possible.
+
+    Group labels like ``"2"`` and ``"10"`` must order as 2 < 10, not lexically.
+    """
+    levels = list(dict.fromkeys(values.astype(str)))
+    num = pd.to_numeric(pd.Series(levels), errors="coerce")
+    if not num.isna().any():
+        return [lvl for _, lvl in sorted(zip(num, levels, strict=True))]
+    return sorted(levels)
 
 
 def prepare_by_group_bar_graph(
@@ -81,11 +98,22 @@ def prepare_by_group_bar_graph(
     ```
     """
     df = ensure_dataframe(df)
+    for col in (by_var, var):
+        if col not in df.columns:
+            raise ValueError(f"{col} needs to be in df")
+
     stat_col = f"stat_{var}"
+
+    def _stat(s: pd.Series) -> float:
+        vals = s.dropna().to_numpy()
+        if vals.size == 0:
+            return float("nan")  # avoid nanmean's "empty slice" warning
+        return float(stat_fun(vals))
+
     grouped = (
         df[[by_var, var]]
         .groupby(by_var, sort=False, observed=True)[var]
-        .apply(lambda s: float(stat_fun(s.dropna().to_numpy())))
+        .apply(_stat)
         .reset_index()
     )
     grouped.columns = [by_var, stat_col]
@@ -100,7 +128,8 @@ def prepare_by_group_bar_graph(
             x=grouped[stat_col],
             y=grouped[by_var].astype(str),
             orientation="h",
-            marker_color=bar_color,
+            marker={"color": bar_color, "line": {"color": "white", "width": 0.5}},
+            hovertemplate=f"{by_var}=%{{y}}<br>{stat_col}=%{{x:.4g}}<extra></extra>",
         )
     )
     apply_default_layout(
@@ -117,10 +146,10 @@ def prepare_by_group_bar_graph(
 
 def prepare_by_group_trend_graph(
     df: pd.DataFrame,
-    ts_id: str,
     group_var: str,
     var: str,
     *,
+    time: str | None = None,
     points: bool = True,
     error_bars: bool = False,
 ) -> ByGroupTrendGraphResult:
@@ -130,12 +159,13 @@ def prepare_by_group_trend_graph(
     ----------
     df
         Data frame containing the time index, grouping factor and variable.
-    ts_id
-        Time-series identifier column.
     group_var
         Grouping column.
     var
         Numeric variable to plot.
+    time
+        Time identifier column. Defaults to the panel ``time`` declared via
+        :func:`expdpy.set_panel`.
     points
         Whether to mark each observation with a point.
     error_bars
@@ -144,7 +174,7 @@ def prepare_by_group_trend_graph(
     Returns
     -------
     ByGroupTrendGraphResult
-        ``df`` (columns ``ts_id``, ``group_var``, ``mean``, ``se``) and the Plotly ``fig``.
+        ``df`` (columns ``time``, ``group_var``, ``mean``, ``se``) and the Plotly ``fig``.
 
     Examples
     --------
@@ -156,7 +186,7 @@ def prepare_by_group_trend_graph(
 
     df = load_kuznets()
     ex.prepare_by_group_trend_graph(
-        df, ts_id="year", group_var="continent", var="gini_regional"
+        df, group_var="continent", var="gini_regional", time="year"
     ).fig
     ```
 
@@ -164,32 +194,34 @@ def prepare_by_group_trend_graph(
 
     ```python
     ex.prepare_by_group_trend_graph(
-        df, ts_id="year", group_var="continent", var="gini_regional",
+        df, group_var="continent", var="gini_regional", time="year",
         error_bars=True, points=False,
     ).fig
     ```
     """
     df = ensure_dataframe(df)
-    for col in (ts_id, group_var, var):
+    _entity, time = resolve_panel(df, None, time, require_time=True)
+    assert time is not None  # require_time=True guarantees this
+    for col in (time, group_var, var):
         if col not in df.columns:
             raise ValueError(f"{col} needs to be in df")
 
-    sub = df[[ts_id, group_var, var]].dropna()
-    ts_conv, ordered = _try_convert_ts_id(sub[ts_id])
-    sub = sub.assign(**{ts_id: ts_conv})
+    sub = df[[time, group_var, var]].dropna()
+    ts_conv, ordered = _try_convert_ts_id(sub[time])
+    sub = sub.assign(**{time: ts_conv})
     sub[group_var] = sub[group_var].astype(str)
 
     gf = (
-        sub.groupby([ts_id, group_var], observed=True)[var]
+        sub.groupby([time, group_var], observed=True)[var]
         .agg(mean="mean", se=_se)
         .reset_index()
     )
 
     mode = "lines+markers" if points else "lines"
     fig = go.Figure()
-    for idx, level in enumerate(sorted(gf[group_var].unique())):
-        part = gf[gf[group_var] == level].sort_values(ts_id)
-        x = part[ts_id].astype(str) if ordered else part[ts_id]
+    for idx, level in enumerate(_sorted_levels(gf[group_var])):
+        part = gf[gf[group_var] == level].sort_values(time)
+        x = part[time].astype(str) if ordered else part[time]
         err = (
             {"type": "data", "array": part["se"], "visible": True}
             if error_bars
@@ -203,13 +235,16 @@ def prepare_by_group_trend_graph(
                 mode=mode,
                 name=str(level),
                 line={"color": color_for(idx)},
+                hovertemplate=f"{group_var}=%{{fullData.name}}<br>{time}=%{{x}}<br>"
+                "mean=%{y:.4g}<extra></extra>",
             )
         )
     apply_default_layout(
         fig,
-        xaxis=_xaxis(ts_id, ordered, ts_conv),
+        xaxis=_xaxis(time, ordered, ts_conv),
         yaxis={"title": var},
         legend_title_text=group_var,
+        hovermode="x unified",
     )
     return ByGroupTrendGraphResult(df=gf, fig=fig)
 
@@ -221,7 +256,7 @@ def prepare_by_group_violin_graph(
     *,
     order_by_mean: bool = False,
     group_on_y: bool = True,
-) -> go.Figure:
+) -> ByGroupViolinResult:
     """Violin plots of ``var`` distribution across ``by_var`` groups.
 
     Parameters
@@ -239,20 +274,19 @@ def prepare_by_group_violin_graph(
 
     Returns
     -------
-    plotly.graph_objects.Figure
-        The violin figure.
+    ByGroupViolinResult
+        ``df`` (the complete-case ``[by_var, var]`` frame) and the Plotly ``fig``.
 
     Examples
     --------
-    Basic — distribution of a variable across groups (this function returns a Plotly
-    figure directly, so there is no ``.fig`` attribute):
+    Basic — distribution of a variable across groups:
 
     ```python
     import expdpy as ex
     from expdpy.data import load_kuznets
 
     df = load_kuznets()
-    ex.prepare_by_group_violin_graph(df, "continent", "gini_regional")
+    ex.prepare_by_group_violin_graph(df, "continent", "gini_regional").fig
     ```
 
     Advanced — order groups by their mean and orient the violins vertically:
@@ -260,11 +294,16 @@ def prepare_by_group_violin_graph(
     ```python
     ex.prepare_by_group_violin_graph(
         df, "continent", "gini_regional", order_by_mean=True, group_on_y=False
-    )
+    ).fig
     ```
     """
     df = ensure_dataframe(df)
+    for col in (by_var, var):
+        if col not in df.columns:
+            raise ValueError(f"{col} needs to be in df")
     sub = df[[by_var, var]].dropna()
+    if sub.empty:
+        raise ValueError("no complete observations of by_var and var")
     sub[by_var] = sub[by_var].astype(str)
 
     levels = list(dict.fromkeys(sub[by_var]))
@@ -275,25 +314,17 @@ def prepare_by_group_violin_graph(
     fig = go.Figure()
     for idx, level in enumerate(levels):
         vals = sub.loc[sub[by_var] == level, var]
-        if group_on_y:
-            fig.add_trace(
-                go.Violin(
-                    x=vals,
-                    name=str(level),
-                    orientation="h",
-                    fillcolor=color_for(idx),
-                    line_color=color_for(idx),
-                )
+        axis = {"x": vals, "orientation": "h"} if group_on_y else {"y": vals}
+        fig.add_trace(
+            go.Violin(
+                name=str(level),
+                fillcolor=color_for(idx),
+                line_color=color_for(idx),
+                box_visible=True,
+                points="outliers",
+                **axis,
             )
-        else:
-            fig.add_trace(
-                go.Violin(
-                    y=vals,
-                    name=str(level),
-                    fillcolor=color_for(idx),
-                    line_color=color_for(idx),
-                )
-            )
+        )
     fig.update_traces(opacity=0.7, meanline_visible=True)
     apply_default_layout(fig, showlegend=False)
     if group_on_y:
@@ -310,4 +341,4 @@ def prepare_by_group_violin_graph(
             xaxis={"title": by_var, "categoryorder": "array", "categoryarray": levels},
             yaxis={"title": var},
         )
-    return fig
+    return ByGroupViolinResult(df=sub, fig=fig)

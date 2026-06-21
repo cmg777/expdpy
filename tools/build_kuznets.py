@@ -51,11 +51,11 @@ SCHEMA = [
     (
         "country",
         "Country_NAME",
-        "cs_id",
+        "entity",
         "Country identifier (synthetic, generic names)",
     ),
-    ("iso", "Country_ISO", "cs_id", "Country ISO code (synthetic, generic codes)"),
-    ("year", "year", "ts_id", "Calendar year"),
+    ("iso", "Country_ISO", "entity", "Country ISO code (synthetic, generic codes)"),
+    ("year", "year", "time", "Calendar year"),
     ("continent", "(new)", "factor", "Synthetic continent (grouping factor)"),
     (
         "gini_regional",
@@ -313,7 +313,7 @@ def build_data_def() -> pd.DataFrame:
             "var_name": [name for name, *_ in SCHEMA],
             "var_def": [desc for *_, desc in SCHEMA],
             "type": [typ for _, _, typ, _ in SCHEMA],
-            "can_be_na": [typ not in ("cs_id", "ts_id") for _, _, typ, _ in SCHEMA],
+            "can_be_na": [typ not in ("entity", "time") for _, _, typ, _ in SCHEMA],
         }
     )
 

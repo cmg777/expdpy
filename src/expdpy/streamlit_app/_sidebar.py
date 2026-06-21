@@ -43,8 +43,8 @@ class Active:
     data_id: str
     base_df: pd.DataFrame
     df_def: pd.DataFrame | None
-    cs_list: list[str]
-    ts: str | None
+    entities: list[str]
+    time: str | None
     sample: pd.DataFrame
     var_cats: VarCats
     active_components: list[str]
@@ -80,7 +80,7 @@ def _parse_upload(up) -> tuple[pd.DataFrame, str]:
 
 
 def _resolve_source(ctx: AppContext):
-    """Return ``(source_name, data_id, base_df, df_def, cs_list, ts)`` for the selection."""
+    """Return ``(source_name, data_id, base_df, df_def, entities, time)`` for the selection."""
     st.subheader("Data")
     built_in = list(ctx.samples) if ctx.samples else list(DATASETS)
     selected = w.selectbox("Dataset", built_in, key="sample") if built_in else None
@@ -103,12 +103,12 @@ def _resolve_source(ctx: AppContext):
             f"bundle:{name}",
             ctx.samples[name],
             ctx.df_def,
-            ctx.cs_list,
-            ctx.ts,
+            ctx.entities,
+            ctx.time,
         )
     base_df, df_def = _load_dataset(name)
-    cs_list, ts = handoff.resolve_ids(df_def, None, None)
-    return name, f"ds:{name}", base_df, df_def, cs_list, ts
+    entities, time = handoff.resolve_ids(df_def, None, None)
+    return name, f"ds:{name}", base_df, df_def, entities, time
 
 
 # ------------------------------------------------------------------------------ pipeline ---
@@ -220,7 +220,10 @@ def _render_io(ctx: AppContext, active: Active) -> None:
         st.download_button(
             "📓 Export notebook + data",
             data=build_export_zip(
-                current_config(ctx), active.active_components, active.sample, active.ts
+                current_config(ctx),
+                active.active_components,
+                active.sample,
+                active.time,
             ),
             file_name="ExPdPy_analysis.zip",
             mime="application/zip",
@@ -233,21 +236,21 @@ def render_sidebar(ctx: AppContext) -> Active:
     """Render the global sidebar and return the active dataset + prepared sample."""
     with st.sidebar:
         st.title("ExPdPy")
-        source_name, data_id, base_df, df_def, cs_list, ts = _resolve_source(ctx)
+        source_name, data_id, base_df, df_def, entities, time = _resolve_source(ctx)
 
         sample, var_cats, pre_subset, udv_error = pipeline.analysis(
-            data_id, base_df, cs_list, ts, ctx.factor_cutoff
+            data_id, base_df, entities, time, ctx.factor_cutoff
         )
         active = Active(
             source_name=source_name,
             data_id=data_id,
             base_df=base_df,
             df_def=df_def,
-            cs_list=cs_list,
-            ts=ts,
+            entities=entities,
+            time=time,
             sample=sample,
             var_cats=var_cats,
-            active_components=handoff.active_components(ctx.components, ts),
+            active_components=handoff.active_components(ctx.components, time),
         )
 
         _render_pipeline(active, pre_subset)

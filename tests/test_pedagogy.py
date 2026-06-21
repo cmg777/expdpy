@@ -159,7 +159,7 @@ def test_fwl_interpret(kuznets):
 
 
 def test_trend_interpret(kuznets):
-    res = ex.prepare_trend_graph(kuznets, ts_id="year", var=["gini_regional"])
+    res = ex.prepare_trend_graph(kuznets, var=["gini_regional"], time="year")
     text = res.interpret()
     assert "gini_regional" in text
     assert "2015" in text and "2025" in text

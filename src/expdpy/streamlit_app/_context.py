@@ -26,6 +26,8 @@ import pandas as pd
 import streamlit as st
 
 from expdpy.data import (
+    load_firms,
+    load_firms_data_def,
     load_gapminder,
     load_gapminder_data_def,
     load_kuznets,
@@ -44,6 +46,7 @@ DATASETS: dict[str, tuple[Callable[[], pd.DataFrame], Callable[[], pd.DataFrame]
     "Kuznets": (load_kuznets, load_kuznets_data_def),
     "Gapminder": (load_gapminder, load_gapminder_data_def),
     "Staggered DiD": (load_staggered_did, load_staggered_did_data_def),
+    "Firms (unbalanced)": (load_firms, load_firms_data_def),
 }
 
 _DEFAULT_TITLE = "ExPdPy — Explore your data!"
@@ -56,8 +59,8 @@ class AppContext:
     samples: dict[str, pd.DataFrame] = field(default_factory=dict)
     df_def: pd.DataFrame | None = None
     var_def: pd.DataFrame | None = None
-    cs_list: list[str] = field(default_factory=list)
-    ts: str | None = None
+    entities: list[str] = field(default_factory=list)
+    time: str | None = None
     components: Any = None
     factor_cutoff: int = 10
     title: str = _DEFAULT_TITLE
@@ -74,8 +77,8 @@ def _from_bundle(path: str) -> AppContext:
         samples=bundle.samples,
         df_def=bundle.df_def,
         var_def=bundle.var_def,
-        cs_list=bundle.cs_list,
-        ts=bundle.ts,
+        entities=bundle.entities,
+        time=bundle.time,
         components=bundle.components,
         factor_cutoff=bundle.factor_cutoff,
         title=bundle.title,

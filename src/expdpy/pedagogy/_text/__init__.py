@@ -12,6 +12,7 @@ from expdpy.pedagogy._text import (
     cre,
     learn,
     outliers,
+    panel,
     regression,
     tables,
 )
@@ -22,6 +23,7 @@ __all__ = [
     "cre",
     "learn",
     "outliers",
+    "panel",
     "regression",
     "tables",
 ]

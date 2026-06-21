@@ -25,7 +25,7 @@ df.head()
 
 ## Variable dictionary
 
-The bundled definition table marks the panel identifiers (`cs_id` / `ts_id`) and the variable
+The bundled definition table marks the panel identifiers (`entity` / `time`) and the variable
 types the app uses to populate its selectors. Each description also records the original
 Table-4 column name.
 
@@ -38,7 +38,7 @@ Highlights:
 - **`gini_regional`** — the outcome that follows the N-shape (regional inequality).
 - **`gdp_pc`** and its derived `log_gdp_pc`, `log_gdp_pc_sq`, `log_gdp_pc_cu` — income and the
   polynomial terms that make the cubic curve turnkey.
-- **`country`** (`cs_id`) and **`year`** (`ts_id`) — the panel identifiers, and the natural
+- **`country`** (`entity`) and **`year`** (`time`) — the panel identifiers, and the natural
   two-way fixed effects for any regression on this dataset.
 - **`continent`** (5 levels) and **`federal`** (0/1) — extra grouping factors for by-group
   views (and alternative fixed effects).
@@ -53,7 +53,7 @@ the rise–fall–rise directly:
 ```{python}
 ex.prepare_scatter_plot(
     df, x="log_gdp_pc", y="gini_regional", color="continent", size="population", loess=1
-)
+).fig
 ```
 
 ## Statistical evidence

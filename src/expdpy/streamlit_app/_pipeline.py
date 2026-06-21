@@ -51,7 +51,7 @@ def pipeline_cfg() -> dict:
 
 
 def _udv_frame(
-    data_id: str, base_df: pd.DataFrame, cs_list: list[str], ts: str | None
+    data_id: str, base_df: pd.DataFrame, entities: list[str], time: str | None
 ) -> tuple[pd.DataFrame, str | None]:
     """Apply user-defined variables (advanced mode), memoised on ``(data_id, records)``."""
     records = udv_records()
@@ -63,7 +63,7 @@ def _udv_frame(
         if records:
             try:
                 var_def = pd.DataFrame(list(records), columns=["var_name", "var_def"])
-                frame = apply_user_vars(base_df, var_def, cs_list, ts)
+                frame = apply_user_vars(base_df, var_def, entities, time)
             except Exception as exc:
                 error = str(exc)
                 frame = base_df
@@ -75,8 +75,8 @@ def _udv_frame(
 def analysis(
     data_id: str,
     base_df: pd.DataFrame,
-    cs_list: list[str],
-    ts: str | None,
+    entities: list[str],
+    time: str | None,
     factor_cutoff: int,
 ) -> tuple[pd.DataFrame, VarCats, pd.DataFrame, str | None]:
     """Build the analysis sample + variable categories for the current selections.
@@ -85,14 +85,14 @@ def analysis(
     ``pre_subset_frame`` (post user-defined-variables, pre subsetting) is used to populate
     the subset-value choices without collapsing them once a subset is applied.
     """
-    frame, udv_error = _udv_frame(data_id, base_df, cs_list, ts)
+    frame, udv_error = _udv_frame(data_id, base_df, entities, time)
     cfg = pipeline_cfg()
     key = (data_id, udv_records(), tuple(sorted(cfg.items())), int(factor_cutoff))
     memo = st.session_state.get("_sample_memo")
     if memo is None or memo["key"] != key:
-        sample = build_analysis_sample(frame, cs_list, ts, cfg)
+        sample = build_analysis_sample(frame, entities, time, cfg)
         var_cats = create_var_categories(
-            sample, cs_list, ts, factor_cutoff=factor_cutoff
+            sample, entities, time, factor_cutoff=factor_cutoff
         )
         memo = {"key": key, "sample": sample, "var_cats": var_cats}
         st.session_state["_sample_memo"] = memo

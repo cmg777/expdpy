@@ -16,6 +16,8 @@ import pandas as pd
 __all__ = [
     "available_configs",
     "get_config",
+    "load_firms",
+    "load_firms_data_def",
     "load_gapminder",
     "load_gapminder_data_def",
     "load_kuznets",
@@ -40,6 +42,22 @@ def _normalize_def(df: pd.DataFrame) -> pd.DataFrame:
         df = df.copy()
         df["can_be_na"] = df["can_be_na"].astype(float).astype(bool)
     return df
+
+
+def load_firms() -> pd.DataFrame:
+    """Load the synthetic *unbalanced* firms panel (staggered entry/exit, gaps, AR-1 revenue).
+
+    A small firm-year panel built to exercise the panel-structure diagnostics (it is
+    deliberately unbalanced, with varying numbers of periods per firm and a few interior
+    gaps), the transition matrix (the discrete ``size_class`` moves over time) and the
+    within-unit persistence view (``log_revenue`` follows a persistent AR-1 process).
+    """
+    return _read_parquet("firms")
+
+
+def load_firms_data_def() -> pd.DataFrame:
+    """Return variable definitions for :func:`load_firms`."""
+    return _normalize_def(_read_parquet("firms_data_def"))
 
 
 def load_gapminder() -> pd.DataFrame:
