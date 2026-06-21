@@ -132,14 +132,14 @@ pip install "expdpy[streamlit] @ git+https://github.com/cmg777/expdpy.git"
 Pin to a release, branch, or commit for reproducible installs:
 
 ```bash
-pip install "expdpy==0.5.0"
-pip install "git+https://github.com/cmg777/expdpy.git@v0.5.0"
+pip install "expdpy==0.4.2"
+pip install "git+https://github.com/cmg777/expdpy.git@v0.4.2"
 pip install "git+https://github.com/cmg777/expdpy.git@main"
 ```
 
 Requires Python 3.10+.
 
-> **Upgrading from 0.4.x?** In **0.5.0** every analysis function gained a module prefix:
+> **Upgrading from 0.4.1?** In **0.4.2** every analysis function gained a module prefix:
 > `prepare_*` → `explore_*` / `analyze_*` and `sandbox_*` → `learn_*`, with figures ending in
 > `_plot`, tables in `_table`, and scope qualifiers moved to the end (e.g.
 > `prepare_by_group_violin_graph` → `explore_violin_plot_by_group`). The utilities `set_panel`,

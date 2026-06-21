@@ -2,7 +2,7 @@
 title: "Changelog"
 ---
 
-## 0.5.0 (2026-06-21)
+## 0.4.2 (2026-06-21)
 
 **API-wide function rename.** Every analysis function is now prefixed with its module, so the
 name tells you which workflow it belongs to and reads consistently across the library. **This

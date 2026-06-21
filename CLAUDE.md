@@ -18,7 +18,7 @@ Guidance for working in this repository. Keep it current when commands or conven
   every result.
 
 Three no-code **Streamlit** apps (one per module). `src/` layout, Python ≥ 3.10, managed with
-**pixi**. Current version: 0.5.0.
+**pixi**. Current version: 0.4.2.
 
 ## Commands
 
@@ -65,7 +65,7 @@ public API is curated in `src/expdpy/__init__.py` (`__all__` grouped by module).
   kwargs, and the `df_def` `type` metadata. `set_panel(df, entity=, time=)` declares the panel
   once (stored on `df.attrs`); explicit per-call args always win (`resolve_panel`). New
   functions take `entity`/`time` keyword-only.
-- **Public functions are module-prefixed** (renamed in 0.5.0, replacing the old `prepare_*` /
+- **Public functions are module-prefixed** (renamed in 0.4.2, replacing the old `prepare_*` /
   `sandbox_*` names): `explore_*` (Explore), `analyze_*` (Analyze), `learn_*` (Learn).
   Plotly-figure functions end in `_plot`, Great-Tables functions in `_table`, and scope
   qualifiers go last (e.g. `explore_violin_plot_by_group`). The cross-cutting helpers
@@ -109,6 +109,16 @@ public API is curated in `src/expdpy/__init__.py` (`__all__` grouped by module).
 - `df_def.type ∈ {entity, time, factor, logical, numeric}`. Build scripts live in `tools/`.
 - Launch apps in-process with `ExploreApp(df, entity=, time=, df_def=...)` /
   `AnalyzeApp` / `LearnApp` (kwargs are `entity`/`time`, renamed from `cs_id`/`ts_id` in 0.4.1).
+
+## Versioning
+
+Version bumps are **gradual by default**: increment the patch component by **+0.0.1** (e.g.
+0.4.2 → 0.4.3) on any releasable change — you don't need to be asked. Make a larger jump
+(minor `+0.1.0` / major `+1.0.0`) **only when the user explicitly asks**; a breaking change on
+its own does *not* justify a bigger bump. Keep the version in sync across `pyproject.toml`
+(`[project] version`), `src/expdpy/__init__.py` (`__version__`), and the "Current version"
+line in the Overview above; for a user-facing release also add a dated `## <version>` entry to
+`docs/changelog.qmd` and update the install pins in `README.md`.
 
 ## Gotchas
 
