@@ -21,8 +21,8 @@ jobs:
     name: Lint & type-check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: prefix-dev/setup-pixi@v0.8.1
+      - uses: actions/checkout@v7
+      - uses: prefix-dev/setup-pixi@v0.9.6
         with:
           environments: lint
       - name: Ruff (lint)
@@ -41,8 +41,8 @@ jobs:
         os: [ubuntu-latest, macos-latest]
         environment: [py310, py313]
     steps:
-      - uses: actions/checkout@v4
-      - uses: prefix-dev/setup-pixi@v0.8.1
+      - uses: actions/checkout@v7
+      - uses: prefix-dev/setup-pixi@v0.9.6
         with:
           environments: ${{ matrix.environment }}
       - name: Run tests
@@ -58,8 +58,8 @@ jobs:
     name: R parity (vs ExPanDaR)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: prefix-dev/setup-pixi@v0.8.1
+      - uses: actions/checkout@v7
+      - uses: prefix-dev/setup-pixi@v0.9.6
         with:
           environments: r
       - name: Install ExPanDaR (best effort)
