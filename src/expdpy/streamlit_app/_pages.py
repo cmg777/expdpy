@@ -252,6 +252,7 @@ _PAGE_SPECS: list[PageSpec] = [
 def page_sandboxes() -> None:
     """Interactive teaching demos that simulate data — no dataset required."""
     from expdpy import (
+        learn_beta_convergence,
         learn_clustering_se,
         learn_first_differences,
         learn_omitted_variable_bias,
@@ -271,6 +272,7 @@ def page_sandboxes() -> None:
             "Clustered standard errors",
             "First differences",
             "Within vs LSDV",
+            "Beta convergence",
         ]
     )
     with tabs[0]:
@@ -309,6 +311,31 @@ def page_sandboxes() -> None:
     with tabs[4]:
         periods = st.slider("Periods per unit", 2, 12, 6, 1, key="wl_periods")
         res = learn_within_vs_lsdv(n_periods=int(periods))
+        st.plotly_chart(res.fig, width="stretch", config=PLOTLY_CONFIG)
+        st.markdown(res.interpret())
+        with st.expander("❓ What is this?"):
+            st.markdown(res.explain().to_markdown())
+    with tabs[5]:
+        rho = st.slider(
+            "AR(1) persistence rho (higher = slower convergence)",
+            0.5,
+            0.99,
+            0.9,
+            0.01,
+            key="bc_rho",
+        )
+        corr = st.slider(
+            "Correlation between the determinant z and the initial level",
+            0.0,
+            0.95,
+            0.7,
+            0.05,
+            key="bc_corr",
+        )
+        gamma = st.slider(
+            "Loading on the determinant z", 0.0, 2.0, 0.6, 0.1, key="bc_g"
+        )
+        res = learn_beta_convergence(rho=rho, corr=corr, gamma=gamma)
         st.plotly_chart(res.fig, width="stretch", config=PLOTLY_CONFIG)
         st.markdown(res.interpret())
         with st.expander("❓ What is this?"):
@@ -555,6 +582,37 @@ def page_panel_models() -> None:
         st.markdown(cre.explain().to_markdown())
 
 
+def page_sigma_convergence() -> None:
+    """Track whether the cross-sectional dispersion of a variable shrinks over time."""
+    from expdpy import analyze_sigma_convergence
+
+    active = _active_or_stop()
+    st.header("Sigma convergence")
+    if not _is_panel(active):
+        st.info(
+            "Sigma convergence needs a panel: a cross-section id and a time dimension."
+        )
+        return
+    assert active.time is not None  # narrowed by _is_panel
+    entity, time = active.entities[0], active.time
+    st.caption(f"Entity: **{entity}** · Time: **{time}**")
+    var = st.selectbox("Variable", _numeric(active), key="sigma_var")
+    if not var or var == "None":
+        st.info("Choose a numeric variable to track its cross-sectional dispersion.")
+        return
+    try:
+        res = analyze_sigma_convergence(active.sample, var, entity=entity, time=time)
+    except Exception as exc:  # surface the message, keep the page alive
+        st.info(str(exc))
+        return
+    st.plotly_chart(res.fig, width="stretch", config=PLOTLY_CONFIG)
+    st.markdown(res.interpret())
+    for note in res.notes:
+        st.caption(f"⚠️ {note}")
+    with st.expander("❓ What is this? (method explainer)"):
+        st.markdown(res.explain().to_markdown())
+
+
 def page_explainers() -> None:
     """Browse the concept explainers — the Learn module's topic index."""
     from expdpy import explain, list_topics
@@ -579,6 +637,9 @@ _PAGE_SPECS.append(
     ("Event study & DiD", "🎯", "event_study", page_event_study, _is_panel)
 )
 _PAGE_SPECS.append(("Panel models", "🪧", "panel_models", page_panel_models, _is_panel))
+_PAGE_SPECS.append(
+    ("Sigma convergence", "📉", "sigma_convergence", page_sigma_convergence, _is_panel)
+)
 _PAGE_SPECS.append(("Concept sandboxes", "🧪", "sandboxes", page_sandboxes, None))
 _PAGE_SPECS.append(("Concept explainers", "📚", "explainers", page_explainers, None))
 
@@ -594,6 +655,7 @@ _MODULE: dict[str, str] = {
     "regression": "analyze",
     "event_study": "analyze",
     "panel_models": "analyze",
+    "sigma_convergence": "analyze",
     "sandboxes": "learn",
     "explainers": "learn",
 }

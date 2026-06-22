@@ -78,3 +78,51 @@ def test_within_equals_lsdv_for_many_periods():
     assert res.topic == "within_transformation"
     assert res.explain().topic == "within_transformation"
     assert "lsdv" in res.interpret().lower() or "dummy" in res.interpret().lower()
+
+
+def test_beta_convergence_conditional_recovers_truth():
+    res = ex.learn_beta_convergence(rho=0.9, gamma=0.6, corr=0.7, seed=0)
+    assert isinstance(res, SandboxResult)
+    assert isinstance(res.fig, go.Figure)
+    s = res.summary
+    # Conditional recovers the true convergence slope; unconditional is biased away from it.
+    assert abs(s["conditional_coef"] - s["true_beta"]) < 5e-3
+    assert abs(s["unconditional_coef"] - s["true_beta"]) > abs(
+        s["conditional_coef"] - s["true_beta"]
+    )
+    # Recovered speed of convergence matches the AR(1) truth (-ln rho).
+    assert abs(s["conditional_speed"] - s["true_speed"]) < 1e-2
+    assert res.topic == "beta_convergence"
+    assert "convergence" in res.interpret().lower()
+    assert res.explain().topic == "beta_convergence"
+
+
+def test_beta_convergence_bias_grows_with_loading():
+    # A larger loading on the omitted determinant biases the unconditional slope more.
+    low = ex.learn_beta_convergence(gamma=0.2, seed=3).summary
+    high = ex.learn_beta_convergence(gamma=1.0, seed=3).summary
+    bias_low = abs(low["unconditional_coef"] - low["true_beta"])
+    bias_high = abs(high["unconditional_coef"] - high["true_beta"])
+    assert bias_high > bias_low
+
+
+def test_sigma_convergence_recovers_true_dispersion_rate():
+    res = ex.learn_sigma_convergence(rho=0.93, seed=0)
+    assert isinstance(res, SandboxResult)
+    assert isinstance(res.fig, go.Figure)
+    s = res.summary
+    # Each dispersion measure narrows at the known log-rate ln(rho) (exact, noiseless DGP).
+    assert abs(s["true_slope"] - s["std_slope"]) < 1e-9
+    assert abs(s["true_slope"] - s["gini_slope"]) < 1e-9
+    assert abs(s["true_slope"] - s["cv_slope"]) < 1e-9
+    assert s["std_slope"] < 0  # convergence
+    assert res.topic == "sigma_convergence"
+    assert "convergence" in res.interpret().lower()
+    assert res.explain().topic == "sigma_convergence"
+
+
+def test_sigma_convergence_rate_tracks_rho():
+    # A smaller rho (faster contraction) gives a more negative true log-dispersion rate.
+    fast = ex.learn_sigma_convergence(rho=0.80, seed=1).summary
+    slow = ex.learn_sigma_convergence(rho=0.97, seed=1).summary
+    assert fast["std_slope"] < slow["std_slope"] < 0

@@ -1,0 +1,256 @@
+---
+title: "analyze_beta_convergence"
+jupyter: python3
+---
+
+```{=html}
+<p style="margin: 0.25rem 0 1.25rem;">
+  <strong>Run this page interactively in Google Colab — no install required:</strong><br>
+  <a href="https://colab.research.google.com/github/cmg777/expdpy/blob/main/notebooks/analyze_beta_convergence.ipynb" target="_blank" rel="noopener">
+    <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab">
+  </a>
+</p>
+```
+
+This page is two things at once: an **extended user guide** for
+`analyze_beta_convergence` — what it does, every argument, and everything it returns — and a
+**testing environment** that generates synthetic data with *known* parameters and checks that
+the function recovers them. If a cell's `assert` ever fails, the function is broken.
+
+## What is β-convergence?
+
+β-convergence asks whether units that start **behind** grow **faster** and so catch up. For
+each unit $i$ we regress its average growth rate over a horizon $T$ on its **initial level**:
+
+$$
+g_i \;=\; \frac{y_{i,\text{end}} - y_{i,\text{start}}}{T} \;=\; \alpha + \beta\, y_{i,\text{start}} + \varepsilon_i .
+$$
+
+Canonically $y$ is **log** GDP per capita, so $g_i$ is the annualized growth rate and the
+x-axis is the initial log level. A **negative** slope $\beta$ is convergence. The slope maps
+to a structural **speed of convergence** and a **half-life**:
+
+$$
+\lambda = -\frac{\ln(1 + \beta\,T)}{T}, \qquad \text{half-life} = \frac{\ln 2}{\lambda}.
+$$
+
+**Unconditional** (absolute) convergence uses the initial level alone. **Conditional**
+convergence adds controls for each unit's steady-state determinants and, by the
+Frisch–Waugh–Lovell theorem, reads the convergence slope off a partial-regression scatter that
+holds those controls fixed. The variable is used **as you supply it** — the function never logs
+anything — so pass `log` GDP per capita for the income case, or a level for schooling/health.
+
+```{python}
+import numpy as np
+import pandas as pd
+
+import expdpy as ex
+```
+
+## 1. The method in one cell
+
+`analyze_beta_convergence(df, var, ...)` only needs the variable and the panel ids. Here is
+absolute convergence of (log) GDP per capita across countries in the bundled `gapminder`
+panel:
+
+```{python}
+from expdpy.data import load_gapminder
+
+gap = load_gapminder()
+gap["log_gdppc"] = np.log(gap["gdpPercap"])  # we log it ourselves — the function does not
+
+res = ex.analyze_beta_convergence(gap, "log_gdppc", entity="country", time="year")
+res.fig
+```
+
+Hover any point to read off the country. The annotation reports the slope β, its standard
+error, the R², N, and (when there is convergence) the speed λ and half-life.
+
+## 2. How the function works
+
+### Arguments
+
+| argument | what it does | when to change it |
+|---|---|---|
+| `var` | the panel variable analysed (used **as-is**, no log) | pass `log` GDP per capita for the income case; a level for rates |
+| `controls` | name(s) reduced to their **initial-year** value and partialled out (FWL) → conditional convergence | when units have different steady states (human capital, institutions) |
+| `entity`, `time` | the panel ids | omit if declared once via `set_panel` |
+| `start`, `end` | first/last year used to build the growth rate (shared horizon `T`) | to fix a comparable window; default = earliest/latest year present |
+| `rolling`, `window` | estimate β on every sliding window of `window` periods | `window` defaults to half the periods; set it to control the smoothing |
+| `min_obs` | minimum units required per cross-section / window | lower it on small panels |
+| `vcov` | `"hetero"` (HC1, default) or `"iid"` standard errors | `"iid"` for classical SEs; never changes the point estimate |
+
+### Conditional convergence (controls)
+
+With `controls`, the conditional slope is the coefficient on the initial level once the
+controls' initial values are partialled out. `fig_conditional` is the Frisch–Waugh–Lovell
+partial-regression scatter:
+
+```{python}
+res_c = ex.analyze_beta_convergence(
+    gap, "log_gdppc", controls=["lifeExp"], entity="country", time="year"
+)
+res_c.fig_conditional
+```
+
+### The comparison table
+
+`gt` renders the unconditional and conditional fits side by side — slope, R², N, speed λ and
+half-life — and `summary` is the numeric frame behind it:
+
+```{python}
+res_c.gt
+```
+
+### The rolling view
+
+With `rolling=True` (the default) the function re-estimates β on every fixed-width window and
+returns the time path in `rolling` plus the figure `fig_rolling`:
+
+```{python}
+res.fig_rolling
+```
+
+### Everything it returns
+
+```{python}
+print("scalars  :", {k: round(getattr(res, k), 4) for k in
+                     ["beta", "se", "r2", "speed", "half_life", "horizon"]})
+print("figures  :", [n for n in ("fig", "fig_conditional", "fig_rolling")
+                     if getattr(res, n) is not None])
+print("tables   : gt, summary", list(res.summary.columns))
+res.glance()
+```
+
+`.interpret()` reads the result in plain language, and `.explain()` returns the concept
+explainer:
+
+```{python}
+print(res_c.interpret())
+```
+
+## 3. Does it recover the truth?
+
+The cleanest test uses an **AR(1) in logs**, $x_{t+1} = a + \rho\,x_t + \varepsilon$, because
+its convergence parameters are known *exactly*: over a horizon $T$ the slope is
+$\beta = (\rho^{T}-1)/T$ and the structural speed is $\lambda = -\ln\rho$ (independent of the
+horizon), with half-life $\ln 2/\lambda$. We simulate it, run the function, and compare.
+
+```{python}
+def ar1_panel(*, n_units=150, n_years=21, rho=0.9, gamma=0.0, corr=0.6,
+              noise=0.005, seed=0):
+    """Annual AR(1) panel x_{t+1}=a+rho*x_t+gamma*z_i+eps; z_i a trait correlated with x_0."""
+    rng = np.random.default_rng(seed)
+    a = (1.0 - rho) * 10.0                      # steady-state level ~ 10
+    z = rng.normal(size=n_units)                # fixed steady-state determinant
+    x0 = 10.0 + 2.0 * (corr * z +
+                       np.sqrt(max(0.0, 1 - corr**2)) * rng.normal(size=n_units))
+    rows = []
+    for i in range(n_units):
+        x = float(x0[i])
+        for t in range(n_years):
+            rows.append((f"C{i:03d}", t, x, float(z[i])))
+            x = a + rho * x + gamma * float(z[i]) + rng.normal(0.0, noise)
+    return pd.DataFrame(rows, columns=["country", "year", "x", "z"])
+
+
+RHO, T = 0.9, 20
+panel = ar1_panel(rho=RHO, seed=1)
+fit = ex.analyze_beta_convergence(panel, "x", entity="country", time="year")
+
+beta_true = (RHO**T - 1) / T
+speed_true = -np.log(RHO)
+half_true = np.log(2) / speed_true
+
+check = pd.DataFrame(
+    {
+        "quantity": ["β (slope)", "speed λ", "half-life"],
+        "true": [beta_true, speed_true, half_true],
+        "recovered": [fit.beta, fit.speed, fit.half_life],
+    }
+)
+check["abs_error"] = (check["recovered"] - check["true"]).abs()
+check
+```
+
+```{python}
+# The function recovers the AR(1) truth to within tight tolerances.
+assert abs(fit.beta - beta_true) < 2e-3
+assert abs(fit.speed - speed_true) < 5e-3
+assert abs(fit.half_life - half_true) < 0.3
+print("✅ unconditional β, speed and half-life recovered")
+```
+
+### Conditional convergence removes omitted-variable bias
+
+Now let a fixed determinant `z` (correlated with the initial level) shift each unit's steady
+state. Omitting `z` biases the **unconditional** slope; conditioning on it recovers the truth.
+
+```{python}
+panel_c = ar1_panel(rho=RHO, gamma=0.6, corr=0.7, seed=2)
+fit_c = ex.analyze_beta_convergence(
+    panel_c, "x", controls=["z"], entity="country", time="year"
+)
+print(f"unconditional β : {fit_c.beta:+.4f}   (biased — omits z)")
+print(f"conditional   β : {fit_c.beta_cond:+.4f}   (recovers true {beta_true:+.4f})")
+
+assert abs(fit_c.beta_cond - beta_true) < 4e-3            # conditional ≈ truth
+assert abs(fit_c.beta - beta_true) > abs(fit_c.beta_cond - beta_true)  # uncond. biased
+print("✅ conditional convergence recovers the true slope; unconditional is biased")
+```
+
+### Rolling windows recover each window's slope
+
+For a fixed-width window of `w` periods the true slope is $(\rho^{w}-1)/w$. Every window should
+match it, and the implied speed should equal $-\ln\rho$ in every window.
+
+```{python}
+roll = ex.analyze_beta_convergence(
+    panel, "x", entity="country", time="year", window=4
+).rolling
+
+roll = roll.assign(
+    beta_true=lambda d: (RHO ** d["horizon"] - 1) / d["horizon"],
+    speed_true=speed_true,
+)
+for _, r in roll.iterrows():
+    assert abs(r["beta"] - r["beta_true"]) < 3e-3
+    assert abs(r["speed"] - r["speed_true"]) < 1e-2
+print(f"✅ all {len(roll)} rolling windows match (rho^w - 1)/w and speed -ln rho")
+roll[["window_start", "window_end", "beta", "beta_true", "speed"]].round(4)
+```
+
+## 4. Convergence across countries (gapminder)
+
+Back to real data. Across **all** 142 countries from 1952 to 2007 there is essentially **no
+absolute convergence** — poor and rich countries grew at similar rates (the classic
+"convergence controversy"):
+
+```{python}
+print(res.interpret())
+```
+
+But once we condition on a steady-state determinant — here initial **life expectancy**, a proxy
+for human capital and health — **conditional convergence** appears: the slope turns negative and
+significant, implying catch-up *relative to each country's own steady state*.
+
+```{python}
+res_c.gt
+```
+
+```{python}
+print(res_c.interpret())
+```
+
+The takeaway is the textbook one (Barro & Sala-i-Martin; Mankiw–Romer–Weil): absolute
+convergence fails across heterogeneous economies, while conditional convergence holds.
+
+## See also
+
+- `ex.learn_beta_convergence()` — a runnable Learn sandbox that demonstrates the
+  unconditional-vs-conditional distinction on a known-parameter panel.
+- `ex.explain("beta_convergence")` — the concept explainer (also `res.explain()`).
+
+```{python}
+ex.explain("beta_convergence")
+```

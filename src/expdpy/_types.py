@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING, Any
 from expdpy.pedagogy import Interpretable
 from expdpy.pedagogy import explain as _explain
 from expdpy.pedagogy._interpret import (
+    interpret_beta_convergence,
     interpret_correlation,
     interpret_cre,
     interpret_descriptive,
@@ -29,6 +30,7 @@ from expdpy.pedagogy._interpret import (
     interpret_panel_structure,
     interpret_regression,
     interpret_sandbox,
+    interpret_sigma_convergence,
     interpret_spaghetti,
     interpret_transition_matrix,
     interpret_trend,
@@ -46,6 +48,7 @@ if TYPE_CHECKING:
 
 __all__ = [
     "BarChartResult",
+    "BetaConvergenceResult",
     "ByGroupBarGraphResult",
     "ByGroupTrendGraphResult",
     "ByGroupViolinResult",
@@ -72,6 +75,7 @@ __all__ = [
     "RobustInferenceResult",
     "SandboxResult",
     "ScatterPlotResult",
+    "SigmaConvergenceResult",
     "SpaghettiGraphResult",
     "TransitionMatrixResult",
     "TrendGraphResult",
@@ -362,6 +366,155 @@ class FWLPlotResult(Interpretable):
                     "intercept": self.intercept,
                     "n_obs": self.n_obs,
                     "r2_within": self.r2_within,
+                }
+            ]
+        )
+
+
+@dataclass(frozen=True)
+class BetaConvergenceResult(Interpretable):
+    """Result of :func:`expdpy.analyze_beta_convergence`.
+
+    ``df`` is the per-unit cross-section the analysis is built on (initial level, final level,
+    annualized ``growth``, and any initial-year controls). ``fig`` is the unconditional
+    growth-vs-initial scatter (country on hover, with the regression annotation);
+    ``fig_conditional`` is the Frisch-Waugh-Lovell partial-regression scatter once ``controls``
+    are partialled out (``None`` when there are no controls); ``fig_rolling`` is the rolling
+    fixed-width-window plot of β over the window start year (``None`` when the panel is too
+    short). ``gt`` renders the comparison table (β, SE, R², N, speed λ, half-life) and
+    ``summary`` is the frame behind it. ``rolling`` is the tidy per-window frame (or ``None``).
+    ``models`` holds the fitted pyfixest model(s).
+
+    The scalar fields report the **unconditional** fit (``beta``, ``se``, ``r2``, ``n_obs``,
+    ``speed`` λ, ``half_life``) over the shared ``horizon`` ``T``; the ``*_cond`` fields report
+    the **conditional** fit and are ``nan`` / ``0`` when no controls are given.
+    """
+
+    df: pd.DataFrame
+    fig: go.Figure
+    fig_conditional: go.Figure | None
+    fig_rolling: go.Figure | None
+    gt: GT
+    summary: pd.DataFrame
+    rolling: pd.DataFrame | None
+    models: list[Any]
+    var: str
+    controls: tuple[str, ...]
+    horizon: float
+    beta: float
+    se: float
+    r2: float
+    n_obs: int
+    speed: float
+    half_life: float
+    beta_cond: float = float("nan")
+    se_cond: float = float("nan")
+    r2_cond: float = float("nan")
+    n_obs_cond: int = 0
+    speed_cond: float = float("nan")
+    half_life_cond: float = float("nan")
+    notes: tuple[str, ...] = ()
+
+    def interpret(self, *, lang: str = "en") -> str:
+        """Plain-language reading of the convergence slope, speed and half-life."""
+        return interpret_beta_convergence(self, lang=lang)
+
+    def explain(self, *, lang: str = "en") -> Explainer:
+        """Concept explainer for β-convergence."""
+        return _explain("beta_convergence", lang=lang)
+
+    def tidy(self) -> pd.DataFrame:
+        """Return the comparison frame (unconditional vs conditional metrics)."""
+        return self.summary
+
+    def glance(self) -> pd.DataFrame:
+        """One-row summary of the unconditional convergence fit (broom-style ``glance``)."""
+        import pandas as pd
+
+        return pd.DataFrame(
+            [
+                {
+                    "var": self.var,
+                    "horizon": self.horizon,
+                    "beta": self.beta,
+                    "se": self.se,
+                    "r2": self.r2,
+                    "n_obs": self.n_obs,
+                    "speed": self.speed,
+                    "half_life": self.half_life,
+                }
+            ]
+        )
+
+
+@dataclass(frozen=True)
+class SigmaConvergenceResult(Interpretable):
+    """Result of :func:`expdpy.analyze_sigma_convergence`.
+
+    ``df`` is the per-period dispersion table (one row per period: ``time``, ``n_units``,
+    ``mean``, ``std``, ``gini``, ``cv``). ``fig`` is the dual-axis time series — the standard
+    deviation on the left axis and the Gini index on the right — with dashed fitted trend
+    overlays. ``gt`` renders the trend table (one row per measure) and ``summary`` is the frame
+    behind it (``measure``, ``slope``, ``se``, ``pvalue``, ``r2``, ``n_periods_used``,
+    ``converging``). ``models`` holds the fitted pyfixest trend model(s).
+
+    The scalar fields report the OLS trend of each measure's **log dispersion** on time over
+    ``n_periods`` periods and ``n_units`` units: ``std_slope`` (with ``std_se`` / ``std_pvalue``
+    / ``std_r2``) and the ``gini_*`` / ``cv_*`` counterparts. A **negative** slope is
+    σ-convergence. A measure's scalars are ``nan`` when its trend could not be estimated (e.g. a
+    Gini set to ``NaN`` because the variable has negative values); see ``notes``.
+    """
+
+    df: pd.DataFrame
+    fig: go.Figure
+    gt: GT
+    summary: pd.DataFrame
+    models: list[Any]
+    var: str
+    entity: str
+    time: str
+    n_periods: int
+    n_units: int
+    std_slope: float
+    std_se: float
+    std_pvalue: float
+    std_r2: float
+    gini_slope: float = float("nan")
+    gini_se: float = float("nan")
+    gini_pvalue: float = float("nan")
+    gini_r2: float = float("nan")
+    cv_slope: float = float("nan")
+    cv_se: float = float("nan")
+    cv_pvalue: float = float("nan")
+    cv_r2: float = float("nan")
+    notes: tuple[str, ...] = ()
+
+    def interpret(self, *, lang: str = "en") -> str:
+        """Plain-language reading of whether and how fast dispersion narrows."""
+        return interpret_sigma_convergence(self, lang=lang)
+
+    def explain(self, *, lang: str = "en") -> Explainer:
+        """Concept explainer for σ-convergence."""
+        return _explain("sigma_convergence", lang=lang)
+
+    def tidy(self) -> pd.DataFrame:
+        """Return the per-period dispersion frame (``std`` / ``gini`` / ``cv`` over time)."""
+        return self.df
+
+    def glance(self) -> pd.DataFrame:
+        """One-row summary of the standard-deviation trend (broom-style ``glance``)."""
+        import pandas as pd
+
+        return pd.DataFrame(
+            [
+                {
+                    "var": self.var,
+                    "n_periods": self.n_periods,
+                    "n_units": self.n_units,
+                    "std_slope": self.std_slope,
+                    "std_se": self.std_se,
+                    "std_pvalue": self.std_pvalue,
+                    "std_r2": self.std_r2,
                 }
             ]
         )

@@ -27,6 +27,10 @@ website:
         file: streamlit.qmd
       - text: "Articles"
         menu:
+          - text: "Beta convergence (analyze_beta_convergence)"
+            file: analyze_beta_convergence.qmd
+          - text: "Sigma convergence (analyze_sigma_convergence)"
+            file: analyze_sigma_convergence.qmd
           - text: "The kuznets dataset"
             file: explanation/kuznets-dataset.qmd
           - text: "Data model"
@@ -94,7 +98,9 @@ quartodoc:
         Panel estimators — OLS with fixed effects and clustered SEs, stepwise / Newey–West /
         Driscoll–Kraay estimation, the Frisch–Waugh–Lovell and coefficient plots, pooled /
         between / fixed / random effects, correlated random effects (Mundlak), the Hausman
-        test, post-estimation, robust inference and event-study / difference-in-differences.
+        test, post-estimation, robust inference, event-study / difference-in-differences,
+        β-convergence (unconditional / conditional with speed, half-life and a rolling view),
+        and σ-convergence (the trend in cross-sectional dispersion over time).
       contents:
         - analyze_regression_table
         - analyze_estimation
@@ -109,6 +115,8 @@ quartodoc:
         - analyze_robust_inference
         - analyze_event_study
         - analyze_panel_view
+        - analyze_beta_convergence
+        - analyze_sigma_convergence
     - title: Learn
       desc: >-
         The teaching layer — concept sandboxes (simulated demonstrations) and concept
@@ -120,6 +128,8 @@ quartodoc:
         - learn_clustering_se
         - learn_first_differences
         - learn_within_vs_lsdv
+        - learn_beta_convergence
+        - learn_sigma_convergence
     - title: Utilities
       desc: >-
         Cross-cutting helpers shared across modules — panel declaration, outlier

@@ -24,6 +24,7 @@ from expdpy.pedagogy._format import (
 )
 
 __all__ = [
+    "interpret_beta_convergence",
     "interpret_correlation",
     "interpret_cre",
     "interpret_descriptive",
@@ -34,6 +35,7 @@ __all__ = [
     "interpret_panel_structure",
     "interpret_regression",
     "interpret_sandbox",
+    "interpret_sigma_convergence",
     "interpret_spaghetti",
     "interpret_transition_matrix",
     "interpret_trend",
@@ -47,6 +49,119 @@ _ASSOC_NOTE = (
     "design — see `explain('correlation_vs_causation')`._"
 )
 _MAX_VARS = 6
+
+
+def interpret_beta_convergence(result: Any, *, lang: str = "en") -> str:
+    """Interpret a β-convergence result: the slope, speed λ, half-life and conditioning."""
+    var = str(getattr(result, "var", "the variable"))
+    beta = float(result.beta)
+    speed = float(result.speed)
+    half_life = float(result.half_life)
+    horizon = float(result.horizon)
+    converging = beta < 0
+
+    lines = [
+        f"Across {int(result.n_obs):,} units over a {fmt_num(horizon)}-period horizon, the "
+        f"average growth rate of **{var}** is "
+        f"{'negatively' if converging else 'positively'} associated with its initial level "
+        f"(β = {fmt_num(beta)}). "
+        + (
+            "Units that start lower tend to grow faster — the pattern of **unconditional "
+            "β-convergence**."
+            if converging
+            else "Units that start higher tend to grow faster — **divergence** rather than "
+            "convergence."
+        )
+    ]
+    if converging and not math.isnan(speed) and speed > 0:
+        lines.append(
+            f"The implied speed of convergence is λ = {fmt_num(speed)} per period, so about "
+            f"half of an initial gap closes every {fmt_num(half_life)} periods (the half-life)."
+        )
+
+    controls = tuple(getattr(result, "controls", ()) or ())
+    beta_c = float(getattr(result, "beta_cond", float("nan")))
+    if controls and not math.isnan(beta_c):
+        speed_c = float(result.speed_cond)
+        half_c = float(result.half_life_cond)
+        steeper = abs(beta_c) > abs(beta)
+        tail = (
+            f", a speed of λ = {fmt_num(speed_c)} per period (half-life ≈ "
+            f"{fmt_num(half_c)} periods)."
+            if not math.isnan(speed_c) and speed_c > 0
+            else "."
+        )
+        lines.append(
+            f"Holding {', '.join(controls)} fixed at their initial values (via the "
+            f"Frisch-Waugh-Lovell theorem), the convergence slope is β = {fmt_num(beta_c)} — "
+            f"{'steeper' if steeper else 'flatter'} than the unconditional {fmt_num(beta)}, "
+            f"the pattern of **conditional β-convergence**{tail}"
+        )
+
+    rolling = getattr(result, "rolling", None)
+    if rolling is not None and len(rolling) >= 2:
+        first = float(rolling["beta"].iloc[0])
+        last = float(rolling["beta"].iloc[-1])
+        lines.append(
+            "Across fixed-width rolling windows the convergence slope moved "
+            f"{direction_word(last - first)} over time (β = {fmt_num(first)} in the earliest "
+            f"window to {fmt_num(last)} in the latest)."
+        )
+
+    lines += ["", _ASSOC_NOTE]
+    return "\n".join(lines)
+
+
+def interpret_sigma_convergence(result: Any, *, lang: str = "en") -> str:
+    """Interpret a σ-convergence result: whether and how fast cross-sectional spread narrows."""
+    var = str(getattr(result, "var", "the variable"))
+    n_units = int(getattr(result, "n_units", 0))
+    n_periods = int(getattr(result, "n_periods", 0))
+    std_slope = float(result.std_slope)
+    std_p = float(result.std_pvalue)
+    gini_slope = float(getattr(result, "gini_slope", float("nan")))
+
+    df = result.df
+    std_first = float(df["std"].iloc[0])
+    std_last = float(df["std"].iloc[-1])
+
+    if not math.isfinite(std_slope):
+        return "\n".join(
+            [
+                f"Across {n_units:,} units over {n_periods} periods, the cross-sectional "
+                f"spread of **{var}** could not be summarised by a trend.",
+                "",
+                _ASSOC_NOTE,
+            ]
+        )
+
+    converging = std_slope < 0
+    pct = abs(math.expm1(std_slope)) * 100.0  # |e^b - 1|: per-period % change in spread
+    lines = [
+        f"Across {n_units:,} units over {n_periods} periods, the cross-sectional standard "
+        f"deviation of **{var}** "
+        + ("narrowed" if converging else "widened")
+        + f" (from {fmt_num(std_first)} to {fmt_num(std_last)}). The log-dispersion trend is "
+        f"{fmt_num(std_slope)} per period — about {fmt_num(pct)}% "
+        + ("less" if converging else "more")
+        + f" dispersion each period ({significance_phrase(std_p)}) — the pattern of "
+        + (
+            "**σ-convergence**."
+            if converging
+            else "**σ-divergence** rather than convergence."
+        )
+    ]
+    if math.isfinite(gini_slope):
+        agree = (gini_slope < 0) == converging
+        lines.append(
+            "The Gini index "
+            + ("also " if agree else "")
+            + ("narrowed" if gini_slope < 0 else "widened")
+            + f" over the same span (trend {fmt_num(gini_slope)} per period)"
+            + ("." if agree else ", a different direction from the standard deviation.")
+        )
+    lines += ["", _ASSOC_NOTE]
+    return "\n".join(lines)
 
 
 def interpret_regression(result: Any, *, lang: str = "en") -> str:
@@ -275,6 +390,25 @@ def interpret_sandbox(result: Any, *, lang: str = "en") -> str:
             f"least-squares dummy variables {fmt_num(s['lsdv_coef'])} — the same slope (gap "
             f"{fmt_num(s['within_lsdv_gap'])}) versus the true {fmt_num(s['true_beta'])}. "
             "Demeaning and a dummy per unit do the same job (Frisch-Waugh-Lovell)."
+        )
+    if topic == "beta_convergence":
+        return (
+            f"Omitting the steady-state determinant, the unconditional slope is "
+            f"{fmt_num(s['unconditional_coef'])} — biased away from the true convergence "
+            f"slope {fmt_num(s['true_beta'])}, so the units look like they barely converge. "
+            f"Conditioning on the determinant recovers {fmt_num(s['conditional_coef'])}, "
+            "matching the truth — that is conditional β-convergence. The recovered speed is "
+            f"{fmt_num(s['conditional_speed'])} per period (true "
+            f"{fmt_num(s['true_speed'])}), a half-life of "
+            f"{fmt_num(s['conditional_half_life'])} periods."
+        )
+    if topic == "sigma_convergence":
+        return (
+            f"With every unit's value contracting toward a common mean at rate "
+            f"{fmt_num(s['rho'])} per period, the cross-sectional dispersion narrows at a known "
+            f"log-rate of {fmt_num(s['true_slope'])} per period. The standard-deviation trend "
+            f"recovers {fmt_num(s['std_slope'])} and the Gini trend {fmt_num(s['gini_slope'])} "
+            "— both matching the truth, the hallmark of σ-convergence."
         )
     return "Sandbox demonstration."  # pragma: no cover - defensive
 

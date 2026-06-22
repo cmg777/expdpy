@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "expdpy"
-version = "0.4.5"
+version = "0.4.7"
 description = "Explore your panel data interactively — a Python port of the ExPanDaR R package."
 readme = "README.md"
 license = { text = "MIT" }
@@ -114,6 +114,9 @@ ignore = [
     "B008", # function call in default argument (intentional for np.nanmean etc.)
     "RUF022", # __all__ is intentionally grouped by topic, not sorted
 ]
+# Greek symbols used in scientific prose/labels (β and λ are not flagged; σ is confusable with
+# o, so it must be allowed explicitly to read as "σ-convergence" alongside "β-convergence").
+allowed-confusables = ["σ"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"

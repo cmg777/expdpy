@@ -64,7 +64,10 @@ fixed and random effects with the **Hausman test**. Round it out with post-estim
 inference and the wild cluster bootstrap), **Frisch–Waugh–Lovell** and **coefficient** plots,
 and modern **event-study / staggered difference-in-differences** estimators (Gardner's `did2s`,
 Sun–Abraham, local-projections DiD, dynamic TWFE) with a built-in pre-trend diagnostic and a
-treatment-structure `analyze_panel_view`.
+treatment-structure `analyze_panel_view`. For growth dynamics, `analyze_beta_convergence` runs
+the standard **β-convergence** workflow — unconditional and conditional (Frisch–Waugh–Lovell)
+convergence with annotated scatters, the speed of convergence and half-life, and a rolling
+fixed-window view.
 
 ### Learn panel data
 
@@ -133,8 +136,8 @@ pip install "expdpy[streamlit] @ git+https://github.com/cmg777/expdpy.git"
 Pin to a release, branch, or commit for reproducible installs:
 
 ```bash
-pip install "expdpy==0.4.5"
-pip install "git+https://github.com/cmg777/expdpy.git@v0.4.5"
+pip install "expdpy==0.4.7"
+pip install "git+https://github.com/cmg777/expdpy.git@v0.4.7"
 pip install "git+https://github.com/cmg777/expdpy.git@main"
 ```
 
