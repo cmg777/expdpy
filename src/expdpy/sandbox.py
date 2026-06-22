@@ -20,13 +20,16 @@ import statsmodels.api as sm
 
 from expdpy._theme import apply_default_layout, color_for
 from expdpy._types import SandboxResult
+from expdpy.convergence import analyze_beta_convergence, analyze_sigma_convergence
 from expdpy.regression import analyze_regression_table
 
 __all__ = [
+    "learn_beta_convergence",
     "learn_clustering_se",
     "learn_first_differences",
     "learn_omitted_variable_bias",
     "learn_pooled_vs_fixed_effects",
+    "learn_sigma_convergence",
     "learn_within_vs_lsdv",
 ]
 
@@ -522,3 +525,203 @@ def learn_within_vs_lsdv(
     )
     fig.update_layout(title="Within transformation vs LSDV")
     return SandboxResult(df=df, fig=fig, summary=summary, topic="within_transformation")
+
+
+def learn_beta_convergence(
+    *,
+    n_units: int = 60,
+    n_years: int = 21,
+    rho: float = 0.9,
+    gamma: float = 0.6,
+    corr: float = 0.7,
+    noise: float = 0.05,
+    seed: int = 0,
+) -> SandboxResult:
+    """Show unconditional vs conditional β-convergence on a known-parameter panel.
+
+    Simulates an AR(1) panel in logs ``x_{t+1} = a + rho*x_t + gamma*z_i + e`` where ``z_i`` is
+    a fixed steady-state determinant correlated (``corr``) with each unit's initial level. The
+    AR(1) persistence pins the truth exactly: over a horizon ``T = n_years - 1`` the slope of
+    growth on the initial level is ``beta = (rho**T - 1) / T`` and the structural speed of
+    convergence is ``lambda = -ln(rho)`` (half-life ``ln 2 / lambda``). Because ``z_i`` is
+    omitted, the **unconditional** regression is biased — units look like they barely converge
+    (or even diverge); conditioning on ``z_i`` recovers the true convergence slope. This is the
+    classic distinction between absolute and conditional convergence, demonstrated with
+    :func:`expdpy.analyze_beta_convergence`.
+
+    Parameters
+    ----------
+    n_units, n_years
+        Panel dimensions (units and annual periods). The horizon is ``T = n_years - 1``.
+    rho
+        AR(1) persistence in ``(0, 1)``; it sets the true speed ``-ln(rho)`` (closer to 1 means
+        slower convergence).
+    gamma
+        Loading of the steady-state determinant ``z`` (drives the omitted-variable bias of the
+        unconditional estimate).
+    corr
+        Correlation between ``z`` and the initial level (also drives the bias).
+    noise
+        Idiosyncratic shock standard deviation.
+    seed
+        Random seed.
+
+    Returns
+    -------
+    SandboxResult
+        ``df`` (unconditional vs conditional vs true slope), ``fig``, ``summary`` and ``topic``.
+    """
+    rng = np.random.default_rng(seed)
+    horizon = float(n_years - 1)
+    a = (1.0 - rho) * 10.0  # steady-state level ~ 10
+    z = rng.normal(size=n_units)  # fixed steady-state determinant
+    x0 = 10.0 + 2.0 * (
+        corr * z + math.sqrt(max(0.0, 1.0 - corr**2)) * rng.normal(size=n_units)
+    )
+    rows = []
+    for i in range(n_units):
+        x = float(x0[i])
+        for t in range(n_years):
+            rows.append((f"unit {i:02d}", t, x, float(z[i])))
+            x = a + rho * x + gamma * float(z[i]) + rng.normal(0.0, noise)
+    panel = pd.DataFrame(rows, columns=["unit", "year", "x", "z"])
+
+    res = analyze_beta_convergence(
+        panel, "x", controls=["z"], entity="unit", time="year", rolling=False
+    )
+    true_beta = (rho**horizon - 1.0) / horizon
+    true_speed = -math.log(rho)
+    true_half_life = math.log(2.0) / true_speed
+
+    df = pd.DataFrame(
+        {
+            "model": [
+                "unconditional (omits z)",
+                "conditional (controls z)",
+                "true value",
+            ],
+            "beta": [res.beta, res.beta_cond, true_beta],
+        }
+    )
+    summary = {
+        "true_beta": float(true_beta),
+        "unconditional_coef": float(res.beta),
+        "conditional_coef": float(res.beta_cond),
+        "true_speed": float(true_speed),
+        "conditional_speed": float(res.speed_cond),
+        "true_half_life": float(true_half_life),
+        "conditional_half_life": float(res.half_life_cond),
+        "rho": float(rho),
+        "horizon": float(horizon),
+    }
+
+    fig = go.Figure(
+        go.Bar(
+            x=df["model"],
+            y=df["beta"],
+            marker={"color": [color_for(9), color_for(2), color_for(0)]},
+        )
+    )
+    fig.add_hline(
+        y=float(true_beta),
+        line_dash="dash",
+        line_color="rgba(0,0,0,0.5)",
+        annotation_text="true convergence slope",
+    )
+    apply_default_layout(
+        fig,
+        xaxis={"title": ""},
+        yaxis={"title": "Convergence slope β (growth on initial level)"},
+    )
+    fig.update_layout(title="Unconditional vs conditional β-convergence")
+    return SandboxResult(df=df, fig=fig, summary=summary, topic="beta_convergence")
+
+
+def learn_sigma_convergence(
+    *,
+    n_units: int = 60,
+    n_years: int = 21,
+    rho: float = 0.93,
+    noise: float = 0.0,
+    seed: int = 0,
+) -> SandboxResult:
+    """Show σ-convergence on a panel whose dispersion narrows at a known rate.
+
+    Simulates a panel in which every unit's value contracts geometrically toward a common mean
+    ``mu``: ``x_{i,t} = mu + (x_{i,0} - mu) * rho**t``. Because the deviations from ``mu`` shrink
+    by a constant factor ``rho`` each period while the mean stays fixed, **every** dispersion
+    measure — the standard deviation, the Gini index and the coefficient of variation — scales
+    as ``rho**t``. The trend of its log on time therefore equals ``ln(rho)`` exactly, the true
+    speed of σ-convergence. Running :func:`expdpy.analyze_sigma_convergence` on the panel should
+    recover that slope for all three measures.
+
+    Parameters
+    ----------
+    n_units, n_years
+        Panel dimensions (units and annual periods). The horizon is ``T = n_years - 1``.
+    rho
+        Per-period contraction factor in ``(0, 1)``; the true log-dispersion trend is
+        ``ln(rho)`` (closer to 1 means slower convergence).
+    noise
+        Standard deviation of an optional additive shock (``0`` gives exact recovery).
+    seed
+        Random seed.
+
+    Returns
+    -------
+    SandboxResult
+        ``df`` (recovered trend per measure vs the true ``ln(rho)``), ``fig``, ``summary`` and
+        ``topic``.
+    """
+    rng = np.random.default_rng(seed)
+    horizon = float(n_years - 1)
+    x0 = rng.uniform(1.0, 20.0, size=n_units)
+    mu = float(np.mean(x0))
+    rows = []
+    for i in range(n_units):
+        for t in range(n_years):
+            val = mu + (float(x0[i]) - mu) * (rho**t)
+            if noise:
+                val += float(rng.normal(0.0, noise))
+            rows.append((f"unit {i:02d}", t, val))
+    panel = pd.DataFrame(rows, columns=["unit", "year", "x"])
+
+    res = analyze_sigma_convergence(panel, "x", entity="unit", time="year")
+    true_slope = math.log(rho)
+
+    df = pd.DataFrame(
+        {
+            "measure": ["std", "gini", "cv", "true (ln rho)"],
+            "trend": [res.std_slope, res.gini_slope, res.cv_slope, true_slope],
+        }
+    )
+    summary = {
+        "rho": float(rho),
+        "horizon": float(horizon),
+        "n_units": float(n_units),
+        "true_slope": float(true_slope),
+        "std_slope": float(res.std_slope),
+        "gini_slope": float(res.gini_slope),
+        "cv_slope": float(res.cv_slope),
+    }
+
+    fig = go.Figure(
+        go.Bar(
+            x=df["measure"],
+            y=df["trend"],
+            marker={"color": [color_for(0), color_for(1), color_for(2), color_for(9)]},
+        )
+    )
+    fig.add_hline(
+        y=float(true_slope),
+        line_dash="dash",
+        line_color="rgba(0,0,0,0.5)",
+        annotation_text="true log-dispersion trend",
+    )
+    apply_default_layout(
+        fig,
+        xaxis={"title": ""},
+        yaxis={"title": "Log-dispersion trend per period"},
+    )
+    fig.update_layout(title="σ-convergence: recovered vs true dispersion trend")
+    return SandboxResult(df=df, fig=fig, summary=summary, topic="sigma_convergence")

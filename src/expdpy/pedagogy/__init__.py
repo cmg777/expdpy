@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from expdpy.pedagogy import _text  # noqa: F401  (import registers the explainer topics)
 from expdpy.pedagogy._interpret import (
+    interpret_beta_convergence,
     interpret_correlation,
     interpret_cre,
     interpret_descriptive,
@@ -24,6 +25,7 @@ from expdpy.pedagogy._interpret import (
     interpret_panel_structure,
     interpret_regression,
     interpret_sandbox,
+    interpret_sigma_convergence,
     interpret_spaghetti,
     interpret_transition_matrix,
     interpret_trend,
@@ -38,6 +40,7 @@ __all__ = [
     "Explainer",
     "Interpretable",
     "explain",
+    "interpret_beta_convergence",
     "interpret_correlation",
     "interpret_cre",
     "interpret_descriptive",
@@ -48,6 +51,7 @@ __all__ = [
     "interpret_panel_structure",
     "interpret_regression",
     "interpret_sandbox",
+    "interpret_sigma_convergence",
     "interpret_spaghetti",
     "interpret_transition_matrix",
     "interpret_trend",

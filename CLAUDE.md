@@ -18,7 +18,7 @@ Guidance for working in this repository. Keep it current when commands or conven
   every result.
 
 Three no-code **Streamlit** apps (one per module). `src/` layout, Python ≥ 3.10, managed with
-**pixi**. Current version: 0.4.5.
+**pixi**. Current version: 0.4.7.
 
 ## Commands
 
@@ -50,7 +50,9 @@ public API is curated in `src/expdpy/__init__.py` (`__all__` grouped by module).
   `_panel.py` (`set_panel`/`resolve_panel`), `_panel_math.py` (the xtsum within/between
   decomposition).
 - **Analyze**: `regression.py`, `estimation.py`, `fwl.py`, `coefplot.py`, `panel_models.py`,
-  `cre.py`, `postestimation.py`, `inference.py`, `did.py`. Shared estimation engine in
+  `cre.py`, `postestimation.py`, `inference.py`, `did.py`, `convergence.py` (β-convergence:
+  unconditional/conditional via FWL + speed/half-life + rolling; σ-convergence: per-period
+  dispersion std/Gini/CV + log-dispersion trend + dual-axis figure). Shared estimation engine in
   `_estimation/` (pyfixest wrapper: `_spec`, `_formula`, `_vcov`, `_fit`, `_tidy`, `_results`).
 - **Learn**: `sandbox.py` + `pedagogy/` (`_registry` `Explainer`/`explain`/`list_topics`,
   `_interpret`, `_mixin` `Interpretable`, `_format`, and `_text/*` topic registrations).

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from expdpy.pedagogy._text import (
     causal,
+    convergence,
     correlation,
     cre,
     learn,
@@ -19,6 +20,7 @@ from expdpy.pedagogy._text import (
 
 __all__ = [
     "causal",
+    "convergence",
     "correlation",
     "cre",
     "learn",

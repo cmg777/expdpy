@@ -26,6 +26,7 @@ from expdpy._labels import resolve_label, set_labels
 from expdpy._panel import resolve_panel, set_panel
 from expdpy._types import (
     BarChartResult,
+    BetaConvergenceResult,
     ByGroupBarGraphResult,
     ByGroupTrendGraphResult,
     ByGroupViolinResult,
@@ -52,6 +53,7 @@ from expdpy._types import (
     RobustInferenceResult,
     SandboxResult,
     ScatterPlotResult,
+    SigmaConvergenceResult,
     SpaghettiGraphResult,
     TransitionMatrixResult,
     TrendGraphResult,
@@ -66,6 +68,7 @@ from expdpy.by_group import (
     explore_violin_plot_by_group,
 )
 from expdpy.coefplot import analyze_coefficient_plot
+from expdpy.convergence import analyze_beta_convergence, analyze_sigma_convergence
 from expdpy.correlation import explore_correlation_plot
 from expdpy.cre import analyze_cre_table
 from expdpy.did import analyze_event_study, analyze_panel_view
@@ -94,10 +97,12 @@ from expdpy.postestimation import (
 )
 from expdpy.regression import analyze_regression_table
 from expdpy.sandbox import (
+    learn_beta_convergence,
     learn_clustering_se,
     learn_first_differences,
     learn_omitted_variable_bias,
     learn_pooled_vs_fixed_effects,
+    learn_sigma_convergence,
     learn_within_vs_lsdv,
 )
 from expdpy.scatter import explore_scatter_plot
@@ -109,7 +114,7 @@ from expdpy.tables import (
 )
 from expdpy.trends import explore_quantile_trend_plot, explore_trend_plot
 
-__version__ = "0.4.5"
+__version__ = "0.4.7"
 
 __all__ = [
     # ===== EXPLORE =====
@@ -166,6 +171,10 @@ __all__ = [
     # event study / staggered DiD
     "analyze_event_study",
     "analyze_panel_view",
+    # beta convergence (unconditional + conditional + rolling)
+    "analyze_beta_convergence",
+    # sigma convergence (dispersion-over-time + log-trend)
+    "analyze_sigma_convergence",
     # ===== LEARN =====
     # concept sandboxes
     "learn_omitted_variable_bias",
@@ -173,6 +182,8 @@ __all__ = [
     "learn_clustering_se",
     "learn_first_differences",
     "learn_within_vs_lsdv",
+    "learn_beta_convergence",
+    "learn_sigma_convergence",
     # concept-explainer registry type
     "Explainer",
     # ===== UTILITIES =====
@@ -223,6 +234,8 @@ __all__ = [
     "RobustInferenceResult",
     "EventStudyResult",
     "PanelViewResult",
+    "BetaConvergenceResult",
+    "SigmaConvergenceResult",
     # learn
     "SandboxResult",
 ]

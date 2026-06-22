@@ -172,6 +172,32 @@ ex.learn_first_differences(n_periods=2).fig
 ex.learn_within_vs_lsdv(n_periods=6).fig
 ```
 
+### `learn_beta_convergence`
+
+Absolute vs. **conditional** convergence on a known-parameter AR(1) panel: omitting a
+steady-state determinant biases the unconditional slope; conditioning on it recovers the true
+convergence slope. See [`analyze_beta_convergence`](analyze_beta_convergence.qmd) for the full
+analysis on real data.
+
+```{python}
+bc = ex.learn_beta_convergence(rho=0.9, gamma=0.6, corr=0.7)
+print(bc.interpret())
+bc.fig
+```
+
+### `learn_sigma_convergence`
+
+σ-convergence on a panel whose cross-sectional dispersion narrows at a **known** rate: every
+unit's value contracts toward a common mean, so the standard deviation, the Gini index and the
+coefficient of variation all shrink at the log-rate `ln(rho)` — and the function recovers it. See
+[`analyze_sigma_convergence`](analyze_sigma_convergence.qmd) for the full analysis on real data.
+
+```{python}
+sc = ex.learn_sigma_convergence(rho=0.93)
+print(sc.interpret())
+sc.fig
+```
+
 ## Where to go next
 
 - [Explore panel data](explore.qmd) — describe your data first.

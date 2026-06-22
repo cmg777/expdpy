@@ -2,6 +2,47 @@
 title: "Changelog"
 ---
 
+## 0.4.7 (2026-06-22)
+
+### Added
+
+- **Sigma-convergence analysis** (`analyze_sigma_convergence`). It tracks the cross-sectional
+  **dispersion** of a panel variable over time — the standard deviation, the Gini index and the
+  coefficient of variation — and tests whether that dispersion shrinks by regressing the **log
+  dispersion** on time (a negative trend is σ-convergence). The headline figure is a **dual-axis**
+  time series with the standard deviation on the left axis and the Gini index on the right. The
+  variable is used as supplied and the panel must be balanced; the Gini and coefficient of
+  variation degrade gracefully (to `NaN` with a note) on negative values or a near-zero mean.
+- **Learn:** a runnable `learn_sigma_convergence` sandbox and an `explain("sigma_convergence")`
+  concept explainer demonstrate σ-convergence on a geometric-narrowing panel whose dispersion
+  shrinks at a known log-rate `ln(rho)`, which the function recovers exactly. A new "Sigma
+  convergence" page in the Analyze app exposes the same analysis on your data.
+
+## 0.4.6 (2026-06-22)
+
+### Added
+
+- **Beta-convergence analysis** (`analyze_beta_convergence`). From a single panel variable it
+  runs the standard cross-country β-convergence workflow: the unconditional
+  growth-vs-initial-level scatter (with the country on hover and a regression annotation), the
+  **conditional** version that partials out steady-state controls via the Frisch–Waugh–Lovell
+  theorem, a comparison table reporting the slope, the **speed of convergence** λ and the
+  **half-life**, and a **rolling** fixed-width-window view of how the convergence slope evolves.
+  The variable is used as supplied (pass *log* GDP per capita for the canonical case), so it
+  works for income, schooling, health and any other catch-up question.
+- **Learn:** a runnable `learn_beta_convergence` sandbox and an `explain("beta_convergence")`
+  concept explainer demonstrate absolute vs. conditional convergence on a known-parameter panel
+  — the unconditional slope is biased by an omitted steady-state determinant; conditioning on it
+  recovers the truth. A new "Beta convergence" tab in the Learn app exposes the same demo.
+
+### Fixed
+
+- **Colab notebooks install cleanly on a fresh runtime.** Because expdpy needs `numpy>=2.1` but
+  Google Colab pre-installs an older `numba` that caps `numpy<2.1`, the notebooks' install cell
+  hit a numpy/numba dependency conflict. The cell now co-resolves `numba>=0.61` in the same pip
+  pass, so pip upgrades both to a compatible pair (numpy 2.4.x + numba 0.65.x). Restart the
+  runtime if Colab prompts after the install.
+
 ## 0.4.5 (2026-06-21)
 
 ### Fixed

@@ -1,0 +1,225 @@
+---
+title: "analyze_sigma_convergence"
+jupyter: python3
+---
+
+```{=html}
+<p style="margin: 0.25rem 0 1.25rem;">
+  <strong>Run this page interactively in Google Colab — no install required:</strong><br>
+  <a href="https://colab.research.google.com/github/cmg777/expdpy/blob/main/notebooks/analyze_sigma_convergence.ipynb" target="_blank" rel="noopener">
+    <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab">
+  </a>
+</p>
+```
+
+This page is two things at once: an **extended user guide** for
+`analyze_sigma_convergence` — what it does, every argument, and everything it returns — and a
+**testing environment** that generates synthetic data with *known* parameters and checks that
+the function recovers them. If a cell's `assert` ever fails, the function is broken.
+
+## What is σ-convergence?
+
+σ-convergence asks whether the **cross-sectional dispersion** of a variable shrinks over time —
+whether units become more alike. At each period $t$ we measure how spread out the variable is
+across units (the standard deviation $\sigma_t$, the Gini index, the coefficient of variation)
+and then regress the **log dispersion** on time:
+
+$$
+\ln D_t \;=\; a + b\, t + \varepsilon_t .
+$$
+
+The slope $b$ is the average **proportional** change in dispersion per period, so a **negative**
+$b$ is σ-convergence (the distribution is narrowing) and a positive $b$ is σ-divergence. The
+variable is used **as you supply it** — the function never transforms it.
+
+σ-convergence is the *distributional* complement to β-convergence. β-convergence (laggards
+growing faster) is **necessary but not sufficient** for σ-convergence: fresh shocks can re-widen
+the distribution even while poorer units catch up (Quah's critique). See
+[`analyze_beta_convergence`](analyze_beta_convergence.qmd) for the growth-vs-initial-level view.
+
+```{python}
+import numpy as np
+import pandas as pd
+
+import expdpy as ex
+```
+
+## 1. The method in one cell
+
+`analyze_sigma_convergence(df, var, ...)` only needs the variable and the panel ids. Here is the
+cross-country dispersion of **life expectancy** in the bundled `gapminder` panel — a bounded,
+non-negative level, so the standard deviation and the Gini index are both meaningful:
+
+```{python}
+from expdpy.data import load_gapminder
+
+gap = load_gapminder()
+res = ex.analyze_sigma_convergence(gap, "lifeExp", entity="country", time="year")
+res.fig
+```
+
+The **standard deviation** is on the left axis and the **Gini index** on the right; the dashed
+lines are the fitted log-trends. The annotation reports each measure's per-period trend and
+whether it is converging.
+
+## 2. How the function works
+
+### Arguments
+
+| argument | what it does | when to change it |
+|---|---|---|
+| `var` | the panel variable whose cross-sectional dispersion is tracked (used **as-is**) | pass it on whatever scale you want measured; the Gini also needs non-negative values |
+| `entity`, `time` | the panel ids | omit if declared once via `set_panel` |
+| `start`, `end` | restrict to a period window (which must still be balanced) | to focus on a sub-period |
+| `min_periods` | minimum periods required to fit a trend (≥ 3) | rarely; the default is fine |
+| `vcov` | `"hetero"` (HC1, default) or `"iid"` standard errors | `"iid"` for classical SEs; never changes the slope |
+
+The panel must be **balanced** — every unit present in every period — so the dispersion is
+comparable across periods (more on that in §4).
+
+### Everything it returns
+
+```{python}
+print("scalars :", {k: round(getattr(res, k), 5) for k in
+                    ["std_slope", "gini_slope", "cv_slope", "std_pvalue"]})
+print("panel   :", f"{res.n_units} units x {res.n_periods} periods")
+print("per-period frame columns:", list(res.df.columns))
+res.df.head()
+```
+
+`summary` is the per-measure trend table (slope, SE, p-value, R²) and `gt` renders it; `glance()`
+is the one-row headline:
+
+```{python}
+res.summary.round(5)
+```
+
+```{python}
+res.gt
+```
+
+`.interpret()` reads the result in plain language, and `.explain()` returns the concept
+explainer:
+
+```{python}
+print(res.interpret())
+```
+
+## 3. Does it recover the truth?
+
+The cleanest test uses a **geometric-narrowing** panel: every unit's value contracts toward a
+common mean $\mu$ at rate $\rho$ per period, $x_{i,t} = \mu + (x_{i,0}-\mu)\,\rho^{t}$. Because
+the deviations from $\mu$ all shrink by the factor $\rho^{t}$ while the mean stays fixed, **every**
+dispersion measure scales as $\rho^{t}$ — so the log-dispersion trend equals $\ln\rho$ **exactly**
+for the standard deviation, the Gini index and the coefficient of variation alike.
+
+```{python}
+def sigma_panel(*, n_units=60, n_years=15, rho=0.9, noise=0.0, seed=0):
+    """Geometric-narrowing panel x_{i,t} = mu + (x_{i,0}-mu)*rho**t (mu = mean x_0)."""
+    rng = np.random.default_rng(seed)
+    x0 = rng.uniform(1.0, 20.0, size=n_units)
+    mu = float(np.mean(x0))
+    rows = []
+    for i in range(n_units):
+        for t in range(n_years):
+            val = mu + (float(x0[i]) - mu) * rho**t
+            if noise:
+                val += float(rng.normal(0.0, noise))
+            rows.append((f"C{i:03d}", t, val))
+    return pd.DataFrame(rows, columns=["country", "year", "x"])
+
+
+RHO = 0.9
+panel = sigma_panel(rho=RHO, seed=1)
+fit = ex.analyze_sigma_convergence(panel, "x", entity="country", time="year")
+
+target = np.log(RHO)
+check = pd.DataFrame(
+    {
+        "measure": ["std", "gini", "cv"],
+        "true (ln rho)": [target, target, target],
+        "recovered": [fit.std_slope, fit.gini_slope, fit.cv_slope],
+    }
+)
+check["abs_error"] = (check["recovered"] - check["true (ln rho)"]).abs()
+check
+```
+
+```{python}
+# Each measure recovers ln(rho) to machine precision on the noiseless DGP.
+for slope in (fit.std_slope, fit.gini_slope, fit.cv_slope):
+    assert abs(slope - target) < 1e-9
+assert fit.std_slope < 0  # convergence
+print("✅ std, Gini and CV trends all recover ln(rho) exactly")
+```
+
+A faster contraction (smaller $\rho$) means a more negative trend, and that ordering survives
+noise:
+
+```{python}
+fast = ex.analyze_sigma_convergence(
+    sigma_panel(rho=0.80, noise=0.02, seed=2), "x", entity="country", time="year"
+)
+slow = ex.analyze_sigma_convergence(
+    sigma_panel(rho=0.97, noise=0.02, seed=2), "x", entity="country", time="year"
+)
+assert fast.std_slope < slow.std_slope < 0
+print(f"✅ faster contraction => steeper trend  ({fast.std_slope:.3f} < {slow.std_slope:.3f} < 0)")
+```
+
+## 4. The panel must be balanced
+
+Dispersion is only comparable across periods when the **same** units are present each period, so
+the function refuses an unbalanced panel rather than mix a changing composition:
+
+```{python}
+unbalanced = gap.drop(gap[(gap["country"] == "Afghanistan") & (gap["year"] < 1972)].index)
+try:
+    ex.analyze_sigma_convergence(unbalanced, "lifeExp", entity="country", time="year")
+except ValueError as exc:
+    print("ValueError:", exc)
+```
+
+Restrict to a balanced window with `start=`/`end=` instead:
+
+```{python}
+res_window = ex.analyze_sigma_convergence(
+    gap, "lifeExp", entity="country", time="year", start=1972
+)
+print(f"balanced window: {res_window.n_units} units x {res_window.n_periods} periods")
+```
+
+## 5. Convergence vs divergence on real data
+
+Cross-country **life expectancy** has compressed over 1952–2007 — poorer countries caught up —
+so both the standard deviation and the Gini index drift down (σ-convergence):
+
+```{python}
+print(res.interpret())
+```
+
+The flagship `kuznets` panel makes the opposite case: the cross-country dispersion of regional
+inequality has **widened**, a clean example of σ-divergence (a positive trend):
+
+```{python}
+from expdpy.data import load_kuznets
+
+kz = ex.analyze_sigma_convergence(load_kuznets(), "gini_regional", entity="country", time="year")
+print(kz.interpret())
+```
+
+> Note on scale: with **no transform**, the standard deviation is in the variable's own units
+> and tracks its level, so the Gini and the coefficient of variation (both scale-free) often tell
+> a cleaner story — compare all three in `summary`. Raw GDP-per-capita *levels* diverge in
+> dollars even when log GDP converges, which is why the income case is usually run on `log`.
+
+## See also
+
+- `ex.learn_sigma_convergence()` — a runnable Learn sandbox that recovers a known dispersion
+  rate on a geometric-narrowing panel.
+- [`analyze_beta_convergence`](analyze_beta_convergence.qmd) — the growth-vs-initial-level view.
+- `ex.explain("sigma_convergence")` — the concept explainer (also `res.explain()`).
+
+```{python}
+ex.explain("sigma_convergence")
+```

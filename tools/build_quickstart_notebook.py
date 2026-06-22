@@ -34,19 +34,69 @@ from nbformat.v4 import new_code_cell, new_markdown_cell
 
 REPO = Path(__file__).resolve().parents[1]
 
-# The three module pages, each producing a self-contained Colab notebook.
+# The docs pages that each produce a self-contained Colab notebook. The three module pages use
+# the shared TITLE_TEMPLATE; feature notebooks (named after their function) supply a custom
+# ``title_md`` so their first cell reads as a function guide rather than a module walkthrough.
 MODULES = [
     {"slug": "explore", "title": "Explore"},
     {"slug": "analyze", "title": "Analyze"},
     {"slug": "learn", "title": "Learn"},
+    {
+        "slug": "analyze_beta_convergence",
+        "title": "analyze_beta_convergence",
+        "title_md": (
+            "# analyze_beta_convergence — β-convergence for panel data\n"
+            "\n"
+            "_Notebook version: built {BUILD_STAMP} — re-open this notebook from GitHub if "
+            "yours is older, to get the latest version._\n"
+            "\n"
+            "An extended **user guide** *and* a **verification harness** for "
+            "`analyze_beta_convergence` from [expdpy](https://github.com/cmg777/expdpy): what "
+            "it does, every argument, everything it returns, and synthetic-data checks that it "
+            "recovers known parameters. Run the install cell below first, then run the rest top "
+            "to bottom.\n"
+            "\n"
+            "> If Colab prompts you to **restart the runtime** after the install, do so, then "
+            "continue from the setup cell.\n"
+            "\n"
+            "This notebook mirrors the [analyze_beta_convergence page]"
+            "(https://cmg777.github.io/expdpy/analyze_beta_convergence.html) of the docs."
+        ),
+    },
+    {
+        "slug": "analyze_sigma_convergence",
+        "title": "analyze_sigma_convergence",
+        "title_md": (
+            "# analyze_sigma_convergence — σ-convergence for panel data\n"
+            "\n"
+            "_Notebook version: built {BUILD_STAMP} — re-open this notebook from GitHub if "
+            "yours is older, to get the latest version._\n"
+            "\n"
+            "An extended **user guide** *and* a **verification harness** for "
+            "`analyze_sigma_convergence` from [expdpy](https://github.com/cmg777/expdpy): what "
+            "it does, every argument, everything it returns, and synthetic-data checks that it "
+            "recovers a known dispersion rate. Run the install cell below first, then run the "
+            "rest top to bottom.\n"
+            "\n"
+            "> If Colab prompts you to **restart the runtime** after the install, do so, then "
+            "continue from the setup cell.\n"
+            "\n"
+            "This notebook mirrors the [analyze_sigma_convergence page]"
+            "(https://cmg777.github.io/expdpy/analyze_sigma_convergence.html) of the docs."
+        ),
+    },
 ]
 
 # linearmodels (random/correlated random effects, the Hausman test) ships with the core
-# install now, so a plain ``expdpy`` install runs every cell. The second line force-refreshes
-# only the expdpy code to the latest ``main`` commit (pip skips a git reinstall when the version
-# string is unchanged, so a warm runtime would otherwise keep stale code).
+# install now, so a plain ``expdpy`` install runs every cell. ``numba>=0.61`` is co-resolved in
+# the same pip pass because Colab pre-installs an older numba (e.g. 0.60) that caps numpy below
+# 2.1, while expdpy needs numpy>=2.1 — resolving them together lands on a compatible pair
+# (numpy 2.4.x + numba 0.65.x) instead of leaving Colab's stale numba to conflict. The second
+# line force-refreshes only the expdpy code to the latest ``main`` commit (pip skips a git
+# reinstall when the version string is unchanged, so a warm runtime would otherwise keep stale
+# code).
 INSTALL_CELL = (
-    '!pip install -q "expdpy @ git+https://github.com/cmg777/expdpy.git"\n'
+    '!pip install -q "expdpy @ git+https://github.com/cmg777/expdpy.git" "numba>=0.61"\n'
     "!pip install -q --force-reinstall --no-deps "
     '"expdpy @ git+https://github.com/cmg777/expdpy.git"'
 )
@@ -110,8 +160,14 @@ def convert_with_quarto(qmd: Path, dest: Path) -> None:
     subprocess.run([quarto, "convert", str(qmd), "--output", str(dest)], check=True)
 
 
-def build_one(slug: str, title: str, build_stamp: str) -> Path:
-    """Generate ``notebooks/<slug>.ipynb`` from ``docs/<slug>.qmd``."""
+def build_one(
+    slug: str, title: str, build_stamp: str, *, title_md: str | None = None
+) -> Path:
+    """Generate ``notebooks/<slug>.ipynb`` from ``docs/<slug>.qmd``.
+
+    ``title_md`` overrides the shared :data:`TITLE_TEMPLATE` for the first (title) cell; it may
+    contain a ``{BUILD_STAMP}`` placeholder.
+    """
     src_qmd = REPO / "docs" / f"{slug}.qmd"
     out_ipynb = REPO / "notebooks" / f"{slug}.ipynb"
     with tempfile.TemporaryDirectory() as tmp:
@@ -130,10 +186,12 @@ def build_one(slug: str, title: str, build_stamp: str) -> Path:
 
     # ``.format`` above collapses the template's ``{{BUILD_STAMP}}`` to a single-braced
     # ``{BUILD_STAMP}``, which is what we substitute the build time into here.
-    title_md = TITLE_TEMPLATE.format(title=title, slug=slug).replace(
-        "{BUILD_STAMP}", build_stamp
-    )
-    title_cell = new_markdown_cell(title_md)
+    rendered_title = (
+        title_md
+        if title_md is not None
+        else TITLE_TEMPLATE.format(title=title, slug=slug)
+    ).replace("{BUILD_STAMP}", build_stamp)
+    title_cell = new_markdown_cell(rendered_title)
     install = new_code_cell(INSTALL_CELL)
     setup = new_code_cell(SETUP_CELL)
     nb.cells = [title_cell, install, setup, *cells]
@@ -161,7 +219,12 @@ def build() -> None:
     """Generate one Colab notebook per module from its docs page."""
     build_stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     for module in MODULES:
-        build_one(module["slug"], module["title"], build_stamp)
+        build_one(
+            module["slug"],
+            module["title"],
+            build_stamp,
+            title_md=module.get("title_md"),
+        )
 
 
 if __name__ == "__main__":
