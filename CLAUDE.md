@@ -122,9 +122,51 @@ its own does *not* justify a bigger bump. Keep the version in sync across `pypro
 line in the Overview above; for a user-facing release also add a dated `## <version>` entry to
 `docs/changelog.qmd` and update the install pins in `README.md`.
 
+## Releasing
+
+Publishing to PyPI is **automated via OIDC trusted publishing — no token needed**. To cut a
+release:
+
+1. Bump the version in the five locations above and land it on `main` via a PR (CI gates
+   lint/tests/docs/notebooks). For a notebook-only or docs-only fix, **skip the release** — the
+   notebooks install expdpy from git `main`, so merging to `main` is enough.
+2. Cut the release at `main`'s tip:
+   `gh release create vX.Y.Z --target main --title "vX.Y.Z — <summary>" --notes "<changelog entry>"`.
+   This creates and pushes the `vX.Y.Z` tag, which triggers `release.yml`.
+3. Watch it: `gh run watch` on the `release.yml` run — the **build** job runs `python -m build`
+   and the **publish** job uploads via `pypa/gh-action-pypi-publish` (OIDC). PyPI's aggregate
+   JSON is CDN-cached, so confirm with the per-version endpoint
+   (`https://pypi.org/pypi/expdpy/<version>/json`).
+
+The three workflows in `.github/workflows/`: **ci.yml** (ruff + mypy + a pytest matrix
+py310/py313 × ubuntu/macOS + best-effort R-parity, on push to `main` / PRs); **docs.yml** (docs
+build + the `notebooks-fresh` drift check + gh-pages deploy, deploy gated to `main`);
+**release.yml** (build + PyPI publish, triggered by a `v*` tag or `workflow_dispatch`). Merging to
+`main` redeploys the docs site automatically.
+
 ## Gotchas
 
 - The `ruff-format` pre-commit hook rewrites files and **aborts the first commit**; re-stage
   (`git add -A`) and commit again.
 - `pixi run <task>` uses the `default` (py312) env; lint/mypy/docs/R parity each need their own
   `-e lint` / `-e docs` / `-e r`.
+- **Notebooks are linted by pre-commit but not CI.** The `ruff` pre-commit hook checks
+  `notebooks/*.ipynb`, but CI's `ruff check src tests` does not — so a notebook can pass CI yet
+  **abort a commit**. Keep notebook **code-cell** strings ASCII: write `rho` / `-`, never `ρ` or
+  the Unicode minus `−`. (Source prose/labels may use β/λ/σ — `σ` is whitelisted via ruff
+  `allowed-confusables` in `pyproject.toml` — but never the Unicode minus.)
+- **Regenerate notebooks after editing any module `.qmd` or the notebook build script:**
+  `pixi run -e docs python tools/build_quickstart_notebook.py`, then
+  `pixi exec --spec ruff==0.15.17 -- ruff format notebooks/`, and commit the result — otherwise
+  the `notebooks-fresh` CI drift check fails (it ignores only the build-timestamp line).
+- **Don't remove the Colab runtime restart in the notebook install cell.** Colab pre-imports an
+  old NumPy at kernel startup; the install cell upgrades `numpy>=2.1` / `numba>=0.61` then
+  restarts the kernel once (`os.kill`, sentinel-guarded with a `/tmp` flag, gated to Colab via
+  `importlib.util.find_spec("google.colab")`) so the fresh NumPy loads — otherwise `import expdpy`
+  fails with `cannot import name '_center' from numpy._core.umath`. A notebook-cell fix reaches
+  users only when they **re-open the notebook from GitHub** (pip skips a same-version git reinstall).
+- The uv `.venv` lacks **numba**, so JIT codepaths in pyfixest (e.g. the clustered resampler)
+  don't run there; verify those — and anything that mirrors Colab — with `pixi run -e default`.
+- To add a new analysis function, the committed `.claude/skills/write-function/` skill scaffolds
+  an `analyze_*` / `explore_*` / `learn_*` function to these conventions (clarify → reuse →
+  implement → test → wire → verify, with an adversarial review pass).

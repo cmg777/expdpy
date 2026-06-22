@@ -67,7 +67,9 @@ Sun–Abraham, local-projections DiD, dynamic TWFE) with a built-in pre-trend di
 treatment-structure `analyze_panel_view`. For growth dynamics, `analyze_beta_convergence` runs
 the standard **β-convergence** workflow — unconditional and conditional (Frisch–Waugh–Lovell)
 convergence with annotated scatters, the speed of convergence and half-life, and a rolling
-fixed-window view.
+fixed-window view. Its distributional counterpart `analyze_sigma_convergence` tracks
+cross-sectional dispersion over time — standard deviation, Gini index and coefficient of
+variation on a dual-axis chart — and tests whether the distribution narrows (**σ-convergence**).
 
 ### Learn panel data
 
@@ -142,6 +144,13 @@ pip install "git+https://github.com/cmg777/expdpy.git@main"
 ```
 
 Requires Python 3.10+.
+
+### Try it in Colab — no install
+
+Every page of the [docs](https://cmg777.github.io/expdpy/) (and the per-function guides) carries a
+one-click **Open in Colab** badge. The notebook's first cell installs expdpy and then **restarts
+the runtime once** so the upgraded NumPy loads cleanly — when it reconnects, just run the cells
+again (Runtime ▸ Run all).
 
 > **Upgrading from 0.4.1?** In **0.4.2** every analysis function gained a module prefix:
 > `prepare_*` → `explore_*` / `analyze_*` and `sandbox_*` → `learn_*`, with figures ending in
