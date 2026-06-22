@@ -77,6 +77,39 @@ def test_load_firms_data_def():
     assert set(ids) == {"firm", "year"}
 
 
+def test_load_bolivia112_gdppc():
+    df = data.load_bolivia112_gdppc()
+    assert df.shape == (3920, 7)
+    assert list(df.columns) == [
+        "prov_id",
+        "prov",
+        "dep",
+        "dep_id",
+        "year",
+        "gdppc",
+        "log_gdppc",
+    ]
+    assert df["prov_id"].nunique() == 112
+    assert sorted(df["year"].unique()) == list(range(1990, 2025))
+    # Strictly balanced: every province observed in all 35 years, no gaps.
+    assert (df.groupby("prov_id")["year"].nunique() == 35).all()
+    # 112 provinces nested within 9 departments.
+    assert df["dep"].nunique() == 9
+    assert not df.isna().any().any()
+
+
+def test_load_bolivia112_gdppc_data_def():
+    dd = data.load_bolivia112_gdppc_data_def()
+    df = data.load_bolivia112_gdppc()
+    assert list(dd["var_name"]) == list(df.columns)
+    assert set(dd["type"]).issubset({"entity", "time", "factor", "logical", "numeric"})
+    assert dd["can_be_na"].dtype == bool
+    # Panel identifiers are flagged and never missing.
+    ids = dd.loc[dd["type"].isin(["entity", "time"]), "var_name"]
+    assert set(ids) == {"prov_id", "year"}
+    assert not df[list(ids)].isna().any().any()
+
+
 def test_data_defs_have_can_be_na_bool():
     dd = data.load_gapminder_data_def()
     assert dd["can_be_na"].dtype == bool

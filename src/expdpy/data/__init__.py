@@ -16,6 +16,8 @@ import pandas as pd
 __all__ = [
     "available_configs",
     "get_config",
+    "load_bolivia112_gdppc",
+    "load_bolivia112_gdppc_data_def",
     "load_firms",
     "load_firms_data_def",
     "load_gapminder",
@@ -44,6 +46,25 @@ def _normalize_def(df: pd.DataFrame) -> pd.DataFrame:
         df = df.copy()
         df["can_be_na"] = df["can_be_na"].astype(float).astype(bool)
     return df
+
+
+def load_bolivia112_gdppc() -> pd.DataFrame:
+    """Load the Bolivian subnational GDP-per-capita panel (112 provinces, 1990-2024).
+
+    A real-world balanced annual panel of 112 Bolivian provinces (nested within 9 departments)
+    over 35 years with GDP per capita and its natural log. The empirical counterpart to the
+    synthetic :func:`load_productivity` panel — built for the convergence workflows
+    (:func:`expdpy.analyze_beta_convergence` / :func:`expdpy.analyze_sigma_convergence` /
+    :func:`expdpy.analyze_convergence_clubs`) and for general subnational exploration (spaghetti,
+    by-department group views, panel structure, trends). Source: Kummu, Kosonen & Masoumzadeh
+    Sayyar, *Sci Data* 12, 178 (2025), https://doi.org/10.1038/s41597-025-04487-x.
+    """
+    return _read_parquet("bolivia112_gdppc")
+
+
+def load_bolivia112_gdppc_data_def() -> pd.DataFrame:
+    """Return variable definitions for :func:`load_bolivia112_gdppc`."""
+    return _normalize_def(_read_parquet("bolivia112_gdppc_data_def"))
 
 
 def load_firms() -> pd.DataFrame:

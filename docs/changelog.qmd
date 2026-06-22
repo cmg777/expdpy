@@ -2,6 +2,19 @@
 title: "Changelog"
 ---
 
+## 0.4.9 (2026-06-23)
+
+### Added
+
+- **Data:** a new bundled **`bolivia112_gdppc`** dataset — a real-world balanced panel of 112
+  Bolivian provinces (nested within 9 departments) over 1990-2024 with GDP per capita and its
+  natural log; the empirical counterpart to the synthetic `productivity` panel, for the
+  convergence workflows (`analyze_beta_convergence` / `analyze_sigma_convergence` /
+  `analyze_convergence_clubs`) and general subnational exploration. Load with
+  `load_bolivia112_gdppc()` / `load_bolivia112_gdppc_data_def()`. Source: Kummu, Kosonen &
+  Masoumzadeh Sayyar, "Downscaled gridded global dataset for GDP per capita PPP over 1990-2022,"
+  Sci Data 12, 178 (2025), https://doi.org/10.1038/s41597-025-04487-x.
+
 ## 0.4.8 (2026-06-22)
 
 ### Added

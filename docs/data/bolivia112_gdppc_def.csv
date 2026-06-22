@@ -1,0 +1,8 @@
+var_name,type,label,var_def,can_be_na
+prov_id,entity,Province (INE code),3-digit INE province code; primary join key (e.g. 405 = Litoral),False
+prov,factor,Province,Province name,False
+dep,factor,Department,Department name,False
+dep_id,factor,Department ID,Department identifier (alphabetical: Beni=1 … Tarija=9),False
+year,time,Year,"Calendar year, 1990–2024",False
+gdppc,numeric,GDP per capita,Annual GDP per capita; read directly from the GADM ADM2 GeoPackage (not aggregated/weighted); original units & methodology undocumented in repo,True
+log_gdppc,numeric,Log GDP per capita,Natural logarithm of gdppc,True

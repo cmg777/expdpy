@@ -18,7 +18,7 @@ Guidance for working in this repository. Keep it current when commands or conven
   every result.
 
 Three no-code **Streamlit** apps (one per module). `src/` layout, Python ≥ 3.10, managed with
-**pixi**. Current version: 0.4.8.
+**pixi**. Current version: 0.4.9.
 
 ## Commands
 
@@ -111,8 +111,9 @@ public API is curated in `src/expdpy/__init__.py` (`__all__` grouped by module).
 - Bundled datasets (in `expdpy.data`): `kuznets` (flagship N-shaped curve), `gapminder`,
   `staggered_did` (event study / DiD), `firms` (a small **unbalanced** panel for the
   structure/transition/persistence views), `productivity` (a balanced 108-country × 25-year
-  PWT log-GDPpc/log-LP panel for **club convergence**). Each has a `load_*()` +
-  `load_*_data_def()`.
+  PWT log-GDPpc/log-LP panel for **club convergence**), `bolivia112_gdppc` (a real-world
+  balanced 112-province × 35-year (1990-2024) Bolivian log-GDPpc panel for **convergence** and
+  subnational exploration). Each has a `load_*()` + `load_*_data_def()`.
 - `df_def.type ∈ {entity, time, factor, logical, numeric}`. Build scripts live in `tools/`.
 - Launch apps in-process with `ExploreApp(df, entity=, time=, df_def=...)` /
   `AnalyzeApp` / `LearnApp` (kwargs are `entity`/`time`, renamed from `cs_id`/`ts_id` in 0.4.1).

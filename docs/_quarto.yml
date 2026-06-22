@@ -161,4 +161,6 @@ quartodoc:
         - load_staggered_did
         - load_productivity
         - load_productivity_data_def
+        - load_bolivia112_gdppc
+        - load_bolivia112_gdppc_data_def
         - get_config

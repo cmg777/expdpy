@@ -109,9 +109,11 @@ that shift within each cross-section.
 Kuznets-curve demo), `gapminder`, **`staggered_did`** (a synthetic staggered-adoption panel
 for the event-study / DiD tools), **`firms`** (a small *unbalanced* panel — staggered
 entry/exit, interior gaps, a discrete size class and persistent revenue — for the
-panel-structure, transition and persistence views), and **`productivity`** (a balanced
+panel-structure, transition and persistence views), **`productivity`** (a balanced
 108-country × 25-year Penn World Table panel of log GDP per capita and log labor productivity
-for the **club-convergence** workflow). See the
+for the **club-convergence** workflow), and **`bolivia112_gdppc`** (a real-world balanced
+112-province × 35-year Bolivian panel of GDP per capita and its log, 1990–2024, for the
+**convergence** workflows and subnational exploration). See the
 [kuznets dataset](https://cmg777.github.io/expdpy/explanation/kuznets-dataset.html) page for the
 data dictionary.
 
@@ -144,8 +146,8 @@ pip install "expdpy[streamlit] @ git+https://github.com/cmg777/expdpy.git"
 Pin to a release, branch, or commit for reproducible installs:
 
 ```bash
-pip install "expdpy==0.4.8"
-pip install "git+https://github.com/cmg777/expdpy.git@v0.4.8"
+pip install "expdpy==0.4.9"
+pip install "git+https://github.com/cmg777/expdpy.git@v0.4.9"
 pip install "git+https://github.com/cmg777/expdpy.git@main"
 ```
 
