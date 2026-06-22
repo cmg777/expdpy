@@ -56,8 +56,9 @@ MODULES = [
             "recovers known parameters. Run the install cell below first, then run the rest top "
             "to bottom.\n"
             "\n"
-            "> If Colab prompts you to **restart the runtime** after the install, do so, then "
-            "continue from the setup cell.\n"
+            "> The first cell installs everything and then **restarts the Colab runtime once** "
+            "so the upgraded NumPy loads cleanly. When it reconnects, run the cells again "
+            "(Runtime > Run all) — the install cell skips the restart the second time.\n"
             "\n"
             "This notebook mirrors the [analyze_beta_convergence page]"
             "(https://cmg777.github.io/expdpy/analyze_beta_convergence.html) of the docs."
@@ -78,8 +79,9 @@ MODULES = [
             "recovers a known dispersion rate. Run the install cell below first, then run the "
             "rest top to bottom.\n"
             "\n"
-            "> If Colab prompts you to **restart the runtime** after the install, do so, then "
-            "continue from the setup cell.\n"
+            "> The first cell installs everything and then **restarts the Colab runtime once** "
+            "so the upgraded NumPy loads cleanly. When it reconnects, run the cells again "
+            "(Runtime > Run all) — the install cell skips the restart the second time.\n"
             "\n"
             "This notebook mirrors the [analyze_sigma_convergence page]"
             "(https://cmg777.github.io/expdpy/analyze_sigma_convergence.html) of the docs."
@@ -87,19 +89,29 @@ MODULES = [
     },
 ]
 
-# linearmodels (random/correlated random effects, the Hausman test) ships with the core
-# install now, so a plain ``expdpy`` install runs every cell. ``numba>=0.61`` is co-resolved in
-# the same pip pass because Colab pre-installs an older numba (e.g. 0.60) that caps numpy below
-# 2.1, while expdpy needs numpy>=2.1 — resolving them together lands on a compatible pair
-# (numpy 2.4.x + numba 0.65.x) instead of leaving Colab's stale numba to conflict. The second
-# line force-refreshes only the expdpy code to the latest ``main`` commit (pip skips a git
-# reinstall when the version string is unchanged, so a warm runtime would otherwise keep stale
-# code).
-INSTALL_CELL = (
-    '!pip install -q "expdpy @ git+https://github.com/cmg777/expdpy.git" "numba>=0.61"\n'
-    "!pip install -q --force-reinstall --no-deps "
-    '"expdpy @ git+https://github.com/cmg777/expdpy.git"'
-)
+# linearmodels ships with the core install, so a plain ``expdpy`` install runs every cell.
+# ``numpy>=2.1`` and ``numba>=0.61`` are co-resolved in the first pip pass because Colab
+# pre-installs numpy 2.0.2 and an older numba (e.g. 0.60) that caps numpy below 2.1, while expdpy
+# needs numpy>=2.1. The second line force-refreshes only the expdpy code to the latest ``main``
+# commit (pip skips a git reinstall when the version string is unchanged, so a warm runtime would
+# otherwise keep stale code). Finally the cell restarts the Colab runtime ONCE (guarded by a
+# ``/tmp`` flag so "Run all" does not loop): Colab pre-imports numpy 2.0.2 at startup, so without
+# a restart the kernel keeps the old numpy in ``sys.modules`` and ``import expdpy`` fails with
+# "cannot import name '_center' from numpy._core.umath".
+INSTALL_CELL = """import importlib.util
+import os
+
+!pip install -q "numpy>=2.1" "numba>=0.61" "expdpy @ git+https://github.com/cmg777/expdpy.git"
+!pip install -q --force-reinstall --no-deps "expdpy @ git+https://github.com/cmg777/expdpy.git"
+
+_RESTART_FLAG = "/tmp/.expdpy_runtime_restarted"
+_ON_COLAB = importlib.util.find_spec("google.colab") is not None
+if _ON_COLAB and not os.path.exists(_RESTART_FLAG):
+    with open(_RESTART_FLAG, "w"):
+        pass
+    print("Install complete - restarting the runtime once so NumPy loads cleanly.")
+    print("After it reconnects, run the cells again (Runtime > Run all).")
+    os.kill(os.getpid(), 9)"""
 
 # Colab does not always pick a Plotly renderer that draws figures returned as the last cell
 # expression, so force the dedicated "colab" renderer there. This is a no-op in Jupyter.
@@ -125,8 +137,9 @@ TITLE_TEMPLATE = (
     "[expdpy](https://github.com/cmg777/expdpy) on the bundled `kuznets` panel. Run the install "
     "cell below first, then run the rest top to bottom.\n"
     "\n"
-    "> If Colab prompts you to **restart the runtime** after the install, do so, then continue "
-    "from the setup cell.\n"
+    "> The first cell installs everything and then **restarts the Colab runtime once** so the "
+    "upgraded NumPy loads cleanly. When it reconnects, run the cells again (Runtime > Run all) "
+    "— the install cell skips the restart the second time.\n"
     "\n"
     "This notebook mirrors the [{title} page](https://cmg777.github.io/expdpy/{slug}.html) of "
     "the docs."
