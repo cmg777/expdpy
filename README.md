@@ -70,6 +70,10 @@ convergence with annotated scatters, the speed of convergence and half-life, and
 fixed-window view. Its distributional counterpart `analyze_sigma_convergence` tracks
 cross-sectional dispersion over time — standard deviation, Gini index and coefficient of
 variation on a dual-axis chart — and tests whether the distribution narrows (**σ-convergence**).
+When a panel is plausibly *not* one homogeneous group, `analyze_convergence_clubs` runs the
+**Phillips–Sul log(t)** workflow — HP-filter trend, relative transition paths, the log(t)
+convergence test and a data-driven **clustering** algorithm — to split units into convergence
+**clubs** (a faithful port of the Stata `psecta` package).
 
 ### Learn panel data
 
@@ -103,9 +107,11 @@ that shift within each cross-section.
 
 `expdpy.data` ships ready-to-explore panels — **`kuznets`** (the flagship N-shaped
 Kuznets-curve demo), `gapminder`, **`staggered_did`** (a synthetic staggered-adoption panel
-for the event-study / DiD tools), and **`firms`** (a small *unbalanced* panel — staggered
+for the event-study / DiD tools), **`firms`** (a small *unbalanced* panel — staggered
 entry/exit, interior gaps, a discrete size class and persistent revenue — for the
-panel-structure, transition and persistence views). See the
+panel-structure, transition and persistence views), and **`productivity`** (a balanced
+108-country × 25-year Penn World Table panel of log GDP per capita and log labor productivity
+for the **club-convergence** workflow). See the
 [kuznets dataset](https://cmg777.github.io/expdpy/explanation/kuznets-dataset.html) page for the
 data dictionary.
 
@@ -138,8 +144,8 @@ pip install "expdpy[streamlit] @ git+https://github.com/cmg777/expdpy.git"
 Pin to a release, branch, or commit for reproducible installs:
 
 ```bash
-pip install "expdpy==0.4.7"
-pip install "git+https://github.com/cmg777/expdpy.git@v0.4.7"
+pip install "expdpy==0.4.8"
+pip install "git+https://github.com/cmg777/expdpy.git@v0.4.8"
 pip install "git+https://github.com/cmg777/expdpy.git@main"
 ```
 

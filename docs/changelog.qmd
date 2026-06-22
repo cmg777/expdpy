@@ -2,6 +2,44 @@
 title: "Changelog"
 ---
 
+## 0.4.8 (2026-06-22)
+
+### Added
+
+- **Club-convergence analysis** (`analyze_convergence_clubs`). A faithful Python port of the
+  Phillips & Sul (2007/2009) log(t) test and data-driven clustering algorithm (the Stata
+  `psecta` package). It runs the full workflow on one variable: a per-unit **Hodrick-Prescott**
+  filter (`lambda = 400` for annual data), the **relative transition path**
+  `h_it = x_it / mean_i(x_it)`, the **log(t) regression test** for the whole panel and — when
+  global convergence is rejected — the **clustering algorithm** that splits units into
+  convergence **clubs**, followed by **merging** of adjacent clubs that jointly converge. The
+  log(t) statistic uses the Phillips-Sul scalar long-run-variance HAC (Andrews 1991
+  quadratic-spectral kernel with an AR(1) automatic bandwidth), hand-coded in NumPy to match the
+  reference since standard OLS engines do not provide it. The result exposes a tidy long frame
+  (with `relative` and `club`), three figures (within-club averages, all paths by club, and
+  per-club small multiples), a classification table and an `entity -> club` membership frame.
+  Configurable trimming `r`, sieve `method` (Schnurbus-adjusted or original PS), `merge` mode and
+  HP `filter`.
+- **Learn:** a runnable `learn_convergence_clubs` sandbox plants a known club structure and shows
+  the algorithm recover it, and an `explain("convergence_clubs")` concept explainer covers the
+  log(t) test and clustering. A new "Convergence clubs" page in the Analyze app exposes the
+  analysis on your data.
+- **Data:** a new bundled **`productivity`** dataset — a balanced 108-country × 25-year Penn
+  World Table panel of (raw) log GDP per capita and log labor productivity with region / income
+  grouping factors — for the club-convergence workflow (`load_productivity`).
+
+### Fixed
+
+- **`analyze_beta_convergence`:** a conditional control that is constant or collinear with the
+  initial level was silently dropped by the estimator, so the reported "conditional" fit was
+  identical to the unconditional one with no warning. The conditional model is now **skipped with
+  an explicit note** naming the offending control(s), rather than mislabelling the unconditional
+  slope as conditional.
+- **`analyze_beta_convergence`:** duplicate `(entity, time)` rows were de-duplicated with an
+  order-sensitive, NaN-blind rule, so a missing-valued duplicate ordered first could silently
+  evict a valid observation. De-duplication now keeps the first **non-missing** value per cell
+  (matching `analyze_sigma_convergence` / `analyze_convergence_clubs`).
+
 ## 0.4.7 (2026-06-22)
 
 ### Added

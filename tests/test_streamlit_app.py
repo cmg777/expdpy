@@ -189,6 +189,20 @@ def test_sigma_convergence_page_renders():
     assert not at.exception
 
 
+def test_convergence_clubs_page_needs_full_panel():
+    full = [spec[0] for spec in selected_specs(_active("year", entities=["country"]))]
+    ts_only = [spec[0] for spec in selected_specs(_active("year"))]  # no entity id
+    cross = [spec[0] for spec in selected_specs(_active(None))]
+    assert "Convergence clubs" in full
+    assert "Convergence clubs" not in ts_only
+    assert "Convergence clubs" not in cross
+
+
+def test_convergence_clubs_page_renders():
+    at = _page("convergence_clubs")  # default dataset (Kuznets) is a balanced panel
+    assert not at.exception
+
+
 # --- per-module page filtering ------------------------------------------------
 def test_each_module_shows_only_its_pages():
     active = _active("year", entities=["country"])  # a true panel: all gates pass
@@ -199,6 +213,7 @@ def test_each_module_shows_only_its_pages():
     assert "Overview & Data" in explore and "Trends" in explore
     assert "Regression" in analyze and "Panel models" in analyze
     assert "Sigma convergence" in analyze
+    assert "Convergence clubs" in analyze
     assert "Concept sandboxes" in learn and "Concept explainers" in learn
     # The three modules partition the pages — no page appears in two of them.
     assert explore.isdisjoint(analyze) and analyze.isdisjoint(learn)

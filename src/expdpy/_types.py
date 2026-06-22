@@ -20,6 +20,7 @@ from expdpy.pedagogy import Interpretable
 from expdpy.pedagogy import explain as _explain
 from expdpy.pedagogy._interpret import (
     interpret_beta_convergence,
+    interpret_convergence_clubs,
     interpret_correlation,
     interpret_cre,
     interpret_descriptive,
@@ -54,6 +55,7 @@ __all__ = [
     "ByGroupViolinResult",
     "CRETableResult",
     "CoefficientPlotResult",
+    "ConvergenceClubsResult",
     "CorrelationGraphResult",
     "CorrelationTableResult",
     "DescriptiveTableResult",
@@ -515,6 +517,82 @@ class SigmaConvergenceResult(Interpretable):
                     "std_se": self.std_se,
                     "std_pvalue": self.std_pvalue,
                     "std_r2": self.std_r2,
+                }
+            ]
+        )
+
+
+@dataclass(frozen=True)
+class ConvergenceClubsResult(Interpretable):
+    """Result of :func:`expdpy.analyze_convergence_clubs`.
+
+    ``df`` is the tidy long panel the analysis is built on: one row per (unit, period) with
+    ``value`` (the HP-filtered trend, or the raw variable when ``filter=None``), ``relative``
+    (the relative transition ``h_it = value / cross-sectional mean``) and ``club`` (the assigned
+    club, ``0`` for the divergent group). ``fig`` is the headline within-club **average**
+    transition-path figure; ``fig_paths`` overlays every unit's path coloured by club; and
+    ``fig_clubs`` is the per-club small-multiples panel. ``gt`` / ``summary`` are the
+    classification table (one row per club / the divergent group: ``n_members``, log(t) ``beta``,
+    ``tstat``, ``converging``, ``members``) and ``membership`` is the tidy ``entity -> club``
+    frame (the appendix list).
+
+    The scalars report the panel dimensions (``n_units`` / ``n_periods``); the **whole-panel**
+    log(t) test (``global_beta`` = ``b`` = ``2*alpha`` and ``global_tstat``) with the
+    ``converged`` flag (``global_tstat > -1.65``); the number of clubs ``n_clubs`` and divergent
+    units ``n_divergent``; and the run parameters (``hp_lambda`` — ``nan`` when unfiltered —
+    ``trim`` = ``r``, ``method``, ``merge``).
+    """
+
+    df: pd.DataFrame
+    fig: go.Figure
+    fig_paths: go.Figure
+    fig_clubs: go.Figure
+    gt: GT
+    summary: pd.DataFrame
+    membership: pd.DataFrame
+    var: str
+    entity: str
+    time: str
+    n_units: int
+    n_periods: int
+    n_clubs: int
+    n_divergent: int
+    global_beta: float
+    global_tstat: float
+    converged: bool
+    hp_lambda: float
+    trim: float
+    method: str
+    merge: str
+    notes: tuple[str, ...] = ()
+
+    def interpret(self, *, lang: str = "en") -> str:
+        """Plain-language reading of how the panel splits into convergence clubs."""
+        return interpret_convergence_clubs(self, lang=lang)
+
+    def explain(self, *, lang: str = "en") -> Explainer:
+        """Concept explainer for club convergence."""
+        return _explain("convergence_clubs", lang=lang)
+
+    def tidy(self) -> pd.DataFrame:
+        """Return the per-club classification frame (one row per club / divergent group)."""
+        return self.summary
+
+    def glance(self) -> pd.DataFrame:
+        """One-row summary of the clustering (broom-style ``glance``)."""
+        import pandas as pd
+
+        return pd.DataFrame(
+            [
+                {
+                    "var": self.var,
+                    "n_units": self.n_units,
+                    "n_periods": self.n_periods,
+                    "n_clubs": self.n_clubs,
+                    "n_divergent": self.n_divergent,
+                    "global_beta": self.global_beta,
+                    "global_tstat": self.global_tstat,
+                    "converged": self.converged,
                 }
             ]
         )

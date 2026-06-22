@@ -38,6 +38,7 @@ docs/reference/
 .RData
 .Rproj.user
 
-# Vendored reference R packages (reference only — not part of the expdpy package)
+# Vendored reference materials (reference only — not part of the expdpy package)
 /ExPanDaR/
 /fwlplot-r/
+/reference_for_convergence_clubs/

@@ -87,6 +87,29 @@ MODULES = [
             "(https://cmg777.github.io/expdpy/analyze_sigma_convergence.html) of the docs."
         ),
     },
+    {
+        "slug": "analyze_convergence_clubs",
+        "title": "analyze_convergence_clubs",
+        "title_md": (
+            "# analyze_convergence_clubs — Phillips-Sul convergence clubs\n"
+            "\n"
+            "_Notebook version: built {BUILD_STAMP} — re-open this notebook from GitHub if "
+            "yours is older, to get the latest version._\n"
+            "\n"
+            "An extended **user guide** *and* a **verification harness** for "
+            "`analyze_convergence_clubs` from [expdpy](https://github.com/cmg777/expdpy): the "
+            "log(t) test, the HP-filter trend, the data-driven clustering, every argument, "
+            "everything it returns, and a synthetic-data check that it recovers a planted club "
+            "structure. Run the install cell below first, then run the rest top to bottom.\n"
+            "\n"
+            "> The first cell installs everything and then **restarts the Colab runtime once** "
+            "so the upgraded NumPy loads cleanly. When it reconnects, run the cells again "
+            "(Runtime > Run all) — the install cell skips the restart the second time.\n"
+            "\n"
+            "This notebook mirrors the [analyze_convergence_clubs page]"
+            "(https://cmg777.github.io/expdpy/analyze_convergence_clubs.html) of the docs."
+        ),
+    },
 ]
 
 # linearmodels ships with the core install, so a plain ``expdpy`` install runs every cell.

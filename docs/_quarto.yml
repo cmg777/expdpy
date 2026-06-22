@@ -31,6 +31,8 @@ website:
             file: analyze_beta_convergence.qmd
           - text: "Sigma convergence (analyze_sigma_convergence)"
             file: analyze_sigma_convergence.qmd
+          - text: "Convergence clubs (analyze_convergence_clubs)"
+            file: analyze_convergence_clubs.qmd
           - text: "The kuznets dataset"
             file: explanation/kuznets-dataset.qmd
           - text: "Data model"
@@ -100,7 +102,8 @@ quartodoc:
         between / fixed / random effects, correlated random effects (Mundlak), the Hausman
         test, post-estimation, robust inference, event-study / difference-in-differences,
         β-convergence (unconditional / conditional with speed, half-life and a rolling view),
-        and σ-convergence (the trend in cross-sectional dispersion over time).
+        σ-convergence (the trend in cross-sectional dispersion over time), and club convergence
+        (the Phillips–Sul log(t) test with data-driven clustering).
       contents:
         - analyze_regression_table
         - analyze_estimation
@@ -117,6 +120,7 @@ quartodoc:
         - analyze_panel_view
         - analyze_beta_convergence
         - analyze_sigma_convergence
+        - analyze_convergence_clubs
     - title: Learn
       desc: >-
         The teaching layer — concept sandboxes (simulated demonstrations) and concept
@@ -130,6 +134,7 @@ quartodoc:
         - learn_within_vs_lsdv
         - learn_beta_convergence
         - learn_sigma_convergence
+        - learn_convergence_clubs
     - title: Utilities
       desc: >-
         Cross-cutting helpers shared across modules — panel declaration, outlier
@@ -154,4 +159,6 @@ quartodoc:
         - load_kuznets_data_def
         - load_gapminder
         - load_staggered_did
+        - load_productivity
+        - load_productivity_data_def
         - get_config

@@ -20,12 +20,17 @@ import statsmodels.api as sm
 
 from expdpy._theme import apply_default_layout, color_for
 from expdpy._types import SandboxResult
-from expdpy.convergence import analyze_beta_convergence, analyze_sigma_convergence
+from expdpy.convergence import (
+    analyze_beta_convergence,
+    analyze_convergence_clubs,
+    analyze_sigma_convergence,
+)
 from expdpy.regression import analyze_regression_table
 
 __all__ = [
     "learn_beta_convergence",
     "learn_clustering_se",
+    "learn_convergence_clubs",
     "learn_first_differences",
     "learn_omitted_variable_bias",
     "learn_pooled_vs_fixed_effects",
@@ -725,3 +730,90 @@ def learn_sigma_convergence(
     )
     fig.update_layout(title="σ-convergence: recovered vs true dispersion trend")
     return SandboxResult(df=df, fig=fig, summary=summary, topic="sigma_convergence")
+
+
+def learn_convergence_clubs(
+    *,
+    n_per_club: int = 15,
+    levels: tuple[float, ...] = (10.0, 9.3, 8.6),
+    n_years: int = 35,
+    rho: float = 0.9,
+    spread: float = 0.4,
+    noise: float = 0.002,
+    seed: int = 0,
+) -> SandboxResult:
+    """Show Phillips-Sul club clustering recovering a *planted* club structure.
+
+    Builds a panel with ``len(levels)`` known convergence clubs: every unit in club ``k`` starts
+    at its long-run level ``levels[k]`` plus an idiosyncratic deviation that decays
+    geometrically (``deviation * rho**t``), so units within a club converge to a common path
+    while the distinct club levels keep the panel from converging globally. Running
+    :func:`expdpy.analyze_convergence_clubs` on it should reject whole-panel convergence and
+    recover the planted clubs. Demonstrates that the clustering is data-driven, not imposed.
+
+    Parameters
+    ----------
+    n_per_club
+        Units per planted club.
+    levels
+        The distinct long-run (log) levels, one per club; well-separated levels give clean clubs.
+    n_years
+        Number of annual periods (the horizon over which deviations decay).
+    rho
+        Per-period decay of the within-club deviations in ``(0, 1)`` (smaller converges faster).
+    spread
+        Half-width of the initial within-club deviation (uniform).
+    noise
+        Idiosyncratic shock standard deviation (kept tiny so the clubs stay sharp).
+    seed
+        Random seed.
+
+    Returns
+    -------
+    SandboxResult
+        ``df`` (each unit's planted vs detected club), ``fig`` (the recovered within-club average
+        paths), ``summary`` and ``topic``.
+    """
+    rng = np.random.default_rng(seed)
+    rows = []
+    true_club: dict[str, int] = {}
+    for k, mu in enumerate(levels, start=1):
+        for j in range(n_per_club):
+            uid = f"c{k}u{j:02d}"
+            true_club[uid] = k
+            dev = float(rng.uniform(-spread, spread))
+            for t in range(1, n_years + 1):
+                val = mu + dev * (rho ** (t - 1)) + float(rng.normal(0.0, noise))
+                rows.append((uid, t, val))
+    panel = pd.DataFrame(rows, columns=["unit", "year", "x"])
+
+    res = analyze_convergence_clubs(panel, "x", entity="unit", time="year")
+
+    detected = dict(zip(res.membership["entity"], res.membership["club"], strict=True))
+    # Best-match accuracy: each detected club is scored by its modal planted club.
+    by_detected: dict[int, list[int]] = {}
+    for uid, det in detected.items():
+        by_detected.setdefault(int(det), []).append(true_club[uid])
+    correct = 0
+    for det, trues in by_detected.items():
+        if det == 0:  # the divergent group has no planted truth
+            continue
+        modal = max(set(trues), key=trues.count)
+        correct += sum(1 for tc in trues if tc == modal)
+    accuracy = correct / len(true_club)
+
+    df = pd.DataFrame(
+        {
+            "unit": list(true_club),
+            "true_club": [true_club[u] for u in true_club],
+            "detected_club": [int(detected[u]) for u in true_club],
+        }
+    )
+    summary = {
+        "true_clubs": float(len(levels)),
+        "detected_clubs": float(res.n_clubs),
+        "n_units": float(len(true_club)),
+        "accuracy": float(accuracy),
+        "global_tstat": float(res.global_tstat),
+    }
+    return SandboxResult(df=df, fig=res.fig, summary=summary, topic="convergence_clubs")

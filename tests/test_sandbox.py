@@ -126,3 +126,18 @@ def test_sigma_convergence_rate_tracks_rho():
     fast = ex.learn_sigma_convergence(rho=0.80, seed=1).summary
     slow = ex.learn_sigma_convergence(rho=0.97, seed=1).summary
     assert fast["std_slope"] < slow["std_slope"] < 0
+
+
+def test_convergence_clubs_recovers_planted_structure():
+    res = ex.learn_convergence_clubs(seed=0)
+    assert isinstance(res, SandboxResult)
+    assert isinstance(res.fig, go.Figure)
+    s = res.summary
+    # The clustering recovers the planted number of clubs and assigns every unit correctly.
+    assert s["detected_clubs"] == s["true_clubs"]
+    assert s["accuracy"] == 1.0
+    assert s["global_tstat"] <= -1.65  # the panel does not converge globally
+    assert set(res.df.columns) == {"unit", "true_club", "detected_club"}
+    assert res.topic == "convergence_clubs"
+    assert "club" in res.interpret().lower()
+    assert res.explain().topic == "convergence_clubs"

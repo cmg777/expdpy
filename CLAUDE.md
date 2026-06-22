@@ -18,7 +18,7 @@ Guidance for working in this repository. Keep it current when commands or conven
   every result.
 
 Three no-code **Streamlit** apps (one per module). `src/` layout, Python ≥ 3.10, managed with
-**pixi**. Current version: 0.4.7.
+**pixi**. Current version: 0.4.8.
 
 ## Commands
 
@@ -52,7 +52,10 @@ public API is curated in `src/expdpy/__init__.py` (`__all__` grouped by module).
 - **Analyze**: `regression.py`, `estimation.py`, `fwl.py`, `coefplot.py`, `panel_models.py`,
   `cre.py`, `postestimation.py`, `inference.py`, `did.py`, `convergence.py` (β-convergence:
   unconditional/conditional via FWL + speed/half-life + rolling; σ-convergence: per-period
-  dispersion std/Gini/CV + log-dispersion trend + dual-axis figure). Shared estimation engine in
+  dispersion std/Gini/CV + log-dispersion trend + dual-axis figure; **club convergence**:
+  Phillips-Sul log(t) test + HP-filter trend + data-driven clustering + adjacent-club merging,
+  with the Andrews-1991 QS-kernel HAC hand-coded in NumPy since pyfixest does not provide it).
+  Shared estimation engine in
   `_estimation/` (pyfixest wrapper: `_spec`, `_formula`, `_vcov`, `_fit`, `_tidy`, `_results`).
 - **Learn**: `sandbox.py` + `pedagogy/` (`_registry` `Explainer`/`explain`/`list_topics`,
   `_interpret`, `_mixin` `Interpretable`, `_format`, and `_text/*` topic registrations).
@@ -107,7 +110,9 @@ public API is curated in `src/expdpy/__init__.py` (`__all__` grouped by module).
 
 - Bundled datasets (in `expdpy.data`): `kuznets` (flagship N-shaped curve), `gapminder`,
   `staggered_did` (event study / DiD), `firms` (a small **unbalanced** panel for the
-  structure/transition/persistence views). Each has a `load_*()` + `load_*_data_def()`.
+  structure/transition/persistence views), `productivity` (a balanced 108-country × 25-year
+  PWT log-GDPpc/log-LP panel for **club convergence**). Each has a `load_*()` +
+  `load_*_data_def()`.
 - `df_def.type ∈ {entity, time, factor, logical, numeric}`. Build scripts live in `tools/`.
 - Launch apps in-process with `ExploreApp(df, entity=, time=, df_def=...)` /
   `AnalyzeApp` / `LearnApp` (kwargs are `entity`/`time`, renamed from `cs_id`/`ts_id` in 0.4.1).

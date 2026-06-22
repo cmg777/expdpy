@@ -25,6 +25,7 @@ from expdpy.pedagogy._format import (
 
 __all__ = [
     "interpret_beta_convergence",
+    "interpret_convergence_clubs",
     "interpret_correlation",
     "interpret_cre",
     "interpret_descriptive",
@@ -160,6 +161,65 @@ def interpret_sigma_convergence(result: Any, *, lang: str = "en") -> str:
             + f" over the same span (trend {fmt_num(gini_slope)} per period)"
             + ("." if agree else ", a different direction from the standard deviation.")
         )
+    lines += ["", _ASSOC_NOTE]
+    return "\n".join(lines)
+
+
+def interpret_convergence_clubs(result: Any, *, lang: str = "en") -> str:
+    """Interpret a club-convergence result: how the panel splits into convergence clubs."""
+    var = str(getattr(result, "var", "the variable"))
+    n_units = int(getattr(result, "n_units", 0))
+    n_periods = int(getattr(result, "n_periods", 0))
+    n_clubs = int(getattr(result, "n_clubs", 0))
+    n_div = int(getattr(result, "n_divergent", 0))
+    converged = bool(getattr(result, "converged", False))
+    g_t = float(getattr(result, "global_tstat", float("nan")))
+
+    head = (
+        f"Across {n_units:,} units over {n_periods} periods, the Phillips-Sul log(t) test "
+        f"for **{var}** "
+    )
+    if converged:
+        lines = [
+            head
+            + f"does not reject convergence for the whole panel (t = {fmt_num(g_t)} > -1.65): "
+            "the units form a **single convergence club** — they all approach a common path."
+        ]
+        lines += ["", _ASSOC_NOTE]
+        return "\n".join(lines)
+
+    if n_clubs == 0:
+        lines = [
+            head
+            + f"rejects global convergence (t = {fmt_num(g_t)} <= -1.65) and the clustering "
+            "algorithm finds **no convergence clubs** — the units diverge rather than forming "
+            "catch-up groups."
+        ]
+        lines += ["", _ASSOC_NOTE]
+        return "\n".join(lines)
+
+    summary = result.summary
+    clubs = summary[summary["club"] != "Divergent"]
+    sizes = ", ".join(
+        f"{row['club']} ({int(row['n_members'])})" for _, row in clubs.iterrows()
+    )
+    lines = [
+        head
+        + f"rejects global convergence (t = {fmt_num(g_t)} <= -1.65). The clustering algorithm "
+        f"splits the panel into **{n_clubs} convergence club"
+        + ("s" if n_clubs != 1 else "")
+        + f"** — groups that each converge internally but not with one another: {sizes}."
+    ]
+    if n_div:
+        lines.append(
+            f"{n_div} unit"
+            + ("s" if n_div != 1 else "")
+            + " do not join any club (the divergent group)."
+        )
+    lines.append(
+        "Club 1 collects the highest-ranked units; within each club the log(t) slope b = "
+        "2*alpha is positive enough that its t-statistic clears -1.65."
+    )
     lines += ["", _ASSOC_NOTE]
     return "\n".join(lines)
 
@@ -409,6 +469,15 @@ def interpret_sandbox(result: Any, *, lang: str = "en") -> str:
             f"log-rate of {fmt_num(s['true_slope'])} per period. The standard-deviation trend "
             f"recovers {fmt_num(s['std_slope'])} and the Gini trend {fmt_num(s['gini_slope'])} "
             "— both matching the truth, the hallmark of σ-convergence."
+        )
+    if topic == "convergence_clubs":
+        return (
+            f"The panel was built with {int(s['true_clubs'])} planted convergence clubs. The "
+            f"whole-panel log(t) test rejects global convergence "
+            f"(t = {fmt_num(s['global_tstat'])} <= -1.65), and the data-driven clustering "
+            f"recovers {int(s['detected_clubs'])} club(s), placing "
+            f"{fmt_num(s['accuracy'] * 100)}% of the {int(s['n_units'])} units in their true "
+            "club — the algorithm finds the structure without being told it."
         )
     return "Sandbox demonstration."  # pragma: no cover - defensive
 

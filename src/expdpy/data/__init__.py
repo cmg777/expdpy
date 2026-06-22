@@ -22,6 +22,8 @@ __all__ = [
     "load_gapminder_data_def",
     "load_kuznets",
     "load_kuznets_data_def",
+    "load_productivity",
+    "load_productivity_data_def",
     "load_staggered_did",
     "load_staggered_did_data_def",
 ]
@@ -78,6 +80,22 @@ def load_kuznets() -> pd.DataFrame:
 def load_kuznets_data_def() -> pd.DataFrame:
     """Return variable definitions for :func:`load_kuznets`."""
     return _normalize_def(_read_parquet("kuznets_data_def"))
+
+
+def load_productivity() -> pd.DataFrame:
+    """Load the cross-country labor-productivity convergence panel (PWT9.0, 1990-2014).
+
+    A balanced annual panel of 108 countries over 25 years with log GDP per capita and log
+    labor productivity (raw, before HP filtering), their levels, and region / income grouping
+    factors. Built for :func:`expdpy.analyze_convergence_clubs` — the flagship dataset for the
+    Phillips-Sul log(t) club-convergence workflow (mendez2020-convergence-clubs).
+    """
+    return _read_parquet("productivity")
+
+
+def load_productivity_data_def() -> pd.DataFrame:
+    """Return variable definitions for :func:`load_productivity`."""
+    return _normalize_def(_read_parquet("productivity_data_def"))
 
 
 def load_staggered_did() -> pd.DataFrame:

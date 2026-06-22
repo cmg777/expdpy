@@ -31,6 +31,7 @@ from expdpy._types import (
     ByGroupTrendGraphResult,
     ByGroupViolinResult,
     CoefficientPlotResult,
+    ConvergenceClubsResult,
     CorrelationGraphResult,
     CorrelationTableResult,
     CRETableResult,
@@ -68,7 +69,11 @@ from expdpy.by_group import (
     explore_violin_plot_by_group,
 )
 from expdpy.coefplot import analyze_coefficient_plot
-from expdpy.convergence import analyze_beta_convergence, analyze_sigma_convergence
+from expdpy.convergence import (
+    analyze_beta_convergence,
+    analyze_convergence_clubs,
+    analyze_sigma_convergence,
+)
 from expdpy.correlation import explore_correlation_plot
 from expdpy.cre import analyze_cre_table
 from expdpy.did import analyze_event_study, analyze_panel_view
@@ -99,6 +104,7 @@ from expdpy.regression import analyze_regression_table
 from expdpy.sandbox import (
     learn_beta_convergence,
     learn_clustering_se,
+    learn_convergence_clubs,
     learn_first_differences,
     learn_omitted_variable_bias,
     learn_pooled_vs_fixed_effects,
@@ -114,7 +120,7 @@ from expdpy.tables import (
 )
 from expdpy.trends import explore_quantile_trend_plot, explore_trend_plot
 
-__version__ = "0.4.7"
+__version__ = "0.4.8"
 
 __all__ = [
     # ===== EXPLORE =====
@@ -175,6 +181,8 @@ __all__ = [
     "analyze_beta_convergence",
     # sigma convergence (dispersion-over-time + log-trend)
     "analyze_sigma_convergence",
+    # club convergence (Phillips-Sul log(t) test + data-driven clustering)
+    "analyze_convergence_clubs",
     # ===== LEARN =====
     # concept sandboxes
     "learn_omitted_variable_bias",
@@ -184,6 +192,7 @@ __all__ = [
     "learn_within_vs_lsdv",
     "learn_beta_convergence",
     "learn_sigma_convergence",
+    "learn_convergence_clubs",
     # concept-explainer registry type
     "Explainer",
     # ===== UTILITIES =====
@@ -236,6 +245,7 @@ __all__ = [
     "PanelViewResult",
     "BetaConvergenceResult",
     "SigmaConvergenceResult",
+    "ConvergenceClubsResult",
     # learn
     "SandboxResult",
 ]

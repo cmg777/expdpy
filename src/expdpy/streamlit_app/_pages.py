@@ -10,7 +10,7 @@ current data (e.g. time-series views on cross-sectional data) are omitted from t
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any, cast
+from typing import Any, Literal, cast
 
 import streamlit as st
 
@@ -613,6 +613,62 @@ def page_sigma_convergence() -> None:
         st.markdown(res.explain().to_markdown())
 
 
+def page_convergence_clubs() -> None:
+    """Find Phillips-Sul convergence clubs: the log(t) test plus data-driven clustering."""
+    from expdpy import analyze_convergence_clubs
+
+    active = _active_or_stop()
+    st.header("Convergence clubs")
+    if not _is_panel(active):
+        st.info(
+            "Convergence clubs need a balanced panel: a cross-section id and a time dimension."
+        )
+        return
+    assert active.time is not None  # narrowed by _is_panel
+    entity, time = active.entities[0], active.time
+    st.caption(f"Entity: **{entity}** · Time: **{time}**")
+    var = st.selectbox("Variable (pass it in logs)", _numeric(active), key="clubs_var")
+    if not var or var == "None":
+        st.info(
+            "Choose a numeric variable (e.g. log GDP per capita) to cluster into clubs."
+        )
+        return
+    col1, col2 = st.columns(2)
+    use_hp = col1.checkbox("HP-filter trend (lambda=400)", value=True, key="clubs_hp")
+    merge = col2.selectbox(
+        "Merge adjacent clubs", ("iterative", "single", "none"), key="clubs_merge"
+    )
+    try:
+        res = analyze_convergence_clubs(
+            active.sample,
+            var,
+            entity=entity,
+            time=time,
+            filter="hp" if use_hp else None,
+            merge=cast('Literal["iterative", "single", "none"]', merge),
+        )
+    except Exception as exc:  # surface the message, keep the page alive
+        st.info(str(exc))
+        return
+    if res.converged:
+        st.success(
+            f"The whole panel converges (global log(t) t = {res.global_tstat:.2f} > -1.65): "
+            "a single convergence club."
+        )
+    else:
+        st.info(
+            f"Global convergence rejected (t = {res.global_tstat:.2f}). "
+            f"{res.n_clubs} club(s); {res.n_divergent} divergent unit(s)."
+        )
+    st.plotly_chart(res.fig, width="stretch", config=PLOTLY_CONFIG)
+    st.dataframe(res.summary, width="stretch", hide_index=True)
+    st.markdown(res.interpret())
+    for note in res.notes:
+        st.caption(f"⚠️ {note}")
+    with st.expander("❓ What is this? (method explainer)"):
+        st.markdown(res.explain().to_markdown())
+
+
 def page_explainers() -> None:
     """Browse the concept explainers — the Learn module's topic index."""
     from expdpy import explain, list_topics
@@ -640,6 +696,15 @@ _PAGE_SPECS.append(("Panel models", "🪧", "panel_models", page_panel_models, _
 _PAGE_SPECS.append(
     ("Sigma convergence", "📉", "sigma_convergence", page_sigma_convergence, _is_panel)
 )
+_PAGE_SPECS.append(
+    (
+        "Convergence clubs",
+        "🧩",
+        "convergence_clubs",
+        page_convergence_clubs,
+        _is_panel,
+    )
+)
 _PAGE_SPECS.append(("Concept sandboxes", "🧪", "sandboxes", page_sandboxes, None))
 _PAGE_SPECS.append(("Concept explainers", "📚", "explainers", page_explainers, None))
 
@@ -656,6 +721,7 @@ _MODULE: dict[str, str] = {
     "event_study": "analyze",
     "panel_models": "analyze",
     "sigma_convergence": "analyze",
+    "convergence_clubs": "analyze",
     "sandboxes": "learn",
     "explainers": "learn",
 }

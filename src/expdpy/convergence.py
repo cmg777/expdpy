@@ -22,6 +22,18 @@ and the coefficient of variation — and tests whether that dispersion shrinks v
 of the **log dispersion** on time. A negative trend is σ-convergence (the distribution is
 narrowing). The variable is used **as supplied** here too; the panel must be **balanced** so
 the dispersion is comparable across periods.
+
+:func:`analyze_convergence_clubs` runs the **Phillips-Sul (2007/2009) log(t) club-convergence**
+workflow end to end: it smooths each unit's series with the **Hodrick-Prescott filter**
+(``lambda = 400`` for annual data), forms the **relative transition path**
+``h_it = x_it / mean_i(x_it)``, runs the **log(t) regression test** for the whole panel and — if
+global convergence is rejected — applies the data-driven **clustering algorithm** to split the
+units into convergence **clubs**, then **merges** adjacent clubs that jointly converge. It is a
+faithful port of the Stata ``psecta`` package (Du 2017): the log(t) statistic uses the
+Phillips-Sul scalar-long-run-variance HAC (Andrews 1991 quadratic-spectral kernel with an
+AR(1) automatic bandwidth), which standard OLS engines do not provide, so that one statistic is
+computed in NumPy here. The variable is used **as supplied** (pass *log* GDP per capita / log
+labor productivity); the panel must be **balanced** (the HP filter needs a gap-free series).
 """
 
 from __future__ import annotations
@@ -41,12 +53,20 @@ from plotly.subplots import make_subplots
 from expdpy._labels import resolve_label
 from expdpy._panel import resolve_panel
 from expdpy._theme import apply_default_layout, color_for
-from expdpy._types import BetaConvergenceResult, SigmaConvergenceResult
+from expdpy._types import (
+    BetaConvergenceResult,
+    ConvergenceClubsResult,
+    SigmaConvergenceResult,
+)
 from expdpy._validation import ensure_dataframe
 from expdpy.fwl import _residualize
 from expdpy.regression import _SSC, _as_list
 
-__all__ = ["analyze_beta_convergence", "analyze_sigma_convergence"]
+__all__ = [
+    "analyze_beta_convergence",
+    "analyze_sigma_convergence",
+    "analyze_convergence_clubs",
+]
 
 _METRIC_KEYS = ("beta", "se", "r2", "n_obs", "speed", "half_life")
 _METRIC_LABELS = (
@@ -494,9 +514,12 @@ def analyze_beta_convergence(
 
     n_dup = int(df.duplicated([entity, time]).sum())
     if n_dup:
-        df = df.drop_duplicates([entity, time], keep="first")
+        # Reduce with a NaN-skipping groupby (as the sigma/clubs paths do) so a NaN-valued
+        # duplicate ordered first cannot evict an otherwise-valid observation.
+        df = df.groupby([entity, time], observed=True, as_index=False).first()
         notes.append(
-            f"found duplicate (entity, time) rows; kept the first of each ({n_dup} dropped)"
+            f"found duplicate (entity, time) rows; kept the first non-missing of each "
+            f"({n_dup} dropped)"
         )
 
     cs, horizon, _t0, _t1 = _cross_section(df, var, controls, entity, time, start, end)
@@ -539,21 +562,37 @@ def analyze_beta_convergence(
             )
         else:
             model_c, beta_c, se_c, r2_c, n_c = _fit(cond, ctrl0, vcov)
-            speed_c = _speed_of_convergence(beta_c, horizon)
-            hl_c = _half_life(speed_c)
-            models.append(model_c)
-            rhs = " + ".join(ctrl0)
-            x_res = _residualize(cond, "initial", rhs, "")
-            y_res = _residualize(cond, "growth", rhs, "")
-            fig_conditional = _scatter(
-                x_res,
-                y_res,
-                cond[entity].to_numpy(),
-                f"Residualized initial {var_label}",
-                f"Residualized growth of {var_label}",
-                (beta_c, se_c, r2_c, n_c, speed_c, hl_c),
-                f"Conditional β-convergence (controls: {', '.join(controls)})",
-            )
+            dropped = [
+                c
+                for c, t in zip(controls, ctrl0, strict=True)
+                if t not in model_c.coef().index
+            ]
+            if dropped:
+                # pyfixest silently drops a constant or collinear regressor; reporting the
+                # surviving (unconditional) slope as "conditional" would be misleading.
+                beta_c = se_c = r2_c = float("nan")
+                n_c = 0
+                notes.append(
+                    f"conditional control(s) {dropped} are collinear with the initial level "
+                    "or constant and were dropped by the estimator; the conditional model "
+                    "was skipped"
+                )
+            else:
+                speed_c = _speed_of_convergence(beta_c, horizon)
+                hl_c = _half_life(speed_c)
+                models.append(model_c)
+                rhs = " + ".join(ctrl0)
+                x_res = _residualize(cond, "initial", rhs, "")
+                y_res = _residualize(cond, "growth", rhs, "")
+                fig_conditional = _scatter(
+                    x_res,
+                    y_res,
+                    cond[entity].to_numpy(),
+                    f"Residualized initial {var_label}",
+                    f"Residualized growth of {var_label}",
+                    (beta_c, se_c, r2_c, n_c, speed_c, hl_c),
+                    f"Conditional β-convergence (controls: {', '.join(controls)})",
+                )
 
     rolling_df: pd.DataFrame | None = None
     fig_rolling: go.Figure | None = None
@@ -1062,5 +1101,835 @@ def analyze_sigma_convergence(
         cv_se=trends["cv"][2],
         cv_pvalue=trends["cv"][3],
         cv_r2=trends["cv"][4],
+        notes=tuple(notes),
+    )
+
+
+# ============================== club convergence ===============================
+# Phillips-Sul (2007/2009) log(t) test + data-driven club clustering, ported from the
+# Stata `psecta` package (Du 2017) and its Mata source `lpsecta.do`. The numbers below
+# mirror that source line-for-line so the clubs match the reference implementation.
+
+_TCRIT = -1.65  # one-sided 5% critical value for the log(t) convergence test
+
+
+def _sround(x: float) -> int:
+    """Round half **away from zero**, matching Stata's ``round()`` (not banker's rounding).
+
+    The log(t) trimming uses ``round(r*T)``; Python's built-in ``round`` rounds halves to even,
+    which would silently shift the discarded fraction by one period at the half-way point.
+    """
+    return math.floor(x + 0.5) if x >= 0.0 else math.ceil(x - 0.5)
+
+
+def _andrews_lrv(x: np.ndarray) -> float:
+    """Long-run variance of a 1-D series via the Andrews (1991) quadratic-spectral HAC.
+
+    A verbatim port of the Mata ``_andrs`` (itself a translation of Donggyu Sul's GAUSS code)
+    used inside the Phillips-Sul log(t) test. The bandwidth is the AR(1)-based automatic choice
+    ``band = 1.3221 (a2 * m)^(1/5)`` with ``a2 = 4 b1^2 / (1 - b1)^4``; the autocovariances run
+    over the first ``m - 1`` terms and the variance is normalised by ``m - 1`` (both exactly as
+    in the reference). Returns ``nan`` for a series too short or with no first-order variation.
+    """
+    v = np.asarray(x, dtype=float).ravel()
+    m = v.size
+    if m < 3:
+        return float("nan")
+    x1, y1 = v[:-1], v[1:]
+    denom = float(np.dot(x1, x1))
+    if denom <= 0.0:
+        return float("nan")
+    b1 = float(np.dot(x1, y1) / denom)  # AR(1) coefficient
+    if b1 == 1.0:
+        return float("nan")
+    a2 = 4.0 * b1**2 / (1.0 - b1) ** 4
+    band = 1.3221 * (a2 * m) ** 0.2
+    if not math.isfinite(band) or band <= 0.0:
+        return float("nan")
+    t = m - 1
+    j = np.arange(1, m, dtype=float)  # 1 .. m-1
+    jb = j / band
+    jband = jb * (1.2 * math.pi)
+    # Quadratic-spectral kernel weights.
+    kern = (np.sin(jband) / jband - np.cos(jband)) / ((jb * math.pi) ** 2 * 12.0) * 25.0
+    lam = 0.0
+    for i in range(1, t):  # i = 1 .. t-1
+        c = float(np.dot(v[: t - i], v[i:t]))
+        lam += 2.0 * c * kern[i - 1] / t
+    sigm = float(np.dot(v, v)) / t
+    return sigm + lam
+
+
+def _log_t_test(mat: np.ndarray, r: float) -> tuple[float, float]:
+    """Phillips-Sul log(t) convergence test on a units-by-time matrix.
+
+    Forms the relative transition ``h_it = x_it / mean_i(x_it)`` and the cross-sectional
+    variance ``H_t = mean_i (h_it - 1)^2``, then runs the regression
+
+    ``log(H_1 / H_t) - 2 log(log t) = a + b log t + e``,    ``t = [rT] .. T``
+
+    discarding the first ``round(r*T)`` periods. ``b = 2*alpha`` so a one-sided ``t_b > -1.65``
+    fails to reject convergence. The standard error is the Phillips-Sul scalar-long-run-variance
+    HAC ``V = (X'X)^{-1} * omega`` with ``omega`` from :func:`_andrews_lrv` on the demeaned
+    residuals. Returns ``(b, t_b)``; either is ``nan`` when the test is not estimable. Port of
+    the Mata ``_reglogt``.
+    """
+    m = np.asarray(mat, dtype=float)
+    n_units, big_t = m.shape
+    if n_units < 1 or big_t < 2:
+        return float("nan"), float("nan")
+    xcm = m.mean(axis=0)  # cross-sectional mean per period
+    with np.errstate(divide="ignore", invalid="ignore"):
+        h = m / xcm
+        h_var = np.mean((h - 1.0) ** 2, axis=0)  # H_t
+        logt = np.log(np.arange(1, big_t + 1, dtype=float))
+        y = np.log(h_var[0] / h_var) - 2.0 * np.log(logt)
+    start = _sround(r * big_t)  # discard the first `start` periods (0-based slice)
+    if big_t - start < 4:
+        return float("nan"), float("nan")
+    design = np.column_stack([logt[start:], np.ones(big_t - start)])
+    ys = y[start:]
+    if not (np.all(np.isfinite(ys)) and np.all(np.isfinite(design))):
+        return float("nan"), float("nan")
+    xtx = design.T @ design
+    try:
+        b = np.linalg.solve(xtx, design.T @ ys)
+        xtx_inv = np.linalg.inv(xtx)
+    except np.linalg.LinAlgError:  # pragma: no cover - defensive
+        return float("nan"), float("nan")
+    resid = ys - design @ b
+    resid = resid - resid.mean()
+    omega = _andrews_lrv(resid)
+    var0 = float(xtx_inv[0, 0]) * omega
+    if not math.isfinite(var0) or var0 <= 0.0:
+        return float(b[0]), float("nan")
+    return float(b[0]), float(b[0] / math.sqrt(var0))
+
+
+def _hp_trend(mat: np.ndarray, lamb: float) -> np.ndarray:
+    """Return the Hodrick-Prescott **trend** of each row of ``mat`` (one unit per row).
+
+    Mirrors the Stata ``pfilter ..., method(hp)`` step: the filter is applied to each unit's
+    time series independently and the trend (not the cycle) is kept. Requires a gap-free series.
+    """
+    from statsmodels.tsa.filters.hp_filter import hpfilter
+
+    out = np.empty_like(mat, dtype=float)
+    for i in range(mat.shape[0]):
+        _, trend = hpfilter(mat[i], lamb=lamb)
+        out[i] = np.asarray(trend, dtype=float)
+    return out
+
+
+def _relative_transition(mat: np.ndarray) -> np.ndarray:
+    """Return ``h_it = x_it / mean_i(x_it)`` (cross-sectional mean is 1 in every period)."""
+    with np.errstate(divide="ignore", invalid="ignore"):
+        return mat / mat.mean(axis=0)
+
+
+def _sort_order(sub: np.ndarray, fr: float) -> np.ndarray:
+    """Return indices sorting units by the cross-section criterion, **descending** (Step 1).
+
+    ``fr == 0`` sorts by the last-period value; ``fr > 0`` sorts by the mean of the last
+    ``(1 - fr)`` fraction of periods (the high-volatility option of the reference).
+    """
+    big_t = sub.shape[1]
+    if fr <= 0.0:
+        key = sub[:, -1]
+    else:
+        # Mata `_findclub` averages observation columns (trunc((1-fr)*(T-1))+2)..T of a matrix
+        # whose first column is the id; here `sub` has no id column, so big_t == Mata's (T-1)
+        # and the faithful 0-based start period is trunc((1-fr)*big_t).
+        p_start = math.trunc((1.0 - fr) * big_t)
+        key = sub[:, p_start:].mean(axis=1)
+    return np.argsort(-key, kind="stable")
+
+
+def _find_one_club(
+    sub: np.ndarray,
+    ids: np.ndarray,
+    r: float,
+    tcrit: float,
+    cr: float,
+    incr: float,
+    max_cr: float,
+    fr: float,
+    adjust: bool,
+) -> list[int]:
+    """Find the highest-ranked convergence club in a subgroup (Steps 1-3 of Phillips-Sul).
+
+    ``sub`` is the units-by-time matrix of the subgroup and ``ids`` the units' positional ids in
+    the full panel. Returns the member ids (possibly empty when no club exists). Port of the
+    Mata ``_findclub``: cross-section sort, core-group formation by maximum t-statistic, then a
+    sieve of the complement — either the original PS-2007 ``cr``-increment rule or the
+    Schnurbus et al. (2016) ``adjust`` refinement.
+    """
+    n_units = sub.shape[0]
+    if n_units < 2:
+        return []
+    order = _sort_order(sub, fr)
+    s = sub[order]
+    sid = ids[order]
+
+    # Step 2.1 - first successive pair (k, k+1) whose log(t) t-stat exceeds the threshold.
+    tt = -100.0
+    core_start = 0
+    found = False
+    while core_start < n_units - 1:
+        _, tt = _log_t_test(s[core_start : core_start + 2], r)
+        if math.isfinite(tt) and tt > tcrit:
+            found = True
+            break
+        if not math.isfinite(tt):  # `.` in Mata stops the search (treated as failure)
+            break
+        core_start += 1
+    if not found:
+        return []
+
+    # Step 2.2 - extend the core upward, keeping the prefix with the maximum t-statistic.
+    ts_by_end: dict[int, float] = {}
+    end = core_start + 1
+    last_tt = tt
+    while end <= n_units - 1 and last_tt > tcrit:
+        _, last_tt = _log_t_test(s[core_start : end + 1], r)
+        if not math.isfinite(last_tt):
+            break
+        ts_by_end[end] = last_tt
+        end += 1
+    core_end = (
+        max(ts_by_end, key=lambda e: ts_by_end[e]) if ts_by_end else core_start + 1
+    )
+    core_pos = list(range(core_start, core_end + 1))
+    core_set = set(core_pos)
+
+    # Step 3.1/3.2 - sieve the complement, adding each unit whose core+unit t-stat exceeds cr.
+    complement = [p for p in range(n_units) if p not in core_set]
+
+    def club_tstat(positions: list[int]) -> float:
+        _, t = _log_t_test(s[np.array(positions)], r)
+        return t
+
+    club_pos = list(core_pos)
+    for p in complement:
+        t = club_tstat([*core_pos, p])
+        if math.isfinite(t) and t > cr:
+            club_pos.append(p)
+
+    # Step 3.3 - if the assembled club fails the joint test, refine it.
+    club_t = club_tstat(club_pos)
+    only_core = len(club_pos) == len(core_pos)
+    if math.isfinite(club_t) and club_t <= tcrit and not only_core:
+        if not adjust:  # original PS-2007: raise cr until the club converges
+            cur_cr = cr
+            while (not math.isfinite(club_t) or club_t <= tcrit) and cur_cr < max_cr:
+                cur_cr += incr
+                club_pos = list(core_pos)
+                for p in complement:
+                    t = club_tstat([*core_pos, p])
+                    if math.isfinite(t) and t > cur_cr:
+                        club_pos.append(p)
+                club_t = club_tstat(club_pos)
+            if not math.isfinite(club_t) or club_t <= tcrit:
+                club_pos = list(core_pos)
+        else:  # Schnurbus et al. (2016): add the best candidate one at a time
+            candidates = [p for p in club_pos if p not in core_set]
+            club_pos = list(core_pos)
+            remaining = list(candidates)
+            while remaining:
+                scored = [(club_tstat([*core_pos, p]), p) for p in remaining]
+                best_t, best_p = max(scored, key=lambda it: it[0])
+                if not math.isfinite(best_t) or best_t <= tcrit:
+                    break
+                club_pos.append(best_p)
+                remaining = [p for p in candidates if p not in set(club_pos)]
+
+    return [int(sid[p]) for p in club_pos]
+
+
+def _get_clusters(
+    mat: np.ndarray,
+    r: float,
+    tcrit: float,
+    cr: float,
+    incr: float,
+    max_cr: float,
+    fr: float,
+    adjust: bool,
+) -> dict[int, int]:
+    """Recursively partition the panel into convergence clubs (Phillips-Sul Step 4).
+
+    Returns a ``{unit_id: club}`` mapping with clubs numbered ``1..K`` from the highest-ranked
+    group down; units left unassigned form the (divergent) residual group. Called only after
+    the whole-panel log(t) test has rejected global convergence. Port of the Mata ``_getcluster``.
+    """
+    remaining = list(range(mat.shape[0]))
+    club_of: dict[int, int] = {}
+    club = 0
+    while True:
+        sub_ids = np.array(remaining)
+        members = _find_one_club(
+            mat[sub_ids], sub_ids, r, tcrit, cr, incr, max_cr, fr, adjust
+        )
+        if not members:
+            break  # the remaining units do not form a further club (divergent)
+        club += 1
+        for cid in members:
+            club_of[cid] = club
+        member_set = set(members)
+        remaining = [i for i in remaining if i not in member_set]
+        if len(remaining) < 2:
+            break
+        # Does the whole remainder converge as a single final club?
+        _, tt = _log_t_test(mat[np.array(remaining)], r)
+        if math.isfinite(tt) and tt > tcrit:
+            club += 1
+            for cid in remaining:
+                club_of[cid] = club
+            break
+    return club_of
+
+
+def _merge_once(
+    mat: np.ndarray, club_of: dict[int, int], r: float, tcrit: float
+) -> tuple[dict[int, int], bool]:
+    """One adjacent-club merging pass (Phillips-Sul 2009). Port of the Stata ``icheckmerge``.
+
+    Walks the clubs in rank order, absorbing club ``k+1`` into the running merged block when
+    their joint log(t) test converges, else starting a new block. Returns the relabelled
+    ``{unit_id: club}`` and whether any merge happened.
+    """
+    members_by_club: dict[int, list[int]] = {}
+    for cid, c in club_of.items():
+        members_by_club.setdefault(c, []).append(cid)
+    clubs = sorted(members_by_club)
+    n_clubs = len(clubs)
+    new_label = {clubs[0]: 1}
+    running = list(members_by_club[clubs[0]])
+    j = 1
+    for k in range(1, n_clubs):
+        cand = members_by_club[clubs[k]]
+        _, tt = _log_t_test(mat[np.array(running + cand)], r)
+        if math.isfinite(tt) and tt > tcrit:
+            new_label[clubs[k]] = j
+            running = running + cand
+        else:
+            j += 1
+            new_label[clubs[k]] = j
+            running = list(cand)
+    return {cid: new_label[c] for cid, c in club_of.items()}, j < n_clubs
+
+
+def _merge_clubs(
+    mat: np.ndarray, club_of: dict[int, int], r: float, tcrit: float, mode: str
+) -> dict[int, int]:
+    """Merge adjacent clubs per ``mode`` (``"iterative"`` / ``"single"`` / ``"none"``)."""
+    if mode == "none" or len(set(club_of.values())) < 2:
+        return club_of
+    if mode == "single":
+        return _merge_once(mat, club_of, r, tcrit)[0]
+    cur = club_of
+    for _ in range(len(set(club_of.values()))):  # each pass drops >=1 club if it merges
+        cur, merged = _merge_once(mat, cur, r, tcrit)
+        if not merged:
+            break
+    return cur
+
+
+def _club_color(club: int) -> str:
+    """Palette color for a club label (1-based); the divergent group (0) renders grey."""
+    return "#9AA0A6" if club == 0 else color_for(club - 1)
+
+
+def _club_name(club: int) -> str:
+    """Human label for a club number (0 is the non-converging 'Divergent' group)."""
+    return "Divergent" if club == 0 else f"Club {club}"
+
+
+def _clubs_long_frame(
+    entities: np.ndarray,
+    times: np.ndarray,
+    trend: np.ndarray,
+    relative: np.ndarray,
+    club_of: dict[int, int],
+    entity: str,
+    time: str,
+) -> pd.DataFrame:
+    """Tidy long frame: one row per (unit, period) with ``value`` (trend), ``relative``, ``club``."""
+    n_units, n_t = trend.shape
+    rows = {
+        entity: np.repeat(entities, n_t),
+        time: np.tile(times, n_units),
+        "value": trend.reshape(-1),
+        "relative": relative.reshape(-1),
+        "club": np.repeat([club_of.get(i, 0) for i in range(n_units)], n_t),
+    }
+    return pd.DataFrame(rows)
+
+
+def _clubs_avg_fig(
+    long: pd.DataFrame,
+    entity: str,
+    time: str,
+    time_label: str,
+    var_label: str,
+    title: str | None,
+) -> go.Figure:
+    """Within-club **average** relative-transition paths (the headline figure)."""
+    fig = go.Figure()
+    for club in sorted(long["club"].unique()):
+        sub = long[long["club"] == club]
+        avg = sub.groupby(time, observed=True)["relative"].mean().sort_index()
+        n_members = sub[entity].nunique()
+        fig.add_trace(
+            go.Scatter(
+                x=avg.index.to_numpy(dtype=float),
+                y=avg.to_numpy(dtype=float),
+                mode="lines+markers",
+                name=f"{_club_name(int(club))} (n={n_members})",
+                line={
+                    "color": _club_color(int(club)),
+                    "width": 2.5,
+                    "dash": "dot" if club == 0 else "solid",
+                },
+                marker={"color": _club_color(int(club)), "size": 6},
+                hovertemplate=(
+                    f"{_club_name(int(club))}<br>{time_label}=%{{x}}<br>"
+                    "relative=%{y:.3f}<extra></extra>"
+                ),
+            )
+        )
+    fig.add_hline(y=1.0, line_dash="dash", line_color="rgba(0,0,0,0.4)")
+    apply_default_layout(
+        fig,
+        xaxis={"title": time_label},
+        yaxis={"title": f"Relative {var_label} (cross-sectional mean = 1)"},
+    )
+    fig.update_layout(title=title or f"Convergence clubs: {var_label}")
+    return fig
+
+
+def _clubs_paths_fig(
+    long: pd.DataFrame,
+    entity: str,
+    time: str,
+    time_label: str,
+    var_label: str,
+) -> go.Figure:
+    """All units' relative-transition paths, coloured by club (one legend entry per club)."""
+    fig = go.Figure()
+    seen: set[int] = set()
+    for ent, sub in long.groupby(entity, observed=True, sort=False):
+        sub = sub.sort_values(time)
+        club = int(sub["club"].iloc[0])
+        fig.add_trace(
+            go.Scatter(
+                x=sub[time].to_numpy(dtype=float),
+                y=sub["relative"].to_numpy(dtype=float),
+                mode="lines",
+                line={"color": _club_color(club), "width": 1},
+                opacity=0.55,
+                legendgroup=_club_name(club),
+                name=_club_name(club),
+                showlegend=club not in seen,
+                customdata=np.full(len(sub), str(ent)),
+                hovertemplate=(
+                    f"%{{customdata}} ({_club_name(club)})<br>{time_label}=%{{x}}<br>"
+                    "relative=%{y:.3f}<extra></extra>"
+                ),
+            )
+        )
+        seen.add(club)
+    fig.add_hline(y=1.0, line_dash="dash", line_color="rgba(0,0,0,0.4)")
+    apply_default_layout(
+        fig,
+        xaxis={"title": time_label},
+        yaxis={"title": f"Relative {var_label} (cross-sectional mean = 1)"},
+    )
+    fig.update_layout(title=f"Relative transition paths by club: {var_label}")
+    return fig
+
+
+def _clubs_facets_fig(
+    long: pd.DataFrame,
+    entity: str,
+    time: str,
+    time_label: str,
+    var_label: str,
+) -> go.Figure:
+    """Small-multiple panels (one per club) of member paths with the club mean overlaid."""
+    clubs = sorted(int(c) for c in long["club"].unique())
+    n = len(clubs)
+    ncols = min(3, n)
+    nrows = math.ceil(n / ncols)
+    titles = []
+    for c in clubs:
+        members = long[long["club"] == c][entity].nunique()
+        titles.append(f"{_club_name(c)} (n={members})")
+    fig = make_subplots(
+        rows=nrows, cols=ncols, subplot_titles=titles, shared_yaxes=True
+    )
+    for idx, club in enumerate(clubs):
+        row, col = idx // ncols + 1, idx % ncols + 1
+        sub = long[long["club"] == club]
+        for _ent, g in sub.groupby(entity, observed=True, sort=False):
+            g = g.sort_values(time)
+            fig.add_trace(
+                go.Scatter(
+                    x=g[time].to_numpy(dtype=float),
+                    y=g["relative"].to_numpy(dtype=float),
+                    mode="lines",
+                    line={"color": _club_color(club), "width": 0.8},
+                    opacity=0.4,
+                    showlegend=False,
+                    hoverinfo="skip",
+                ),
+                row=row,
+                col=col,
+            )
+        avg = sub.groupby(time, observed=True)["relative"].mean().sort_index()
+        fig.add_trace(
+            go.Scatter(
+                x=avg.index.to_numpy(dtype=float),
+                y=avg.to_numpy(dtype=float),
+                mode="lines",
+                line={"color": _club_color(club), "width": 2.5},
+                showlegend=False,
+                hovertemplate="relative=%{y:.3f}<extra></extra>",
+            ),
+            row=row,
+            col=col,
+        )
+    apply_default_layout(fig)
+    fig.update_layout(title=f"Convergence clubs ({var_label}): member paths by club")
+    fig.update_xaxes(title_text=time_label, row=nrows)
+    return fig
+
+
+def _clubs_summary_and_gt(
+    club_of: dict[int, int],
+    club_stats: dict[int, tuple[float, float, int]],
+    entities: np.ndarray,
+    var_label: str,
+    n_units: int,
+    n_periods: int,
+) -> tuple[pd.DataFrame, Any, pd.DataFrame]:
+    """Build the per-club ``summary`` frame, its Great-Tables rendering, and the membership frame.
+
+    ``club_stats`` maps a club number to ``(beta, tstat, n_members)``; club ``0`` (if present)
+    is the divergent residual group, listed last.
+    """
+    from great_tables import GT
+
+    members_by_club: dict[int, list[str]] = {}
+    for cid, c in sorted(club_of.items()):
+        members_by_club.setdefault(c, []).append(str(entities[cid]))
+    for cid in range(n_units):  # never-assigned units are the divergent group (club 0)
+        if cid not in club_of:
+            members_by_club.setdefault(0, []).append(str(entities[cid]))
+
+    order = [c for c in sorted(members_by_club) if c != 0] + (
+        [0] if 0 in members_by_club else []
+    )
+
+    def member_str(names: list[str], limit: int = 8) -> str:
+        names = sorted(names)
+        if len(names) <= limit:
+            return ", ".join(names)
+        return ", ".join(names[:limit]) + f", ... (+{len(names) - limit})"
+
+    summary = pd.DataFrame(
+        {
+            "club": [_club_name(c) for c in order],
+            "n_members": [len(members_by_club[c]) for c in order],
+            "beta": [
+                club_stats.get(c, (float("nan"), float("nan"), 0))[0] for c in order
+            ],
+            "tstat": [
+                club_stats.get(c, (float("nan"), float("nan"), 0))[1] for c in order
+            ],
+            "converging": [
+                bool(club_stats.get(c, (float("nan"), float("nan"), 0))[1] > _TCRIT)
+                if c != 0
+                else False
+                for c in order
+            ],
+            "members": [member_str(members_by_club[c]) for c in order],
+        }
+    )
+
+    def fmt(value: float) -> str:
+        return "—" if not math.isfinite(value) else f"{value:.3f}"
+
+    disp = pd.DataFrame(
+        {
+            "Group": summary["club"],
+            "N": summary["n_members"],
+            "log(t) b": [fmt(v) for v in summary["beta"]],
+            "t-stat": [fmt(v) for v in summary["tstat"]],
+            "Converges": [
+                "—" if g == "Divergent" else ("yes" if c else "no")
+                for g, c in zip(summary["club"], summary["converging"], strict=True)
+            ],
+            "Members": summary["members"],
+        }
+    )
+    gt = (
+        GT(disp, rowname_col="Group")
+        .tab_header(
+            title=f"Convergence clubs: {var_label}",
+            subtitle=f"Phillips-Sul log(t) clustering over {n_periods} periods, "
+            f"{n_units} units",
+        )
+        .tab_source_note(
+            "Each club's log(t) t-stat exceeds -1.65 (the convergence threshold); b = 2*alpha "
+            "is the within-club convergence speed. The Divergent group does not form a "
+            "convergence club."
+        )
+    )
+
+    membership = pd.DataFrame(
+        {
+            "entity": [str(entities[i]) for i in range(n_units)],
+            "club": [club_of.get(i, 0) for i in range(n_units)],
+        }
+    )
+    membership["club_label"] = membership["club"].map(_club_name)
+    membership = membership.sort_values(["club", "entity"]).reset_index(drop=True)
+    return summary, gt, membership
+
+
+def analyze_convergence_clubs(
+    df: pd.DataFrame,
+    var: str,
+    *,
+    entity: str | None = None,
+    time: str | None = None,
+    filter: Literal["hp"] | None = "hp",
+    hp_lambda: float = 400.0,
+    r: float = 0.3,
+    method: Literal["adjust", "ps"] = "adjust",
+    merge: Literal["iterative", "single", "none"] = "iterative",
+    cr: float = 0.0,
+    incr: float = 0.05,
+    max_cr: float = 50.0,
+    fr: float = 0.0,
+    tcrit: float = _TCRIT,
+    title: str | None = None,
+) -> ConvergenceClubsResult:
+    r"""Phillips-Sul log(t) convergence test and data-driven club clustering for a panel.
+
+    Runs the full club-convergence workflow on one variable: optionally smooth each unit's
+    series with the **Hodrick-Prescott filter** (``lambda = 400`` for annual data); form the
+    **relative transition path** ``h_it = x_it / mean_i(x_it)``; run the **log(t) regression
+    test** for the whole panel; and, when global convergence is rejected, apply the
+    **clustering algorithm** to split the units into convergence **clubs**, then **merge**
+    adjacent clubs that jointly converge. This is the descriptive question "do these units form
+    one converging group, several catch-up clubs, or none?".
+
+    The variable is used **as supplied** — no log is taken — so for the canonical income case
+    pass *log* GDP per capita (or log labor productivity). The panel must be **balanced** (every
+    unit present in every period) because the HP filter needs a gap-free series.
+
+    Parameters
+    ----------
+    df
+        Balanced panel data frame.
+    var
+        Numeric variable to analyse (e.g. ``"log_gdppc"``). Used as supplied.
+    entity, time
+        Panel identifiers. Default to those declared via :func:`expdpy.set_panel`.
+    filter
+        ``"hp"`` (default) applies the Hodrick-Prescott filter per unit and analyses the
+        **trend**; ``None`` analyses the variable as given (already detrended).
+    hp_lambda
+        HP smoothing parameter (``400`` for annual data, the convergence-literature default).
+    r
+        Initiating sample fraction for the log(t) regression: the first ``round(r*T)`` periods
+        are discarded. Phillips-Sul recommend ``0.3`` for small/moderate ``T`` and ``0.2`` for
+        large ``T``.
+    method
+        Within-club sieve: ``"adjust"`` (default) is the Schnurbus et al. (2016) refinement
+        (add the best candidate one at a time); ``"ps"`` is the original Phillips-Sul (2007)
+        rule that raises the inclusion threshold ``cr`` by ``incr`` until the club converges.
+    merge
+        Adjacent-club merging after clustering: ``"iterative"`` (default) repeats until no clubs
+        merge, ``"single"`` does one pass, ``"none"`` reports the raw clusters.
+    cr, incr, max_cr
+        Sieve threshold and (for ``method="ps"``) its increment and ceiling.
+    fr
+        Cross-section sort key: ``0`` (default) sorts by the last period; ``fr > 0`` sorts by
+        the mean of the last ``(1 - fr)`` fraction of periods (for noisy endpoints).
+    tcrit
+        One-sided convergence critical value for the t-statistic (``-1.65``, the 5% level).
+    title
+        Title for the headline figure.
+
+    Returns
+    -------
+    ConvergenceClubsResult
+        The tidy long ``df`` (``entity``, ``time``, ``value`` = trend, ``relative`` = ``h_it``,
+        ``club``); the within-club average figure ``fig``; the all-paths figure ``fig_paths``
+        and the per-club small-multiples ``fig_clubs``; the classification table ``gt`` /
+        ``summary`` and the ``membership`` frame; the panel dimensions; the whole-panel
+        ``global_beta`` / ``global_tstat`` and ``converged`` flag; and ``n_clubs`` /
+        ``n_divergent``. ``.interpret()`` describes how the panel splits into clubs.
+
+    Notes
+    -----
+    The log(t) test regresses, for ``t = [rT] .. T``,
+
+    .. math:: \log(H_1 / H_t) - 2 \log(\log t) = a + b \log t + \varepsilon_t,
+
+    where ``H_t = N^{-1} \sum_i (h_{it} - 1)^2`` is the cross-sectional variance of the relative
+    transition paths. Under the null of convergence ``b = 2\alpha \ge 0``; a one-sided
+    ``t_b > -1.65`` fails to reject it. The standard error is the Phillips-Sul scalar long-run
+    variance form ``\hat{\mathrm{var}}(b) = (X'X)^{-1}\hat\omega`` with ``\hat\omega`` an
+    Andrews (1991) quadratic-spectral HAC of the residuals. The clustering sorts units by their
+    final value, forms a core group by maximising ``t_b``, sieves in the remaining units, and
+    recurses on the residual; adjacent clubs are then merged when they jointly converge. This is
+    a faithful port of the Stata ``psecta`` package (Du 2017); see Phillips & Sul (2007, 2009)
+    and Schnurbus et al. (2016).
+
+    Examples
+    --------
+    Convergence clubs in (log) GDP per capita across countries:
+
+    ```python
+    import expdpy as ex
+    from expdpy.data import load_productivity
+
+    df = load_productivity()
+    res = ex.analyze_convergence_clubs(df, "log_gdppc", entity="country", time="year")
+    res.fig            # within-club average transition paths
+    res.gt             # club classification table
+    res.n_clubs, res.converged
+    print(res.interpret())
+    ```
+    """
+    df = ensure_dataframe(df)
+    entity, time = resolve_panel(
+        df, entity, time, require_entity=True, require_time=True
+    )
+    assert entity is not None and time is not None  # guaranteed by require_* above
+
+    if var not in df.columns:
+        raise KeyError(f"column not found in df: {var!r}")
+    if not pdt.is_numeric_dtype(df[var]):
+        raise TypeError(f"var {var!r} must be numeric")
+    if not 0.0 < r < 1.0:
+        raise ValueError(f"r (trimming fraction) must be in (0, 1); got {r}")
+
+    var_label = resolve_label(df, var)
+    time_label = resolve_label(df, time)
+    notes: list[str] = []
+
+    work = df[[entity, time, var]].copy()
+    work[time] = pd.to_numeric(work[time], errors="coerce")
+    work = work.dropna(subset=[time, var])
+    if work.empty:
+        raise ValueError(
+            f"no rows with both a numeric {time!r} and a non-missing {var!r}"
+        )
+
+    before = len(work)
+    work = work.groupby([entity, time], observed=True, as_index=False).first()
+    if len(work) < before:
+        notes.append(
+            f"found duplicate (entity, time) rows; kept the first of each "
+            f"({before - len(work)} dropped)"
+        )
+
+    wide = work.pivot(index=entity, columns=time, values=var).sort_index(axis=1)
+    if bool(wide.isna().to_numpy().any()):
+        n_missing = int(wide.isna().to_numpy().sum())
+        raise ValueError(
+            f"panel is not balanced: {n_missing} (entity, time) cells are missing. Club "
+            "convergence needs a gap-free series per unit (the HP filter cannot span gaps); "
+            "restrict to a balanced window or drop the offending units."
+        )
+    entities = wide.index.to_numpy()
+    times = wide.columns.to_numpy(dtype=float)
+    n_units, n_periods = wide.shape
+    if n_units < 2:
+        raise ValueError(f"need >= 2 units to form convergence clubs; got {n_units}")
+    if n_periods - _sround(r * n_periods) < 4:
+        raise ValueError(
+            f"too few periods ({n_periods}) for a log(t) test trimmed at r={r}: only "
+            f"{n_periods - _sround(r * n_periods)} remain after discarding the first "
+            f"{_sround(r * n_periods)}; need >= 4. Use more periods or a smaller r."
+        )
+
+    raw = wide.to_numpy(dtype=float)
+    trend = _hp_trend(raw, hp_lambda) if filter == "hp" else raw
+    relative = _relative_transition(trend)
+
+    global_beta, global_tstat = _log_t_test(trend, r)
+    converged = bool(math.isfinite(global_tstat) and global_tstat > tcrit)
+
+    if converged:
+        club_of = {i: 1 for i in range(n_units)}
+    else:
+        club_of = _get_clusters(
+            trend, r, tcrit, cr, incr, max_cr, fr, method == "adjust"
+        )
+        club_of = _merge_clubs(trend, club_of, r, tcrit, merge)
+
+    # Per-club log(t) statistics (and the divergent group, if any has >= 2 members).
+    club_stats: dict[int, tuple[float, float, int]] = {}
+    members_by_club: dict[int, list[int]] = {}
+    for cid, c in club_of.items():
+        members_by_club.setdefault(c, []).append(cid)
+    divergent_ids = [i for i in range(n_units) if i not in club_of]
+    n_clubs = len(members_by_club)
+    for c, ids in members_by_club.items():
+        b, t = _log_t_test(trend[np.array(ids)], r)
+        club_stats[c] = (b, t, len(ids))
+    if len(divergent_ids) >= 2:
+        b, t = _log_t_test(trend[np.array(divergent_ids)], r)
+        club_stats[0] = (b, t, len(divergent_ids))
+    elif len(divergent_ids) == 1:
+        club_stats[0] = (float("nan"), float("nan"), 1)
+
+    long = _clubs_long_frame(entities, times, trend, relative, club_of, entity, time)
+    summary, gt, membership = _clubs_summary_and_gt(
+        club_of, club_stats, entities, var_label, n_units, n_periods
+    )
+
+    fig = _clubs_avg_fig(long, entity, time, time_label, var_label, title)
+    fig_paths = _clubs_paths_fig(long, entity, time, time_label, var_label)
+    fig_clubs = _clubs_facets_fig(long, entity, time, time_label, var_label)
+
+    if converged:
+        notes.append(
+            "the whole panel converges (global log(t) t-stat > -1.65); it forms a single club"
+        )
+    elif n_clubs == 0:
+        notes.append(
+            "global convergence is rejected and no convergence clubs were found; all units "
+            "diverge"
+        )
+
+    return ConvergenceClubsResult(
+        df=long,
+        fig=fig,
+        fig_paths=fig_paths,
+        fig_clubs=fig_clubs,
+        gt=gt,
+        summary=summary,
+        membership=membership,
+        var=var,
+        entity=entity,
+        time=time,
+        n_units=n_units,
+        n_periods=n_periods,
+        n_clubs=n_clubs,
+        n_divergent=len(divergent_ids),
+        global_beta=global_beta,
+        global_tstat=global_tstat,
+        converged=converged,
+        hp_lambda=float(hp_lambda) if filter == "hp" else float("nan"),
+        trim=float(r),
+        method=method,
+        merge=merge,
         notes=tuple(notes),
     )

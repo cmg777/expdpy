@@ -15,6 +15,7 @@ from __future__ import annotations
 from expdpy.pedagogy import _text  # noqa: F401  (import registers the explainer topics)
 from expdpy.pedagogy._interpret import (
     interpret_beta_convergence,
+    interpret_convergence_clubs,
     interpret_correlation,
     interpret_cre,
     interpret_descriptive,
@@ -41,6 +42,7 @@ __all__ = [
     "Interpretable",
     "explain",
     "interpret_beta_convergence",
+    "interpret_convergence_clubs",
     "interpret_correlation",
     "interpret_cre",
     "interpret_descriptive",

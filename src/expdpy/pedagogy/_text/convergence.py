@@ -1,7 +1,8 @@
-"""Explainers for convergence analysis: β-convergence and σ-convergence.
+"""Explainers for convergence analysis: β-convergence, σ-convergence and convergence clubs.
 
 ``beta_convergence`` covers the growth-vs-initial-level regression (unconditional, conditional,
-speed and half-life); ``sigma_convergence`` covers the dispersion-over-time view.
+speed and half-life); ``sigma_convergence`` covers the dispersion-over-time view;
+``convergence_clubs`` covers the Phillips-Sul log(t) test and data-driven club clustering.
 """
 
 from __future__ import annotations
@@ -98,4 +99,59 @@ register_topic(
         ),
     ),
     aliases=("dispersion_convergence", "sigma"),
+)
+
+register_topic(
+    Explainer(
+        topic="convergence_clubs",
+        title="Convergence clubs (Phillips-Sul log t)",
+        what=(
+            "Club convergence asks whether a panel forms **one** converging group, **several** "
+            "catch-up clubs, or none. Phillips & Sul (2007) model each unit as "
+            "``X_it = delta_it * mu_t`` — a common trend ``mu_t`` scaled by a time-varying, "
+            "unit-specific loading ``delta_it`` — and remove the common trend with the "
+            "**relative transition path** ``h_it = X_it / mean_i(X_it)`` (its cross-sectional "
+            "mean is 1 by construction). If the units converge, the cross-sectional variance "
+            "``H_t = mean_i (h_it - 1)^2`` tends to zero, and the **log(t) regression** "
+            "``log(H_1/H_t) - 2 log(log t) = a + b log t`` has a non-negative slope "
+            "``b = 2*alpha``; a one-sided ``t_b > -1.65`` fails to reject convergence. When the "
+            "whole panel rejects, a **data-driven clustering algorithm** sorts units by their "
+            "final level, forms a core group by maximising ``t_b``, sieves in the remaining "
+            "units that keep the group converging, recurses on the residual, and finally "
+            "**merges** adjacent clubs that jointly converge. The series is usually smoothed "
+            "first with the **Hodrick-Prescott filter** (lambda = 400 for annual data) so the "
+            "test runs on the long-run trend rather than the business cycle."
+        ),
+        when_to_use=(
+            "Use it when β- and σ-convergence give a muddy verdict — when the panel is plausibly "
+            "*not* one homogeneous group but several. It is the standard tool for 'multiple "
+            "equilibria' / poverty-trap questions: convergence clubs in income, labor "
+            "productivity, carbon intensity, house prices or health, where a subset of units "
+            "catches up to a high path while others settle on a lower one. It is data-driven "
+            "(no ex-ante grouping by region or income) and robust to whether the series is "
+            "trend- or difference-stationary."
+        ),
+        caveats=(
+            "Club membership is a *descriptive* clustering of transition paths, not a causal "
+            "account of why a unit lands in a given club.",
+            "Results depend on the trimming fraction r (use 0.3 for moderate T, 0.2 for large "
+            "T), the HP smoothing parameter, and the sorting/sieve options — report them, and "
+            "check that nearby clubs are not an artefact of the merge rule.",
+            "The log(t) t-statistic is asymptotic; with few periods (small T) the test has low "
+            "power and clubs can be unstable, so prefer longer panels.",
+            "Rejecting whole-panel convergence does not by itself prove distinct clubs exist; "
+            "the algorithm can also return a single divergent group.",
+        ),
+        see_also=("beta_convergence", "sigma_convergence", "correlation_vs_causation"),
+        references=(
+            "Phillips & Sul (2007), 'Transition Modeling and Econometric Convergence Tests', "
+            "Econometrica 75(6): 1771-1855",
+            "Phillips & Sul (2009), 'Economic Transition and Growth', JAE 24(7): 1153-1185",
+            "Schnurbus, Haupt & Meier (2016), 'Economic Transition and Growth: A Replication', "
+            "JAE",
+            "Du (2017), 'Econometric Convergence Test and Club Clustering Using Stata', "
+            "Stata Journal 17(4)",
+        ),
+    ),
+    aliases=("club_convergence", "log_t", "phillips_sul"),
 )

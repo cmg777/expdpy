@@ -198,6 +198,19 @@ print(sc.interpret())
 sc.fig
 ```
 
+### `learn_convergence_clubs`
+
+Club convergence on a panel with a **planted** structure: each unit belongs to one of several
+clubs that converge to distinct levels, so the panel does not converge globally but the
+Phillips–Sul clustering algorithm recovers the clubs — without being told they exist. See
+[`analyze_convergence_clubs`](analyze_convergence_clubs.qmd) for the full workflow on real data.
+
+```{python}
+cc = ex.learn_convergence_clubs()
+print(cc.interpret())
+cc.fig
+```
+
 ## Where to go next
 
 - [Explore panel data](explore.qmd) — describe your data first.
