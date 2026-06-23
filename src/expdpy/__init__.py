@@ -45,6 +45,7 @@ from expdpy._types import (
     HausmanTestResult,
     HistogramResult,
     JointTestResult,
+    KuznetsWavesResult,
     MissingValuesResult,
     PanelStructureResult,
     PanelViewResult,
@@ -86,6 +87,7 @@ from expdpy.dynamics import (
 from expdpy.estimation import analyze_estimation
 from expdpy.fwl import analyze_fwl_plot
 from expdpy.inference import analyze_robust_inference
+from expdpy.kuznets import analyze_kuznets_waves
 from expdpy.missing import explore_missing_values_plot
 from expdpy.outliers import treat_outliers
 from expdpy.panel_models import analyze_hausman_test, analyze_panel_table
@@ -106,6 +108,7 @@ from expdpy.sandbox import (
     learn_clustering_se,
     learn_convergence_clubs,
     learn_first_differences,
+    learn_kuznets_waves,
     learn_omitted_variable_bias,
     learn_pooled_vs_fixed_effects,
     learn_sigma_convergence,
@@ -120,7 +123,7 @@ from expdpy.tables import (
 )
 from expdpy.trends import explore_quantile_trend_plot, explore_trend_plot
 
-__version__ = "0.4.9"
+__version__ = "0.4.10"
 
 __all__ = [
     # ===== EXPLORE =====
@@ -183,6 +186,8 @@ __all__ = [
     "analyze_sigma_convergence",
     # club convergence (Phillips-Sul log(t) test + data-driven clustering)
     "analyze_convergence_clubs",
+    # Kuznets waves (extended Kuznets curve: pooled / between / within, side by side)
+    "analyze_kuznets_waves",
     # ===== LEARN =====
     # concept sandboxes
     "learn_omitted_variable_bias",
@@ -193,6 +198,7 @@ __all__ = [
     "learn_beta_convergence",
     "learn_sigma_convergence",
     "learn_convergence_clubs",
+    "learn_kuznets_waves",
     # concept-explainer registry type
     "Explainer",
     # ===== UTILITIES =====
@@ -246,6 +252,7 @@ __all__ = [
     "BetaConvergenceResult",
     "SigmaConvergenceResult",
     "ConvergenceClubsResult",
+    "KuznetsWavesResult",
     # learn
     "SandboxResult",
 ]

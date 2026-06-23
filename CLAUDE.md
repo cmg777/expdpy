@@ -18,7 +18,7 @@ Guidance for working in this repository. Keep it current when commands or conven
   every result.
 
 Three no-code **Streamlit** apps (one per module). `src/` layout, Python ≥ 3.10, managed with
-**pixi**. Current version: 0.4.9.
+**pixi**. Current version: 0.4.10.
 
 ## Commands
 
@@ -54,7 +54,10 @@ public API is curated in `src/expdpy/__init__.py` (`__all__` grouped by module).
   unconditional/conditional via FWL + speed/half-life + rolling; σ-convergence: per-period
   dispersion std/Gini/CV + log-dispersion trend + dual-axis figure; **club convergence**:
   Phillips-Sul log(t) test + HP-filter trend + data-driven clustering + adjacent-club merging,
-  with the Andrews-1991 QS-kernel HAC hand-coded in NumPy since pyfixest does not provide it).
+  with the Andrews-1991 QS-kernel HAC hand-coded in NumPy since pyfixest does not provide it);
+  `kuznets.py` (**Kuznets waves**: the extended Kuznets curve `gini = f(g, g^2, ..., g^degree)`
+  estimated under pooled / between / within two-way-FE estimators as side-by-side `csw` tables,
+  with FWL partial-residual component plots and polynomial turning-point analytics).
   Shared estimation engine in
   `_estimation/` (pyfixest wrapper: `_spec`, `_formula`, `_vcov`, `_fit`, `_tidy`, `_results`).
 - **Learn**: `sandbox.py` + `pedagogy/` (`_registry` `Explainer`/`explain`/`list_topics`,

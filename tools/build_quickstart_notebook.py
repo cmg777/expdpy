@@ -110,6 +110,30 @@ MODULES = [
             "(https://cmg777.github.io/expdpy/analyze_convergence_clubs.html) of the docs."
         ),
     },
+    {
+        "slug": "analyze_kuznets_waves",
+        "title": "analyze_kuznets_waves",
+        "title_md": (
+            "# analyze_kuznets_waves — the extended Kuznets curve for panel data\n"
+            "\n"
+            "_Notebook version: built {BUILD_STAMP} — re-open this notebook from GitHub if "
+            "yours is older, to get the latest version._\n"
+            "\n"
+            "An extended **user guide** *and* a **verification harness** for "
+            "`analyze_kuznets_waves` from [expdpy](https://github.com/cmg777/expdpy): the "
+            "polynomial inequality-development relationship under pooled OLS, the between and "
+            "the within (two-way fixed-effects) estimators, every argument, everything it "
+            "returns, and a synthetic-data check that it recovers a planted wave. Run the "
+            "install cell below first, then run the rest top to bottom.\n"
+            "\n"
+            "> The first cell installs everything and then **restarts the Colab runtime once** "
+            "so the upgraded NumPy loads cleanly. When it reconnects, run the cells again "
+            "(Runtime > Run all) — the install cell skips the restart the second time.\n"
+            "\n"
+            "This notebook mirrors the [analyze_kuznets_waves page]"
+            "(https://cmg777.github.io/expdpy/analyze_kuznets_waves.html) of the docs."
+        ),
+    },
 ]
 
 # linearmodels ships with the core install, so a plain ``expdpy`` install runs every cell.

@@ -33,6 +33,8 @@ website:
             file: analyze_sigma_convergence.qmd
           - text: "Convergence clubs (analyze_convergence_clubs)"
             file: analyze_convergence_clubs.qmd
+          - text: "Kuznets waves (analyze_kuznets_waves)"
+            file: analyze_kuznets_waves.qmd
           - text: "The kuznets dataset"
             file: explanation/kuznets-dataset.qmd
           - text: "Data model"
@@ -121,6 +123,7 @@ quartodoc:
         - analyze_beta_convergence
         - analyze_sigma_convergence
         - analyze_convergence_clubs
+        - analyze_kuznets_waves
     - title: Learn
       desc: >-
         The teaching layer — concept sandboxes (simulated demonstrations) and concept
@@ -135,6 +138,7 @@ quartodoc:
         - learn_beta_convergence
         - learn_sigma_convergence
         - learn_convergence_clubs
+        - learn_kuznets_waves
     - title: Utilities
       desc: >-
         Cross-cutting helpers shared across modules — panel declaration, outlier

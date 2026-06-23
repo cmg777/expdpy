@@ -1,0 +1,193 @@
+---
+title: "analyze_kuznets_waves"
+jupyter: python3
+---
+
+```{=html}
+<p style="margin: 0.25rem 0 1.25rem;">
+  <strong>Run this page interactively in Google Colab — no install required:</strong><br>
+  <a href="https://colab.research.google.com/github/cmg777/expdpy/blob/main/notebooks/analyze_kuznets_waves.ipynb" target="_blank" rel="noopener">
+    <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab">
+  </a>
+</p>
+```
+
+This page is two things at once: an **extended user guide** for `analyze_kuznets_waves` — what
+it does, every argument, and everything it returns — and a **testing environment** that
+generates synthetic data with *known* coefficients and checks that the function recovers them.
+If a cell's `assert` ever fails, the function is broken.
+
+## What are Kuznets waves?
+
+Kuznets (1955) conjectured an **inverted-U** between inequality and development: inequality
+first rises as an economy industrializes, then falls. The classic test regresses a Gini on log
+GDP per capita and its **square**. The **Kuznets waves** hypothesis allows the relationship to
+be far more nonlinear by taking the development term up to the **fourth power**:
+
+$$
+\text{gini} \;=\; b_1 g + b_2 g^2 + b_3 g^3 + b_4 g^4 + \varepsilon,
+\qquad g = \log \text{GDP per capita}.
+$$
+
+A cubic admits an N-shape; a quartic admits a full **wave** with up to three turning points.
+The same polynomial is estimated under three panel estimators — **pooled OLS** (all variation),
+the **between** estimator (country averages, the cross-country curve) and the **within**
+estimator (two-way country + year fixed effects) — and laid out side by side. The development
+variable is used **as you supply it** (pass `log` GDP per capita); the powers are formed
+internally.
+
+```{python}
+import numpy as np
+import pandas as pd
+
+import expdpy as ex
+```
+
+## 1. The method in one cell
+
+On the bundled `kuznets` panel the defaults already point at `gini_regional` and `log_gdp_pc`,
+so the call is a one-liner once the panel ids are declared:
+
+```{python}
+from expdpy.data import load_kuznets
+
+df = ex.set_panel(load_kuznets(), entity="country", time="year")
+res = ex.analyze_kuznets_waves(df)
+res.fig
+```
+
+The raw scatter overlays the pooled quartic; the annotation reports the turning points, N and
+R². The **within** comparison table shows the curvature emerging as each power is added:
+
+```{python}
+res.gt_within
+```
+
+## 2. How the function works
+
+### Arguments
+
+| argument | what it does | when to change it |
+|---|---|---|
+| `inequality` | the outcome (a Gini), used **as-is** | any inequality measure |
+| `development` | the regressor (typically `log` GDP per capita); powers `g^2..g^degree` are formed internally | pass it in logs for the income case |
+| `controls` | covariate name(s) partialled out of the **between** and **within** figures (FWL); they do **not** enter the tables | to net the wave of confounders |
+| `entity`, `time` | the panel ids | omit if declared once via `set_panel` |
+| `degree` | polynomial order in `[2, 6]` (default 4) | `degree=2` is the classic inverted-U; raise it only when justified |
+| `vcov` | `"hetero"` (HC1, default) or `"iid"` for the pooled/between tables; the within table always clusters by entity | classical SEs; never changes a point estimate |
+
+### The three figures and three tables
+
+The figures tell a pooled → between → within story. The between and within plots are
+**partial-residual (component) plots**: the fitted wave drawn over inequality once the controls
+(and, for the within view, the two-way fixed effects) are partialled out by the
+Frisch–Waugh–Lovell theorem.
+
+```{python}
+res.fig_between
+```
+
+```{python}
+res.fig_within
+```
+
+`gt_pooled`, `gt_between` and `gt_within` are the three comparison tables; `summary` is the
+per-estimator curvature frame, and `.interpret()` reads it in plain language:
+
+```{python}
+print("figures :", ["fig", "fig_between", "fig_within"])
+print("tables  :", ["gt_pooled", "gt_between", "gt_within"])
+res.summary
+```
+
+```{python}
+print(res.interpret())
+```
+
+## 3. Does it recover the truth?
+
+Because the wave is a **within-unit** relationship, the cleanest check plants a known
+polynomial $y = \sum_k b_k g^k$ on top of unit and year effects drawn **independently** of $g$.
+The within (two-way fixed-effects) and pooled estimators should recover the planted
+coefficients.
+
+```{python}
+BETAS = (0.5, -0.3, 0.05, 0.04)  # the planted (b1, b2, b3, b4)
+
+
+def wave_panel(betas=BETAS, *, n_units=80, n_years=15, seed=0):
+    """Panel y = sum_k b_k g^k + a_i + d_t + e with g varying within and between units."""
+    rng = np.random.default_rng(seed)
+    a = rng.normal(0.0, 0.4, n_units)            # unit effects, independent of g
+    d = rng.normal(0.0, 0.4, n_years)            # year effects, independent of g
+    xbar = rng.normal(0.0, 1.0, n_units)         # cross-unit development level
+    rows = []
+    for i in range(n_units):
+        for t in range(n_years):
+            g = float(xbar[i] + rng.normal(0.0, 1.0))
+            y = (sum(b * g ** (k + 1) for k, b in enumerate(betas))
+                 + a[i] + d[t] + rng.normal(0.0, 0.03))
+            rows.append((f"u{i:03d}", t, g, y))
+    return pd.DataFrame(rows, columns=["unit", "year", "g", "y"])
+
+
+panel = wave_panel(seed=1)
+fit = ex.analyze_kuznets_waves(panel, "y", "g", entity="unit", time="year", degree=4)
+
+terms = ["g", "g_p2", "g_p3", "g_p4"]
+within_hat = np.array([fit.models["within"][-1].coef()[t] for t in terms])
+check = pd.DataFrame({"term": terms, "true": BETAS, "within_recovered": within_hat})
+check["abs_error"] = (check["within_recovered"] - check["true"]).abs()
+check.round(4)
+```
+
+```{python}
+# The within (two-way FE) estimator recovers the planted wave to within a tight tolerance.
+np.testing.assert_allclose(within_hat, BETAS, atol=0.03)
+print("✅ within (two-way FE) recovered the planted quartic")
+```
+
+### Between is not the same estimator
+
+The between estimator compares **unit averages**, and the average of a nonlinear curve is not
+the curve of the average — so it need not match the planted within-unit wave. That divergence
+is exactly what the three-estimator layout is for:
+
+```{python}
+pooled_hat = np.array([fit.models["pooled"][-1].coef()[t] for t in terms])
+between_hat = np.array([fit.models["between"][-1].coef()[t] for t in terms])
+pd.DataFrame(
+    {"term": terms, "true": BETAS, "pooled": pooled_hat,
+     "between": between_hat, "within": within_hat}
+).round(4)
+```
+
+```{python}
+# Pooled also recovers the within-unit wave (its effects are orthogonal to g)...
+np.testing.assert_allclose(pooled_hat, BETAS, atol=0.05)
+# ...while the between (cross-unit) curve is a genuinely different object.
+print("✅ pooled recovers the wave; between is the cross-country curve")
+```
+
+## 4. The Kuznets curve on the bundled panel
+
+The bundled `kuznets` panel was designed to show an **N-shaped** regional Kuznets curve. Read
+the three estimators together — the shape and where it lives:
+
+```{python}
+res.summary
+```
+
+```{python}
+print(res.interpret())
+```
+
+## See also
+
+- `ex.learn_kuznets_waves()` — a runnable Learn sandbox that plants a wave and shows the three
+  estimators recovering (or not) the top-order coefficient.
+- `ex.explain("kuznets_waves")` — the concept explainer (also `res.explain()`).
+
+```{python}
+ex.explain("kuznets_waves")
+```

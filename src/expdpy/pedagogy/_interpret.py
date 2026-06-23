@@ -33,6 +33,7 @@ __all__ = [
     "interpret_estimation",
     "interpret_event_study",
     "interpret_fwl",
+    "interpret_kuznets_waves",
     "interpret_panel_structure",
     "interpret_regression",
     "interpret_sandbox",
@@ -470,6 +471,16 @@ def interpret_sandbox(result: Any, *, lang: str = "en") -> str:
             f"recovers {fmt_num(s['std_slope'])} and the Gini trend {fmt_num(s['gini_slope'])} "
             "— both matching the truth, the hallmark of σ-convergence."
         )
+    if topic == "kuznets_waves":
+        return (
+            f"The panel was built with a known degree-{int(s['degree'])} Kuznets wave whose "
+            f"top-order coefficient is {fmt_num(s['true_top'])}. The within (two-way "
+            f"fixed-effects) estimator recovers {fmt_num(s['within_top'])} and pooled OLS "
+            f"{fmt_num(s['pooled_top'])} — both close to the truth, because the wave is a "
+            "within-unit relationship. The between estimator gives "
+            f"{fmt_num(s['between_top'])}, which differs: it compares unit averages, and the "
+            "average of a nonlinear curve is not the curve of the average."
+        )
     if topic == "convergence_clubs":
         return (
             f"The panel was built with {int(s['true_clubs'])} planted convergence clubs. The "
@@ -546,6 +557,79 @@ def interpret_fwl(result: Any, *, lang: str = "en") -> str:
     r2w = float(getattr(result, "r2_within", math.nan))
     if not math.isnan(r2w):
         lines.append(f"Within-R² of the full model: {fmt_num(r2w)}.")
+    lines += ["", _ASSOC_NOTE]
+    return "\n".join(lines)
+
+
+_WAVE_SHAPE = {
+    0: "no turning point (a monotonic relationship)",
+    1: "a single turning point (an inverted-U or U shape — the classic Kuznets curve)",
+    2: "two turning points (an N or inverted-N shape)",
+    3: "three turning points (a full Kuznets wave)",
+}
+_WAVE_ESTIMATORS = (
+    ("pooled", "Pooled OLS", "the raw cross-sectional pattern"),
+    ("between", "Between (cross-country)", "comparing country averages"),
+    (
+        "within",
+        "Within (two-way FE)",
+        "within-country variation net of common year effects",
+    ),
+)
+
+
+def interpret_kuznets_waves(result: Any, *, lang: str = "en") -> str:
+    """Interpret a Kuznets-waves result: the nonlinear shape under three panel estimators."""
+    ineq = str(getattr(result, "inequality", "inequality"))
+    dev = str(getattr(result, "development", "development"))
+    degree = int(getattr(result, "degree", 4))
+    n_obs = int(getattr(result, "n_obs", 0))
+    controls = tuple(getattr(result, "controls", ()) or ())
+    summary = result.summary
+    by = {str(row["estimator"]): row for _, row in summary.iterrows()}
+
+    lines = [
+        f"Across {n_obs:,} observations, a degree-{degree} polynomial relates **{ineq}** to "
+        f"**{dev}** (the extended Kuznets-waves specification). The three estimators read the "
+        "association at different levels of variation:"
+    ]
+    shapes: dict[str, int] = {}
+    for key, label, gloss in _WAVE_ESTIMATORS:
+        if key not in by:
+            continue
+        row = by[key]
+        ntp = int(row["n_turning_points"])
+        shapes[key] = ntp
+        desc = _WAVE_SHAPE.get(ntp, f"{ntp} turning points")
+        peak = float(row["peak_g"])
+        peak_txt = (
+            f", peaking near {dev} = {fmt_num(peak)}" if math.isfinite(peak) else ""
+        )
+        sig = significance_phrase(float(row["top_pvalue"]))
+        lines.append(
+            f"- **{label}** ({gloss}): the fitted curve shows {desc}{peak_txt}; its "
+            f"highest-order term is {sig} (R² = {fmt_num(float(row['r2']))})."
+        )
+
+    if shapes:
+        distinct = set(shapes.values())
+        if len(distinct) == 1:
+            lines.append(
+                "All three estimators agree on the curvature, so the shape is not an artefact "
+                "of cross-country versus within-country variation."
+            )
+        else:
+            lines.append(
+                "The estimators disagree on the curvature: the cross-country (between) and "
+                "within-country (fixed-effects) pictures differ, a sign that unit-level "
+                "confounders shape the apparent curve."
+            )
+    if controls:
+        lines.append(
+            f"The between and within figures partial out {', '.join(controls)} via the "
+            "Frisch-Waugh-Lovell theorem, so the plotted wave is net of those covariates."
+        )
+
     lines += ["", _ASSOC_NOTE]
     return "\n".join(lines)
 

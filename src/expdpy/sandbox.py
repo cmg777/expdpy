@@ -25,6 +25,7 @@ from expdpy.convergence import (
     analyze_convergence_clubs,
     analyze_sigma_convergence,
 )
+from expdpy.kuznets import analyze_kuznets_waves
 from expdpy.regression import analyze_regression_table
 
 __all__ = [
@@ -32,6 +33,7 @@ __all__ = [
     "learn_clustering_se",
     "learn_convergence_clubs",
     "learn_first_differences",
+    "learn_kuznets_waves",
     "learn_omitted_variable_bias",
     "learn_pooled_vs_fixed_effects",
     "learn_sigma_convergence",
@@ -730,6 +732,95 @@ def learn_sigma_convergence(
     )
     fig.update_layout(title="σ-convergence: recovered vs true dispersion trend")
     return SandboxResult(df=df, fig=fig, summary=summary, topic="sigma_convergence")
+
+
+def learn_kuznets_waves(
+    *,
+    n_units: int = 80,
+    n_years: int = 15,
+    betas: tuple[float, ...] = (0.5, -0.3, 0.05, 0.04),
+    between_sd: float = 1.0,
+    within_sd: float = 0.9,
+    unit_effect_sd: float = 0.5,
+    noise: float = 0.05,
+    seed: int = 0,
+) -> SandboxResult:
+    """Show the three Kuznets-waves estimators recovering a *planted* polynomial wave.
+
+    Simulates a panel ``y_it = sum_k betas[k-1] * g_it^k + a_i + d_t + e_it`` where the
+    development index ``g_it = xbar_i + w_it`` mixes a cross-unit component (``between_sd``) and a
+    within-unit component (``within_sd``), and the unit effect ``a_i`` and year effect ``d_t`` are
+    drawn independently of ``g`` (so they bias none of the estimators). Because the planted wave
+    is a within-unit relationship, the **within** (two-way fixed-effects) and **pooled** estimators
+    recover the top-order coefficient, while the **between** estimator — comparing unit averages —
+    differs, since averaging a nonlinear function is not the function of the average. Demonstrated
+    with :func:`expdpy.analyze_kuznets_waves`.
+
+    Parameters
+    ----------
+    n_units, n_years
+        Panel dimensions.
+    betas
+        The planted polynomial coefficients ``(b_1, ..., b_degree)`` on ``g, g^2, ...``; its
+        length sets the degree (default the quartic ``(0.5, -0.3, 0.05, 0.04)``).
+    between_sd, within_sd
+        Standard deviations of the cross-unit and within-unit components of ``g``.
+    unit_effect_sd
+        Standard deviation of the unit and year effects in the outcome (independent of ``g``).
+    noise
+        Idiosyncratic shock standard deviation.
+    seed
+        Random seed.
+
+    Returns
+    -------
+    SandboxResult
+        ``df`` (the top-order coefficient recovered by each estimator vs the true value),
+        ``fig`` (the within partial-residual wave), ``summary`` and ``topic``.
+    """
+    rng = np.random.default_rng(seed)
+    degree = len(betas)
+    a = rng.normal(0.0, unit_effect_sd, size=n_units)
+    d = rng.normal(0.0, unit_effect_sd, size=n_years)
+    xbar = rng.normal(0.0, between_sd, size=n_units)
+    rows = []
+    for i in range(n_units):
+        for t in range(n_years):
+            gv = float(xbar[i] + rng.normal(0.0, within_sd))
+            poly = sum(float(b) * gv ** (k + 1) for k, b in enumerate(betas))
+            y = poly + float(a[i]) + float(d[t]) + float(rng.normal(0.0, noise))
+            rows.append((f"unit {i:02d}", t, gv, y))
+    panel = pd.DataFrame(rows, columns=["unit", "year", "g", "y"])
+
+    res = analyze_kuznets_waves(
+        panel, "y", "g", entity="unit", time="year", degree=degree
+    )
+    by = {str(row["estimator"]): row for _, row in res.summary.iterrows()}
+    true_top = float(betas[-1])
+
+    df = pd.DataFrame(
+        {
+            "estimator": ["pooled", "between", "within", "true"],
+            "top_coefficient": [
+                float(by["pooled"]["top_estimate"]),
+                float(by["between"]["top_estimate"]),
+                float(by["within"]["top_estimate"]),
+                true_top,
+            ],
+        }
+    )
+    summary = {
+        "degree": float(degree),
+        "true_top": true_top,
+        "pooled_top": float(by["pooled"]["top_estimate"]),
+        "between_top": float(by["between"]["top_estimate"]),
+        "within_top": float(by["within"]["top_estimate"]),
+        "n_units": float(n_units),
+        "n_years": float(n_years),
+    }
+    return SandboxResult(
+        df=df, fig=res.fig_within, summary=summary, topic="kuznets_waves"
+    )
 
 
 def learn_convergence_clubs(
