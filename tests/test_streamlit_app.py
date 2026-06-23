@@ -125,9 +125,8 @@ def test_regression_renders_table():
 def test_sandboxes_page_renders_all_tabs():
     at = _page("sandboxes")
     assert not at.exception
-    assert (
-        len(at.tabs) == 6
-    )  # OVB, pooled-vs-FE, clustering, first differences, within-vs-LSDV, beta convergence
+    assert len(at.tabs) == 7  # OVB, pooled-vs-FE, clustering, first differences,
+    # within-vs-LSDV, beta convergence, Kuznets waves
 
 
 def test_explainers_page_lists_topics():
@@ -200,6 +199,20 @@ def test_convergence_clubs_page_needs_full_panel():
 
 def test_convergence_clubs_page_renders():
     at = _page("convergence_clubs")  # default dataset (Kuznets) is a balanced panel
+    assert not at.exception
+
+
+def test_kuznets_waves_page_needs_full_panel():
+    full = [spec[0] for spec in selected_specs(_active("year", entities=["country"]))]
+    ts_only = [spec[0] for spec in selected_specs(_active("year"))]  # no entity id
+    cross = [spec[0] for spec in selected_specs(_active(None))]
+    assert "Kuznets waves" in full
+    assert "Kuznets waves" not in ts_only
+    assert "Kuznets waves" not in cross
+
+
+def test_kuznets_waves_page_renders():
+    at = _page("kuznets_waves")  # default dataset (Kuznets) is a balanced panel
     assert not at.exception
 
 

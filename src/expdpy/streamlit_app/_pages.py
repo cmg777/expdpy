@@ -255,6 +255,7 @@ def page_sandboxes() -> None:
         learn_beta_convergence,
         learn_clustering_se,
         learn_first_differences,
+        learn_kuznets_waves,
         learn_omitted_variable_bias,
         learn_pooled_vs_fixed_effects,
         learn_within_vs_lsdv,
@@ -273,6 +274,7 @@ def page_sandboxes() -> None:
             "First differences",
             "Within vs LSDV",
             "Beta convergence",
+            "Kuznets waves",
         ]
     )
     with tabs[0]:
@@ -336,6 +338,16 @@ def page_sandboxes() -> None:
             "Loading on the determinant z", 0.0, 2.0, 0.6, 0.1, key="bc_g"
         )
         res = learn_beta_convergence(rho=rho, corr=corr, gamma=gamma)
+        st.plotly_chart(res.fig, width="stretch", config=PLOTLY_CONFIG)
+        st.markdown(res.interpret())
+        with st.expander("❓ What is this?"):
+            st.markdown(res.explain().to_markdown())
+    with tabs[6]:
+        n_units = st.slider("Number of units", 30, 150, 80, 10, key="kw_units")
+        within_sd = st.slider(
+            "Within-unit spread of development", 0.3, 2.0, 0.9, 0.1, key="kw_within"
+        )
+        res = learn_kuznets_waves(n_units=int(n_units), within_sd=within_sd)
         st.plotly_chart(res.fig, width="stretch", config=PLOTLY_CONFIG)
         st.markdown(res.interpret())
         with st.expander("❓ What is this?"):
@@ -669,6 +681,76 @@ def page_convergence_clubs() -> None:
         st.markdown(res.explain().to_markdown())
 
 
+def page_kuznets_waves() -> None:
+    """Estimate the extended Kuznets curve: pooled / between / within waves side by side."""
+    from expdpy import analyze_kuznets_waves
+
+    active = _active_or_stop()
+    st.header("Kuznets waves")
+    if not _is_panel(active):
+        st.info("Kuznets waves need a panel: a cross-section id and a time dimension.")
+        return
+    assert active.time is not None  # narrowed by _is_panel
+    entity, time = active.entities[0], active.time
+    st.caption(f"Entity: **{entity}** · Time: **{time}**")
+    numeric = _numeric(active)
+    col1, col2 = st.columns(2)
+    inequality = col1.selectbox("Inequality (outcome)", numeric, key="kw_ineq")
+    dev_opts = [c for c in numeric if c != inequality] or numeric
+    development = col2.selectbox(
+        "Development (e.g. log GDP per capita)", dev_opts, key="kw_dev"
+    )
+    controls = st.multiselect(
+        "Controls to partial out of the between/within waves (optional)",
+        [c for c in numeric if c not in (inequality, development)],
+        key="kw_controls",
+    )
+    degree = st.slider("Polynomial degree", 2, 6, 4, 1, key="kw_degree")
+    if (
+        not inequality
+        or inequality == "None"
+        or not development
+        or development == "None"
+    ):
+        st.info("Choose an inequality outcome and a development variable.")
+        return
+    try:
+        res = analyze_kuznets_waves(
+            active.sample,
+            inequality,
+            development,
+            controls=controls or None,
+            entity=entity,
+            time=time,
+            degree=int(degree),
+        )
+    except Exception as exc:  # surface the message, keep the page alive
+        st.info(str(exc))
+        return
+
+    st.subheader("Raw relationship")
+    st.plotly_chart(res.fig, width="stretch", config=PLOTLY_CONFIG)
+    st.subheader("Between estimator (cross-country wave)")
+    st.plotly_chart(res.fig_between, width="stretch", config=PLOTLY_CONFIG)
+    st.subheader("Within estimator (two-way fixed effects)")
+    st.plotly_chart(res.fig_within, width="stretch", config=PLOTLY_CONFIG)
+
+    st.subheader("Comparison tables (each column adds the next power)")
+    t1, t2, t3 = st.tabs(["Pooled OLS", "Between", "Within (two-way FE)"])
+    with t1:
+        st.html(res.gt_pooled.as_raw_html())
+    with t2:
+        st.html(res.gt_between.as_raw_html())
+    with t3:
+        st.html(res.gt_within.as_raw_html())
+
+    st.markdown(res.interpret())
+    for note in res.notes:
+        st.caption(f"⚠️ {note}")
+    with st.expander("❓ What is this? (method explainer)"):
+        st.markdown(res.explain().to_markdown())
+
+
 def page_explainers() -> None:
     """Browse the concept explainers — the Learn module's topic index."""
     from expdpy import explain, list_topics
@@ -705,6 +787,9 @@ _PAGE_SPECS.append(
         _is_panel,
     )
 )
+_PAGE_SPECS.append(
+    ("Kuznets waves", "🌊", "kuznets_waves", page_kuznets_waves, _is_panel)
+)
 _PAGE_SPECS.append(("Concept sandboxes", "🧪", "sandboxes", page_sandboxes, None))
 _PAGE_SPECS.append(("Concept explainers", "📚", "explainers", page_explainers, None))
 
@@ -722,6 +807,7 @@ _MODULE: dict[str, str] = {
     "panel_models": "analyze",
     "sigma_convergence": "analyze",
     "convergence_clubs": "analyze",
+    "kuznets_waves": "analyze",
     "sandboxes": "learn",
     "explainers": "learn",
 }

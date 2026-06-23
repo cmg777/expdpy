@@ -2,6 +2,26 @@
 title: "Changelog"
 ---
 
+## 0.4.10 (2026-06-23)
+
+### Added
+
+- **Kuznets-waves analysis** (`analyze_kuznets_waves`). Tests the extended Kuznets curve —
+  the inequality-development relationship taken up to a quartic,
+  `gini = b_1 g + b_2 g^2 + b_3 g^3 + b_4 g^4` with `g = log` GDP per capita — under three panel
+  estimators laid out side by side: **pooled OLS**, the **between** estimator (the cross-country
+  curve, a polynomial in the entity means) and the **within** estimator (two-way country + year
+  fixed effects). Each is a cumulative-stepwise (`csw`) comparison table — the linear model, then
+  the quadratic, up to the full `degree`-order polynomial — and three figures tell the
+  pooled → between → within story: a raw scatter with the pooled wave overlaid, and **between**
+  and **within** Frisch–Waugh–Lovell **partial-residual (component) plots** that draw the fitted
+  wave once optional `controls` (and, for the within view, the two-way fixed effects) are
+  partialled out. The result exposes `gt_pooled` / `gt_between` / `gt_within`, the three figures,
+  a per-estimator curvature `summary` (turning points, peak, top-order term), the fitted
+  `models`, and `.interpret()` / `.explain()`. A paired `learn_kuznets_waves()` sandbox, a
+  `kuznets_waves` concept explainer, a Streamlit **Kuznets waves** tab, and a
+  Quarto → Colab notebook ship with it.
+
 ## 0.4.9 (2026-06-23)
 
 ### Added

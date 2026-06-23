@@ -28,6 +28,7 @@ from expdpy.pedagogy._interpret import (
     interpret_estimation,
     interpret_event_study,
     interpret_fwl,
+    interpret_kuznets_waves,
     interpret_panel_structure,
     interpret_regression,
     interpret_sandbox,
@@ -68,6 +69,7 @@ __all__ = [
     "HausmanTestResult",
     "HistogramResult",
     "JointTestResult",
+    "KuznetsWavesResult",
     "MissingValuesResult",
     "PanelStructureResult",
     "PanelViewResult",
@@ -596,6 +598,69 @@ class ConvergenceClubsResult(Interpretable):
                 }
             ]
         )
+
+
+@dataclass(frozen=True)
+class KuznetsWavesResult(Interpretable):
+    """Result of :func:`expdpy.analyze_kuznets_waves`.
+
+    The extended Kuznets ("waves") analysis estimates the polynomial relationship
+    ``inequality = f(g, g^2, ..., g^degree)`` (with ``g`` the development variable) under three
+    panel estimators and surfaces them side by side.
+
+    ``df`` is the tidy long coefficient frame stacking all three estimators (columns
+    ``estimator``, ``spec``, ``term``, ``Estimate``, ``Std. Error``, ``t value``, ``Pr(>|t|)``):
+    each estimator contributes ``degree`` nested specifications (linear, then quadratic, up to the
+    full polynomial). ``fig`` is the **raw** pooled scatter of ``inequality`` against ``g`` with
+    the fitted polynomial overlaid; ``fig_between`` is the **between** estimator's partial-residual
+    (component) plot on country means; ``fig_within`` is the **within** (two-way fixed-effects)
+    partial-residual plot — both partial out ``controls`` (and, for ``fig_within``, the
+    entity/time fixed effects) via the Frisch-Waugh-Lovell theorem.
+
+    ``gt_pooled`` / ``gt_between`` / ``gt_within`` are the three side-by-side comparison tables
+    (rendered ``etable`` objects, one per estimator). ``summary`` is a one-row-per-estimator frame
+    (``estimator``, ``n_obs``, ``r2``, ``n_turning_points``, ``peak_g``, ``top_term``,
+    ``top_estimate``, ``top_pvalue``) describing the fitted curvature. ``models`` maps each
+    estimator name to its list of fitted nested pyfixest models.
+
+    The scalar fields record the run: ``inequality`` / ``development`` (the columns used),
+    ``controls`` (covariates partialled out of the figures), ``degree`` (the polynomial order),
+    the panel ids ``entity`` / ``time``, and ``n_obs`` (the pooled complete-case sample size).
+    """
+
+    df: pd.DataFrame
+    fig: go.Figure
+    fig_between: go.Figure
+    fig_within: go.Figure
+    gt_pooled: Any
+    gt_between: Any
+    gt_within: Any
+    summary: pd.DataFrame
+    models: dict[str, list[Any]]
+    inequality: str
+    development: str
+    controls: tuple[str, ...]
+    degree: int
+    entity: str
+    time: str
+    n_obs: int
+    notes: tuple[str, ...] = ()
+
+    def interpret(self, *, lang: str = "en") -> str:
+        """Plain-language reading of the Kuznets-wave shape across the three estimators."""
+        return interpret_kuznets_waves(self, lang=lang)
+
+    def explain(self, *, lang: str = "en") -> Explainer:
+        """Concept explainer for Kuznets waves."""
+        return _explain("kuznets_waves", lang=lang)
+
+    def tidy(self) -> pd.DataFrame:
+        """Return the stacked tidy coefficient frame (all estimators and specifications)."""
+        return self.df
+
+    def glance(self) -> pd.DataFrame:
+        """Return the per-estimator curvature summary (broom-style ``glance``)."""
+        return self.summary
 
 
 @dataclass(frozen=True)
