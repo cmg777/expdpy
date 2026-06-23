@@ -2,6 +2,28 @@
 title: "Changelog"
 ---
 
+## 0.4.11 (2026-06-23)
+
+### Fixed
+
+- **Convergence clubs** (`analyze_convergence_clubs`) — three correctness fixes to the
+  Phillips-Sul clustering, plus a reporting fix:
+  - The default `method="adjust"` (Schnurbus et al. 2016) club refinement scored each candidate
+    against the *core* group rather than the *growing* club and had no final joint-test
+    fallback, so it could emit a group labelled a convergence "club" whose own log(t)
+    t-statistic was below the threshold. It now scores against the accumulating club and falls
+    back to the core when the refined club still fails its joint test (matching the
+    `method="ps"` branch).
+  - A variable whose per-period cross-sectional mean is at or near zero (e.g. a demeaned,
+    centered or growth series) made the relative transition `h_it = x_it / mean_i(x_it)` blow up
+    to `inf` and silently corrupt every returned frame and figure. It now raises a clear error.
+  - A constant / already-identical panel produced a non-finite global log(t) statistic that was
+    silently reported as "divergent" (printing a literal `NaN`). It now raises a clear
+    "not estimable" error.
+  - The user-supplied `tcrit` threshold is now threaded into the summary table's `converging`
+    column, the table source-note and the plain-language `.interpret()` (all previously
+    hardcoded to `-1.65`), and is exposed on `ConvergenceClubsResult.tcrit`.
+
 ## 0.4.10 (2026-06-23)
 
 ### Added
