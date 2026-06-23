@@ -1336,12 +1336,19 @@ def _find_one_club(
             club_pos = list(core_pos)
             remaining = list(candidates)
             while remaining:
-                scored = [(club_tstat([*core_pos, p]), p) for p in remaining]
+                # Score each candidate by the t-stat of the *growing* club plus that
+                # candidate (not the core alone), so the stopping rule sees the club degrade
+                # as members accumulate; stop before an addition would push it below tcrit.
+                scored = [(club_tstat([*club_pos, p]), p) for p in remaining]
                 best_t, best_p = max(scored, key=lambda it: it[0])
                 if not math.isfinite(best_t) or best_t <= tcrit:
                     break
                 club_pos.append(best_p)
                 remaining = [p for p in candidates if p not in set(club_pos)]
+            # Never return a club that fails its own joint test (as the PS-2007 branch does).
+            final_t = club_tstat(club_pos)
+            if not math.isfinite(final_t) or final_t <= tcrit:
+                club_pos = list(core_pos)
 
     return [int(sid[p]) for p in club_pos]
 
@@ -1612,6 +1619,7 @@ def _clubs_summary_and_gt(
     var_label: str,
     n_units: int,
     n_periods: int,
+    tcrit: float,
 ) -> tuple[pd.DataFrame, Any, pd.DataFrame]:
     """Build the per-club ``summary`` frame, its Great-Tables rendering, and the membership frame.
 
@@ -1648,7 +1656,7 @@ def _clubs_summary_and_gt(
                 club_stats.get(c, (float("nan"), float("nan"), 0))[1] for c in order
             ],
             "converging": [
-                bool(club_stats.get(c, (float("nan"), float("nan"), 0))[1] > _TCRIT)
+                bool(club_stats.get(c, (float("nan"), float("nan"), 0))[1] > tcrit)
                 if c != 0
                 else False
                 for c in order
@@ -1681,9 +1689,9 @@ def _clubs_summary_and_gt(
             f"{n_units} units",
         )
         .tab_source_note(
-            "Each club's log(t) t-stat exceeds -1.65 (the convergence threshold); b = 2*alpha "
-            "is the within-club convergence speed. The Divergent group does not form a "
-            "convergence club."
+            f"Each club's log(t) t-stat exceeds {tcrit:g} (the convergence threshold); "
+            "b = 2*alpha is the within-club convergence speed. The Divergent group does not "
+            "form a convergence club."
         )
     )
 
@@ -1861,10 +1869,32 @@ def analyze_convergence_clubs(
 
     raw = wide.to_numpy(dtype=float)
     trend = _hp_trend(raw, hp_lambda) if filter == "hp" else raw
+
+    # The relative transition divides by the per-period cross-sectional mean, so a mean at or
+    # near zero (e.g. a demeaned / centered / growth variable) blows it up to inf and silently
+    # corrupts every downstream frame and figure. Phillips-Sul expects a strictly-positive
+    # variable (levels or log-levels); reject a (near-)zero or sign-changing mean up front.
+    xcm = trend.mean(axis=0)
+    scale = float(np.nanmax(np.abs(trend))) if trend.size else 0.0
+    if not np.all(np.isfinite(xcm)) or bool(
+        np.any(np.abs(xcm) <= 1e-9 * (1.0 + scale))
+    ):
+        raise ValueError(
+            f"the per-period cross-sectional mean of {var!r} is at or near zero in some "
+            "period, so the relative transition h_it = x_it / mean_i(x_it) is undefined. "
+            "Club convergence expects a strictly-positive variable (levels or log-levels), "
+            "not a demeaned/centered or sign-changing series."
+        )
     relative = _relative_transition(trend)
 
     global_beta, global_tstat = _log_t_test(trend, r)
-    converged = bool(math.isfinite(global_tstat) and global_tstat > tcrit)
+    if not math.isfinite(global_tstat):
+        raise ValueError(
+            f"the log(t) convergence test for {var!r} is not estimable: the cross-sectional "
+            "dispersion of the relative transitions is (near) zero in every period — the units "
+            "are already identical (trivially converged), so the test statistic is undefined."
+        )
+    converged = bool(global_tstat > tcrit)
 
     if converged:
         club_of = {i: 1 for i in range(n_units)}
@@ -1892,7 +1922,7 @@ def analyze_convergence_clubs(
 
     long = _clubs_long_frame(entities, times, trend, relative, club_of, entity, time)
     summary, gt, membership = _clubs_summary_and_gt(
-        club_of, club_stats, entities, var_label, n_units, n_periods
+        club_of, club_stats, entities, var_label, n_units, n_periods, tcrit
     )
 
     fig = _clubs_avg_fig(long, entity, time, time_label, var_label, title)
@@ -1901,7 +1931,8 @@ def analyze_convergence_clubs(
 
     if converged:
         notes.append(
-            "the whole panel converges (global log(t) t-stat > -1.65); it forms a single club"
+            f"the whole panel converges (global log(t) t-stat > {tcrit:g}); "
+            "it forms a single club"
         )
     elif n_clubs == 0:
         notes.append(
@@ -1929,6 +1960,7 @@ def analyze_convergence_clubs(
         converged=converged,
         hp_lambda=float(hp_lambda) if filter == "hp" else float("nan"),
         trim=float(r),
+        tcrit=float(tcrit),
         method=method,
         merge=merge,
         notes=tuple(notes),

@@ -175,6 +175,7 @@ def interpret_convergence_clubs(result: Any, *, lang: str = "en") -> str:
     n_div = int(getattr(result, "n_divergent", 0))
     converged = bool(getattr(result, "converged", False))
     g_t = float(getattr(result, "global_tstat", float("nan")))
+    tcrit = float(getattr(result, "tcrit", -1.65))
 
     head = (
         f"Across {n_units:,} units over {n_periods} periods, the Phillips-Sul log(t) test "
@@ -182,9 +183,9 @@ def interpret_convergence_clubs(result: Any, *, lang: str = "en") -> str:
     )
     if converged:
         lines = [
-            head
-            + f"does not reject convergence for the whole panel (t = {fmt_num(g_t)} > -1.65): "
-            "the units form a **single convergence club** — they all approach a common path."
+            head + f"does not reject convergence for the whole panel "
+            f"(t = {fmt_num(g_t)} > {tcrit:g}): the units form a **single convergence "
+            "club** — they all approach a common path."
         ]
         lines += ["", _ASSOC_NOTE]
         return "\n".join(lines)
@@ -192,9 +193,9 @@ def interpret_convergence_clubs(result: Any, *, lang: str = "en") -> str:
     if n_clubs == 0:
         lines = [
             head
-            + f"rejects global convergence (t = {fmt_num(g_t)} <= -1.65) and the clustering "
-            "algorithm finds **no convergence clubs** — the units diverge rather than forming "
-            "catch-up groups."
+            + f"rejects global convergence (t = {fmt_num(g_t)} <= {tcrit:g}) and the "
+            "clustering algorithm finds **no convergence clubs** — the units diverge rather "
+            "than forming catch-up groups."
         ]
         lines += ["", _ASSOC_NOTE]
         return "\n".join(lines)
@@ -206,8 +207,8 @@ def interpret_convergence_clubs(result: Any, *, lang: str = "en") -> str:
     )
     lines = [
         head
-        + f"rejects global convergence (t = {fmt_num(g_t)} <= -1.65). The clustering algorithm "
-        f"splits the panel into **{n_clubs} convergence club"
+        + f"rejects global convergence (t = {fmt_num(g_t)} <= {tcrit:g}). The clustering "
+        f"algorithm splits the panel into **{n_clubs} convergence club"
         + ("s" if n_clubs != 1 else "")
         + f"** — groups that each converge internally but not with one another: {sizes}."
     ]
@@ -219,7 +220,7 @@ def interpret_convergence_clubs(result: Any, *, lang: str = "en") -> str:
         )
     lines.append(
         "Club 1 collects the highest-ranked units; within each club the log(t) slope b = "
-        "2*alpha is positive enough that its t-statistic clears -1.65."
+        f"2*alpha is positive enough that its t-statistic clears {tcrit:g}."
     )
     lines += ["", _ASSOC_NOTE]
     return "\n".join(lines)

@@ -746,3 +746,50 @@ def test_real_data_productivity_smoke():
     # every reported club clears the convergence threshold
     clubs = res.summary[res.summary["club"] != "Divergent"]
     assert bool((clubs["tstat"] > -1.65).all())
+
+
+# --- regression tests for the club-refinement / degenerate-input / tcrit fixes ----------
+@pytest.mark.parametrize("method", ["adjust", "ps"])
+def test_closely_spaced_clubs_all_converge(method):
+    # Closely-spaced levels (gap 0.3 < within-club spread 0.4) make the sieve over-include,
+    # triggering the Step 3.3 refinement. Every returned non-divergent club must still clear
+    # its own joint log(t) test (the refinement must not emit a non-converging group).
+    df, _ = _club_panel(levels=(10.0, 9.7, 9.4, 9.1, 8.8), seed=1)
+    res = ex.analyze_convergence_clubs(
+        df, "x", entity="unit", time="year", method=method, merge="none"
+    )
+    clubs = res.summary[res.summary["club"] != "Divergent"]
+    assert len(clubs) >= 1
+    assert bool((clubs["tstat"] > -1.65).all()), clubs[["club", "tstat"]].to_dict()
+
+
+def test_near_zero_period_mean_raises():
+    # A within-year-centered variable has a per-period cross-sectional mean of ~0, so the
+    # relative transition x / mean blows up to inf; reject it instead of corrupting the result.
+    df, _ = _club_panel(seed=2)
+    df["x"] = df["x"] - df.groupby("year")["x"].transform("mean")
+    with pytest.raises(ValueError, match="near zero"):
+        ex.analyze_convergence_clubs(df, "x", entity="unit", time="year", filter=None)
+
+
+def test_constant_variable_is_not_estimable_raises():
+    # Identical units are trivially converged: H_t = 0 every period so the log(t) statistic is
+    # undefined. Reject rather than silently narrating divergence with a NaN t-stat.
+    rows = [(f"u{i:02d}", t, 5.0) for i in range(10) for t in range(1, 36)]
+    df = pd.DataFrame(rows, columns=["unit", "year", "x"])
+    with pytest.raises(ValueError, match="not estimable"):
+        ex.analyze_convergence_clubs(df, "x", entity="unit", time="year")
+
+
+def test_tcrit_threaded_into_result_and_reporting():
+    df, _ = _club_panel(seed=3)
+    res = ex.analyze_convergence_clubs(df, "x", entity="unit", time="year", tcrit=-2.0)
+    assert res.tcrit == pytest.approx(-2.0)
+    clubs = res.summary[res.summary["club"] != "Divergent"]
+    # the reported "converging" verdict uses the user threshold, not the hardcoded -1.65
+    for _, row in clubs.iterrows():
+        assert bool(row["converging"]) == bool(row["tstat"] > -2.0)
+    assert "-2" in res.interpret()
+    assert (
+        "-2" in res.gt.as_raw_html()
+    )  # the GT source-note reflects the custom threshold

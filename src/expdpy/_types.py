@@ -540,9 +540,10 @@ class ConvergenceClubsResult(Interpretable):
 
     The scalars report the panel dimensions (``n_units`` / ``n_periods``); the **whole-panel**
     log(t) test (``global_beta`` = ``b`` = ``2*alpha`` and ``global_tstat``) with the
-    ``converged`` flag (``global_tstat > -1.65``); the number of clubs ``n_clubs`` and divergent
+    ``converged`` flag (``global_tstat > tcrit``); the number of clubs ``n_clubs`` and divergent
     units ``n_divergent``; and the run parameters (``hp_lambda`` — ``nan`` when unfiltered —
-    ``trim`` = ``r``, ``method``, ``merge``).
+    ``trim`` = ``r``, ``tcrit`` (the convergence-test threshold, default ``-1.65``), ``method``,
+    ``merge``).
     """
 
     df: pd.DataFrame
@@ -564,6 +565,7 @@ class ConvergenceClubsResult(Interpretable):
     converged: bool
     hp_lambda: float
     trim: float
+    tcrit: float
     method: str
     merge: str
     notes: tuple[str, ...] = ()
