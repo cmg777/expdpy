@@ -2,6 +2,16 @@
 title: "Changelog"
 ---
 
+## 0.4.14 (2026-06-24)
+
+### Explore
+
+- **`explore_scatter_plot` no longer draws a LOESS confidence band.** The shaded band was an
+  *unweighted* bootstrap while the LOESS line is *size-weighted* under `loess=2`, so the line could
+  fall outside its own band; the smoother now shows just the line.
+- **`explore_spaghetti_plot` no longer shows a legend.** It was a single "mean (…)" entry that ate
+  horizontal plot space; highlighted units still render in saturated colour.
+
 ## 0.4.13 (2026-06-24)
 
 ### Explore

@@ -146,6 +146,16 @@ def test_spaghetti_one_line_per_unit(sample_df):
     assert list(res.df.columns) == ["firm", "year", "x1"]
 
 
+def test_spaghetti_has_no_legend(sample_df):
+    # The legend is removed entirely — including when units are highlighted.
+    res = explore_spaghetti_plot(sample_df, "x1", entity="firm", time="year")
+    assert res.fig.layout.showlegend is False
+    hl = explore_spaghetti_plot(
+        sample_df, "x1", entity="firm", time="year", highlight=[1]
+    )
+    assert hl.fig.layout.showlegend is False
+
+
 def test_spaghetti_sampling_and_highlight(sample_df):
     with pytest.warns(UserWarning):
         res = explore_spaghetti_plot(

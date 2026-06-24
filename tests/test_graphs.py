@@ -145,6 +145,8 @@ def test_scatter_default_alpha_and_loess(sample_df):
     res = explore_scatter_plot(sample_df, "x1", "x2", loess=1)
     assert isinstance(res.fig, go.Figure)
     assert any(t.name == "loess" for t in res.fig.data)
+    # The loess smoother shows only the line — no confidence-band trace.
+    assert not any(t.name == "ci" for t in res.fig.data)
     assert res.fig.data[0].marker.opacity == pytest.approx(
         _default_alpha(len(sample_df))
     )

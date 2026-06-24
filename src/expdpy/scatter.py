@@ -50,20 +50,6 @@ def _lowess_curve(
     return fitted[idx, 0], fitted[idx, 1]
 
 
-def _lowess_band(x: np.ndarray, y: np.ndarray, xs: np.ndarray, n_boot: int = 50):
-    """Pointwise 95% bootstrap band for a lowess fit on grid ``xs``."""
-    rng = np.random.default_rng(0)
-    n = len(x)
-    preds = np.full((n_boot, len(xs)), np.nan)
-    for b in range(n_boot):
-        idx = rng.integers(0, n, n)
-        fitted = lowess(y[idx], x[idx], frac=2 / 3, return_sorted=True)
-        preds[b] = np.interp(xs, fitted[:, 0], fitted[:, 1])
-    lo = np.nanpercentile(preds, 2.5, axis=0)
-    hi = np.nanpercentile(preds, 97.5, axis=0)
-    return lo, hi
-
-
 def explore_scatter_plot(
     df: pd.DataFrame,
     x: str,
@@ -238,19 +224,6 @@ def explore_scatter_plot(
     if loess > 0 and n >= 4:
         weights = size_vals if loess == 2 and size else None
         xs, ys = _lowess_curve(xv, yv, weights)
-        lo, hi = _lowess_band(xv, yv, xs)
-        fig.add_trace(
-            go.Scatter(
-                x=np.concatenate([xs, xs[::-1]]),
-                y=np.concatenate([hi, lo[::-1]]),
-                fill="toself",
-                fillcolor="rgba(78,121,167,0.18)",
-                line={"color": "rgba(0,0,0,0)"},
-                hoverinfo="skip",
-                showlegend=False,
-                name="ci",
-            )
-        )
         fig.add_trace(
             go.Scatter(
                 x=xs,

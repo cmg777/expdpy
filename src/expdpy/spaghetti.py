@@ -213,7 +213,9 @@ def explore_spaghetti_plot(
             show_overlay_legend=True,
         )
         xaxis = _xaxis(time, ordered, ts_conv, title=time_label)
-        apply_default_layout(fig, xaxis=xaxis, yaxis={"title": var_label})
+        apply_default_layout(
+            fig, xaxis=xaxis, yaxis={"title": var_label}, showlegend=False
+        )
     else:
         levels = sorted(sub[facet].dropna().astype(str).unique())
         ncols = min(3, len(levels)) or 1
@@ -244,7 +246,7 @@ def explore_spaghetti_plot(
                 col=c + 1,
                 show_overlay_legend=(i == 0),
             )
-        apply_default_layout(fig, yaxis={"title": var_label})
+        apply_default_layout(fig, yaxis={"title": var_label}, showlegend=False)
 
     return SpaghettiGraphResult(
         df=sub[[entity, time, var]].reset_index(drop=True),
