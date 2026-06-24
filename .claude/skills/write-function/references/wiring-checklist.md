@@ -20,6 +20,14 @@ dataclass (e.g. `BetaConvergenceResult`), and `<topic>` with the explainer key.
   - Import the result type in the `from expdpy._types import (...)` block.
   - Add `<fn>` to `__all__` under the matching `# ===== EXPLORE/ANALYZE/LEARN =====` section.
   - Add `<Result>` to `__all__` in the `# ===== RESULT TYPES =====` section.
+- **`docs/_quarto.yml`** — register `<fn>` in the `quartodoc.sections[*].contents` list for the
+  function's own section (Explore / Analyze / Learn). quartodoc renders **only** what is listed
+  in `contents` — the `__all__` export does not auto-populate it — so this is the step that
+  creates the function's reference page. The page then **automatically** gains the executed
+  example output and the `[source]` link to an auto-generated source page (`build_source_pages.py`
+  / `build_reference_enrichment.py` run inside `docs-build`; no manual step for either). Because
+  the docstring `Examples` are executed there at build time, they must be self-contained and
+  runnable — see `references/templates.md` and the Phase 5 docs check.
 
 ## Pedagogy (optional: concept explainer + `.interpret()`)
 
@@ -47,10 +55,9 @@ dataclass (e.g. `BetaConvergenceResult`), and `<topic>` with the explainer key.
   `interpret_sandbox` reading the `summary` scalars (the single explainer already resolves
   `learn_<topic>().explain()`).
 - **`src/expdpy/__init__.py`** — import and export `learn_<topic>` under `# ===== LEARN =====`.
-- **`docs/_quarto.yml`** — register `learn_<topic>` in the quartodoc **Learn**-section
-  `contents` (and refresh that section's `desc` if needed) so it appears in the API reference.
-  quartodoc renders only what is listed in `contents` — the `__all__` export does not
-  auto-populate it.
+- **`docs/_quarto.yml`** — this is the **Core** docs-registration step applied to the Learn
+  section: add `learn_<topic>` to the quartodoc **Learn**-section `contents` (and refresh that
+  section's `desc` if needed) so it gets a reference page.
 - **`docs/learn.qmd`** — add a `### `learn_<topic>`` section that runs `learn_<topic>(...)`,
   prints `.interpret()`, and renders `.fig` (cross-link the analyze page if there is one). This
   source edit is what makes `notebooks/learn.ipynb` change on regeneration; commit the
@@ -72,9 +79,9 @@ dataclass (e.g. `BetaConvergenceResult`), and `<topic>` with the explainer key.
   note `feature-notebook-naming`.)
 - **`tools/build_quickstart_notebook.py`** — add a `MODULES` entry `{"slug": "<fn>", "title":
   "<fn>", "title_md": "..."}` (custom `title_md` for a function guide vs. the module template).
-- **`docs/_quarto.yml`** — add the page to the Articles `menu`, and add `<fn>` to the quartodoc
-  `contents` for **the function's own section** (e.g. Analyze). Registering a `learn_<topic>`
-  sandbox in the Learn `contents` is a separate step handled in the Learn layer above.
+- **`docs/_quarto.yml`** — add the guide page to the Articles `menu`. (`<fn>` is already in the
+  quartodoc `contents` from the **Core** step — that is what gives it a reference page; this
+  optional layer only adds the long-form Colab guide on top.)
 - **Regenerate**: `pixi run -e docs python tools/build_quickstart_notebook.py` then
   `pixi exec --spec ruff==0.15.17 -- ruff format notebooks/`; commit `notebooks/<fn>.ipynb` (and
   any module notebook that changed because its `.qmd` was edited, e.g. `learn.ipynb`). The CI

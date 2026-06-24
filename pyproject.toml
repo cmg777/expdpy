@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "expdpy"
-version = "0.4.11"
+version = "0.4.12"
 description = "Explore your panel data interactively — a Python port of the ExPanDaR R package."
 readme = "README.md"
 license = { text = "MIT" }
@@ -219,4 +219,4 @@ lint = "pre-commit run --all-files"
 typecheck = "mypy src"
 build-quickstart-notebook = "python tools/build_quickstart_notebook.py"
 build-logo = "python tools/build_logo.py"
-docs-build = "python tools/build_quickstart_notebook.py && quartodoc build --config docs/_quarto.yml && quarto render docs"
+docs-build = "python tools/build_quickstart_notebook.py && quartodoc build --config docs/_quarto.yml && python tools/build_source_pages.py && python tools/build_reference_enrichment.py && quarto render docs"

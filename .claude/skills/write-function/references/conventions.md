@@ -78,6 +78,11 @@ in doubt, open `CLAUDE.md` and the exemplar `src/expdpy/convergence.py`.
 - `from __future__ import annotations`; PEP 604 unions (`str | None`); **NumPy docstrings**
   (ruff `D` is enforced — public functions need full docstrings with `Parameters`, `Returns`,
   and a `Notes`/summary stating the math); line length 88.
+- **Docstring `Examples` are executed on the reference page at docs-build time**, so write them
+  self-contained and runnable: load a bundled `expdpy.data` dataset and use real columns/keys;
+  plain ` ```python ` fences, never `>>>` doctest prompts. (The function must also be listed in
+  `docs/_quarto.yml` quartodoc `contents` to get a reference page at all — see the wiring
+  checklist.)
 - Keep ASCII in code/strings: avoid the Unicode minus `−` (use `-`) and Greek letters in
   source strings (write `rho`, `lambda`), or ruff `RUF001/RUF002` will flag them. Math symbols
   are fine in Markdown docs and notebooks.

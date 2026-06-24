@@ -2,6 +2,22 @@
 title: "Changelog"
 ---
 
+## 0.4.12 (2026-06-24)
+
+### Docs
+
+- **The API reference now shows live output and the source code of every function.** Each
+  reference page renders its docstring examples as *executed* cells — interactive Plotly
+  figures, Great Tables and data frames appear directly below the code — and carries a
+  **source** link to a new splot-style source page (`reference/modules/`) that lists the full,
+  syntax-highlighted
+  module source, anchored at the function (with a back-link to the docs). Two build steps
+  (`tools/build_source_pages.py`, `tools/build_reference_enrichment.py`) run inside `docs-build`
+  between `quartodoc build` and `quarto render`.
+- **The API reference index is easier to scan.** Each function now shows a brief, splot-style
+  argument signature beside its name (e.g. `analyze_beta_convergence(df, var[, controls, …])`),
+  and the distracting link underline is dropped from the listing.
+
 ## 0.4.11 (2026-06-23)
 
 ### Fixed

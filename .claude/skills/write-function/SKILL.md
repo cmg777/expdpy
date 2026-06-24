@@ -82,6 +82,9 @@ Follow the function skeleton in `references/templates.md`. Required shape:
 - **Transparent math**: the NumPy docstring's `Notes`/summary states the estimand, the formula,
   and the assumptions — no black-boxing. Document every parameter (type, dims, constraints) and
   every returned field.
+- **Runnable docstring `Examples`**: the reference page **executes** them at docs-build time, so
+  make the example self-contained — load a bundled `expdpy.data` dataset and use real
+  columns/keys; plain ` ```python ` fences, never `>>>` doctest prompts (`references/templates.md`).
 - **Estimation through the engine**: pyfixest (`pf.feols` with the shared `_SSC`) or
   linearmodels — never hand-roll OLS/FE/clustering. Plot with `_theme` helpers; never `.show()`.
 - **Return a frozen result dataclass** that mixes in `Interpretable` (defined in `_types.py`),
@@ -102,7 +105,9 @@ Mirror `tests/test_convergence.py` (see `references/templates.md`). Include all 
 ### Phase 4 — Wire the chosen layers
 Use `references/wiring-checklist.md` for the exact files per layer. Core always: result
 dataclass in `_types.py` (+ `__all__`), exports in `__init__.py` (`__all__` grouped by module),
-and `interpret_*` import wiring if Interpretable. Optional layers only if requested: the
+`interpret_*` import wiring if Interpretable, and registering `<fn>` in `docs/_quarto.yml`
+quartodoc `contents` (the step that creates the reference page — with its auto-executed example
+output and `[source]` link). Optional layers only if requested: the
 pedagogy explainer (`pedagogy/_text/<topic>.py`) + `interpret_*` (`pedagogy/_interpret.py`,
 association-only, ending in `_ASSOC_NOTE`, no "causes"/"effect of") + both `__all__`s +
 `pedagogy/__init__.py`; a `learn_*` sandbox; a Streamlit tab; a Quarto→Colab notebook
@@ -114,6 +119,12 @@ Always finish with the release bump (`pyproject.toml`, `__init__.py __version__`
 Run the quality gate, then the adversarial review:
 - `bash .claude/skills/write-function/scripts/verify.sh [tests/test_<fn>.py]` — ruff
   format + check, mypy, pytest. Fix everything it surfaces.
+- **Docs check** — render the new reference page so its docstring example actually executes
+  (this is what the CI docs build does, and a broken example turns it red):
+  `pixi run -e docs bash -c "quartodoc build --config docs/_quarto.yml >/dev/null && python
+  tools/build_source_pages.py && python tools/build_reference_enrichment.py && quarto render
+  docs/reference/<fn>.qmd"`. A clean render confirms the example runs and the `[source]`
+  link/anchor resolve. Fix any failure by making the example self-contained.
 - If a notebook was added, regenerate and run the drift-check
   (`pixi run -e docs python tools/build_quickstart_notebook.py`; then `git diff` ignoring the
   build-timestamp line) and render the `.qmd` so its asserts execute.

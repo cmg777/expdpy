@@ -4,6 +4,10 @@ Adapt these to the specific function. They are distilled from the exemplar
 `src/expdpy/convergence.py` and `tests/test_convergence.py` — read those in full for a complete
 worked example. Keep source ASCII (write `rho`/`lambda`, use `-` not the Unicode minus).
 
+The docstring `Examples` are **executed on the reference page** at docs-build time, so write them
+self-contained and runnable (as the skeleton below does): load a bundled `expdpy.data` set and use
+real columns/keys, plain ` ```python ` fences, never `>>>` doctest prompts.
+
 ## Function module — `src/expdpy/<module>.py`
 
 ```python
@@ -90,11 +94,15 @@ def <fn>(
 
     Examples
     --------
+    Basic use on a bundled panel (the reference page runs this and renders ``res.fig`` below):
+
     ```python
     import expdpy as ex
-    res = ex.<fn>(df, "<var>", entity="<entity>", time="<time>")
+    from expdpy.data import load_kuznets
+
+    df = load_kuznets()
+    res = ex.<fn>(df, "<var>", entity="country", time="year")
     res.fig
-    res.gt
     ```
     """
     # --- 1. Defensive validation, before any computation ---

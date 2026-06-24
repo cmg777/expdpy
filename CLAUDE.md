@@ -18,7 +18,7 @@ Guidance for working in this repository. Keep it current when commands or conven
   every result.
 
 Three no-code **Streamlit** apps (one per module). `src/` layout, Python ≥ 3.10, managed with
-**pixi**. Current version: 0.4.11.
+**pixi**. Current version: 0.4.12.
 
 ## Commands
 
@@ -34,7 +34,7 @@ pixi run -e lint ruff format src tests      # format (CI uses `ruff format --che
 pixi run -e lint mypy src                   # type check  (alias: pixi run typecheck)
 pixi run -e lint pre-commit run --all-files # all pre-commit hooks
 pixi run -e r test-r                        # R numerical-parity tests (needs R + ExPanDaR)
-pixi run -e docs docs-build                 # build the Quarto docs site
+pixi run -e docs docs-build                 # quartodoc + source pages + reference enrichment + render
 pixi run streamlit run app_explore.py       # run an app (also app_analyze.py / app_learn.py)
 python tools/build_<name>.py                # regenerate a bundled dataset (kuznets/firms/...)
 ```
@@ -168,6 +168,24 @@ build + the `notebooks-fresh` drift check + gh-pages deploy, deploy gated to `ma
   `pixi run -e docs python tools/build_quickstart_notebook.py`, then
   `pixi exec --spec ruff==0.15.17 -- ruff format notebooks/`, and commit the result — otherwise
   the `notebooks-fresh` CI drift check fails (it ignores only the build-timestamp line).
+- **The API reference is enriched in two extra `docs-build` steps** (between `quartodoc build`
+  and `quarto render`): `tools/build_source_pages.py` generates splot-style
+  `docs/reference/modules/<module>.qmd` source pages (full module source, anchored per
+  definition), and `tools/build_reference_enrichment.py` post-processes each generated
+  `docs/reference/*.qmd` to add a **source** link and turn its docstring `Examples` into
+  executable `{python}` cells; and it gives the reference **index** a brief splot-style argument
+  signature beside each function name (`name(req[, opt, …])`, injected as a `.doc-sig` span,
+  styled in `docs/custom.scss` which also drops the index link underline). Consequences: (1)
+  **every docstring `Examples` block on a documented function is executed at build** — it must be
+  self-contained and run cleanly or `quarto render` fails (functions that can't run headless, like
+  the Streamlit `*App` constructors, go in `NO_EXECUTE` in `build_source_pages.py`); (2)
+  `docs/reference/` is gitignored and regenerated, and enrichment skips pages for
+  renamed/undocumented functions, so stale leftovers are harmless. The defining module/anchor for each function is discovered via
+  `inspect`, so no list to maintain. Pure helpers are unit-tested in `tests/test_docs_tooling.py`.
+  **When adding a public function:** it only gets a reference page (and thus the source link +
+  executed example) if you list it in `docs/_quarto.yml` `quartodoc.sections[*].contents` —
+  quartodoc renders only what is listed — and its docstring `Examples` must be self-contained and
+  runnable since they execute at build. The `write-function` skill makes both a core step.
 - **Don't remove the Colab runtime restart in the notebook install cell.** Colab pre-imports an
   old NumPy at kernel startup; the install cell upgrades `numpy>=2.1` / `numba>=0.61` then
   restarts the kernel once (`os.kill`, sentinel-guarded with a `/tmp` flag, gated to Colab via

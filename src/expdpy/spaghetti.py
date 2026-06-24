@@ -139,7 +139,7 @@ def explore_spaghetti_plot(
     from expdpy.data import load_kuznets
 
     df = load_kuznets()
-    ex.explore_spaghetti_plot(df, var="gini_regional", entity="country").fig
+    ex.explore_spaghetti_plot(df, var="gini_regional", entity="country", time="year").fig
     ```
     """
     df = ensure_dataframe(df)

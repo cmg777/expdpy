@@ -1,0 +1,39 @@
+/*-- scss:rules --*/
+
+// "source" link inserted below each reference-page title (build_reference_enrichment.py).
+// Sits at the right under the function name, muted, like Sphinx/splot's [source] affordance.
+.viewcode-link {
+  display: block;
+  text-align: right;
+  margin: -0.5rem 0 1rem;
+  font-family: var(--bs-font-monospace, monospace);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+
+  &::before {
+    content: "❮❯ ";
+    opacity: 0.7;
+  }
+}
+
+// "↩ docs" back-link beside each definition heading on a _modules source page.
+.viewcode-backlink {
+  font-family: var(--bs-font-monospace, monospace);
+  font-size: 0.75rem;
+  font-weight: 400;
+  margin-left: 0.5rem;
+  opacity: 0.7;
+}
+
+// API reference index (``# API Reference {.doc-index}``): the dense per-function listing reads
+// cleaner without the link underline, and the brief argument signature injected beside each name
+// (build_reference_enrichment.py) is muted monospace so it does not compete with the name.
+.doc-index td:first-child a {
+  text-decoration: none;
+}
+.doc-index .doc-sig {
+  font-family: var(--bs-font-monospace, monospace);
+  font-size: 0.85em;
+  color: var(--bs-secondary-color, #6c757d);
+}

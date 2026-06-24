@@ -105,9 +105,11 @@ def explain(topic: str, *, lang: str = "en") -> Explainer:
 
     Examples
     --------
-    >>> import expdpy as ex
-    >>> ex.explain("fixed_effects").title
-    'Fixed effects'
+    ```python
+    import expdpy as ex
+
+    ex.explain("fixed_effects").title
+    ```
     """
     key = _ALIASES.get(topic, topic)
     if key not in _TOPICS:
