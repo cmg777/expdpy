@@ -96,9 +96,9 @@ def analyze_fwl_plot(
 
     ```python
     import expdpy as ex
-    from expdpy.data import load_kuznets
+    from expdpy.data import load_kuznets, load_kuznets_data_def
 
-    df = load_kuznets()
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
     ex.analyze_fwl_plot(df, dv="gini_regional", var="log_gdp_pc").fig
     ```
 
@@ -106,6 +106,10 @@ def analyze_fwl_plot(
     the reported standard error by country, then read the FWL statistics back:
 
     ```python
+    import expdpy as ex
+    from expdpy.data import load_kuznets, load_kuznets_data_def
+
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
     result = ex.analyze_fwl_plot(
         df,
         dv="gini_regional",

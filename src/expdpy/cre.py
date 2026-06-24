@@ -23,6 +23,7 @@ import pandas as pd
 from scipy import stats
 
 from expdpy._estimation import as_list
+from expdpy._panel import resolve_panel
 from expdpy._types import CRETableResult
 from expdpy._validation import ensure_dataframe
 from expdpy.panel_models import (
@@ -43,8 +44,8 @@ def analyze_cre_table(
     dv: str,
     idvs: Sequence[str] | str,
     *,
-    entity: str,
-    time: str,
+    entity: str | None = None,
+    time: str | None = None,
     cov_type: Literal["clustered", "robust", "unadjusted"] = "clustered",
     cluster_entity: bool = True,
     format: Literal["gt", "md", "df", "html"] = "gt",
@@ -68,7 +69,8 @@ def analyze_cre_table(
     idvs
         Time-varying independent variable name(s).
     entity, time
-        The cross-section and time identifiers.
+        The cross-section and time identifiers. Both default to the declared panel
+        (set via :func:`~expdpy.set_panel`), so they can be omitted when it is declared.
     cov_type
         Covariance estimator: ``"clustered"`` (default), ``"robust"`` or ``"unadjusted"``.
     cluster_entity
@@ -86,12 +88,10 @@ def analyze_cre_table(
     --------
     ```python
     import expdpy as ex
-    from expdpy.data import load_kuznets
+    from expdpy.data import load_kuznets, load_kuznets_data_def
 
-    df = load_kuznets()
-    cre = ex.analyze_cre_table(
-        df, dv="gini_regional", idvs=["log_gdp_pc"], entity="country", time="year"
-    )
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
+    cre = ex.analyze_cre_table(df, dv="gini_regional", idvs=["log_gdp_pc"])
     cre.etable          # the log_gdp_pc coefficient == the within / fixed-effects estimate
     cre.df              # rows for log_gdp_pc, log_gdp_pc_mean and Intercept
     print(cre.interpret())
@@ -99,6 +99,10 @@ def analyze_cre_table(
     """
     lmp = _require_linearmodels()
     df = ensure_dataframe(df)
+    entity, time = resolve_panel(
+        df, entity, time, require_entity=True, require_time=True
+    )
+    assert entity is not None and time is not None  # guaranteed by require_*
     idv_list = as_list(idvs)
     if not idv_list:
         raise ValueError("at least one independent variable is required")

@@ -17,9 +17,20 @@ import pandas as pd
 
 from expdpy._validation import ensure_dataframe
 
-__all__ = ["resolve_panel", "set_panel"]
+__all__ = ["resolve_panel", "set_panel", "stored_panel"]
 
 _PANEL_KEY = "expdpy_panel"
+
+
+def stored_panel(df: pd.DataFrame) -> tuple[str | None, str | None]:
+    """Return the declared ``(entity, time)`` ids stored on ``df``, without validation.
+
+    Unlike :func:`resolve_panel`, this never raises if a stored id column is absent from
+    ``df`` — useful when a frame may be a column subset that dropped the ids (e.g. a
+    descriptive table that should fall back to a non-panel layout rather than error).
+    """
+    stored = df.attrs.get(_PANEL_KEY, {})
+    return stored.get("entity"), stored.get("time")
 
 
 def set_panel(

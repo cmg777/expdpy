@@ -56,6 +56,42 @@ def analyze_fixef_plot(
     -------
     FixefPlotResult
         ``df`` (``fixef``, ``level``, ``value``) and the Plotly figure.
+
+    Examples
+    --------
+    Basic — plot the country fixed effects of a Kuznets-curve model:
+
+    ```python
+    import expdpy as ex
+    from expdpy.data import load_kuznets, load_kuznets_data_def
+
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
+    model = ex.analyze_regression_table(
+        df,
+        dvs="gini_regional",
+        idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"],
+        feffects=["country"],
+    )
+    ex.analyze_fixef_plot(model).fig
+    ```
+
+    Advanced — show only the most extreme levels with a custom title:
+
+    ```python
+    import expdpy as ex
+    from expdpy.data import load_kuznets, load_kuznets_data_def
+
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
+    model = ex.analyze_regression_table(
+        df,
+        dvs="gini_regional",
+        idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"],
+        feffects=["country"],
+    )
+    ex.analyze_fixef_plot(
+        model, fixef="country", top_n=10, title="Country intercepts"
+    ).fig
+    ```
     """
     model = first_model(result_or_model)
     try:
@@ -142,6 +178,41 @@ def analyze_predictions(
     -------
     PredictionResult
         ``df`` with a ``predicted`` column (plus ``actual`` and ``residual`` in-sample).
+
+    Examples
+    --------
+    Basic — in-sample fitted values, actuals, and residuals:
+
+    ```python
+    import expdpy as ex
+    from expdpy.data import load_kuznets, load_kuznets_data_def
+
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
+    model = ex.analyze_regression_table(
+        df,
+        dvs="gini_regional",
+        idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"],
+        feffects=["country"],
+    )
+    ex.analyze_predictions(model).df.head()
+    ```
+
+    Advanced — predict on new data (here a fresh slice of the panel):
+
+    ```python
+    import expdpy as ex
+    from expdpy.data import load_kuznets, load_kuznets_data_def
+
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
+    model = ex.analyze_regression_table(
+        df,
+        dvs="gini_regional",
+        idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"],
+        feffects=["country"],
+    )
+    newdata = df[df["year"] == df["year"].max()]
+    ex.analyze_predictions(model, newdata=newdata).df.head()
+    ```
     """
     model = first_model(result_or_model)
     if newdata is not None:
@@ -175,6 +246,41 @@ def analyze_joint_test(
     -------
     JointTestResult
         ``statistic``, ``p_value``, the tested ``hypotheses`` and the ``distribution``.
+
+    Examples
+    --------
+    Basic — jointly test the two nonlinear Kuznets terms:
+
+    ```python
+    import expdpy as ex
+    from expdpy.data import load_kuznets, load_kuznets_data_def
+
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
+    model = ex.analyze_regression_table(
+        df,
+        dvs="gini_regional",
+        idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"],
+        feffects=["country"],
+    )
+    test = ex.analyze_joint_test(model, ["log_gdp_pc_sq", "log_gdp_pc_cu"])
+    test.statistic, test.p_value
+    ```
+
+    Advanced — test all slope coefficients at once against a chi-square reference:
+
+    ```python
+    import expdpy as ex
+    from expdpy.data import load_kuznets, load_kuznets_data_def
+
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
+    model = ex.analyze_regression_table(
+        df,
+        dvs="gini_regional",
+        idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"],
+        feffects=["country"],
+    )
+    ex.analyze_joint_test(model, distribution="chi2").p_value
+    ```
     """
     model = first_model(result_or_model)
     coefs = [str(c) for c in model.coef().index]

@@ -28,7 +28,7 @@ import pandas as pd
 from expdpy._panel import set_panel as _set_panel
 from expdpy._validation import ensure_dataframe
 
-__all__ = ["resolve_label", "resolve_labels", "set_labels"]
+__all__ = ["label_map", "resolve_label", "resolve_labels", "set_labels"]
 
 _LABELS_KEY = "expdpy_labels"
 
@@ -113,7 +113,7 @@ def set_labels(
     from expdpy.data import load_kuznets, load_kuznets_data_def
 
     df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
-    ex.explore_trend_plot(df, var="gini_regional").fig  # y-axis: "Regional inequality (Gini)"
+    ex.explore_trend_plot(df, var=["gini_regional"]).fig  # y-axis: "Regional inequality (Gini)"
     ```
     """
     df = ensure_dataframe(df)
@@ -129,6 +129,16 @@ def set_labels(
         current.update(mapping)
         df.attrs[_LABELS_KEY] = current
     return df
+
+
+def label_map(df: pd.DataFrame) -> dict[str, str]:
+    """Return a copy of the ``{name: label}`` mapping stored on ``df`` (empty if none).
+
+    Useful for handing the whole label dictionary to a renderer that relabels several terms
+    at once (e.g. a regression table's coefficient rows), without changing the underlying
+    raw names.
+    """
+    return dict(df.attrs.get(_LABELS_KEY, {}))
 
 
 def resolve_label(df: pd.DataFrame, name: str, *, label: str | None = None) -> str:

@@ -70,10 +70,10 @@ def explore_xtsum_table(
     --------
     ```python
     import expdpy as ex
-    from expdpy.data import load_kuznets
+    from expdpy.data import load_kuznets, load_kuznets_data_def
 
-    df = load_kuznets()
-    ex.explore_xtsum_table(df, var=["gini_regional", "log_gdp_pc"], entity="country").gt
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
+    ex.explore_xtsum_table(df, var=["gini_regional", "log_gdp_pc"]).gt
     ```
     """
     df = ensure_dataframe(df)
@@ -219,11 +219,11 @@ def explore_scatter_plot_within_between(
     --------
     ```python
     import expdpy as ex
-    from expdpy.data import load_kuznets
+    from expdpy.data import load_kuznets, load_kuznets_data_def
 
-    df = load_kuznets()
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
     ex.explore_scatter_plot_within_between(
-        df, x="log_gdp_pc", y="gini_regional", entity="country"
+        df, x="log_gdp_pc", y="gini_regional"
     ).fig
     ```
     """

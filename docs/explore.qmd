@@ -30,8 +30,10 @@ from expdpy.data import load_kuznets, load_kuznets_data_def
 
 # `set_labels` attaches the data dictionary's human-readable labels, so every figure and
 # table below titles its axes and headers with full labels such as
-# "Regional inequality (Gini)" rather than the bare column name.
-df = ex.set_labels(load_kuznets(), load_kuznets_data_def())
+# "Regional inequality (Gini)" rather than the bare column name. With `set_panel=True` it
+# also declares the panel (entity = country, time = year), so the calls below can omit
+# `entity=` / `time=` and panel-aware tables summarize by period.
+df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
 df[["country", "continent", "year", "gini_regional", "gdp_pc", "log_gdp_pc"]].head()
 ```
 
@@ -153,20 +155,24 @@ ex.treat_outliers(
 
 ### `explore_descriptive_table`
 
-Basic:
+Basic — with the panel declared, each statistic is shown by period (first and last year):
 
 ```{python}
 ex.explore_descriptive_table(df).gt
 ```
 
-Advanced — set the decimals per statistic (`None` drops that column) and a caption:
+Advanced — choose the statistics and decimals, pick specific periods, and read the tidy
+by-period frame back from `.by_period`:
 
 ```{python}
-ex.explore_descriptive_table(
+result = ex.explore_descriptive_table(
     df,
-    digits=(0, 2, 2, None, None, 2, None, None),
+    stats=("Mean", "Median", "Std. dev."),
+    digits=2,
+    periods=[2015, 2020, 2025],
     caption="Kuznets panel",
-).gt
+)
+result.gt
 ```
 
 ### `explore_correlation_table`

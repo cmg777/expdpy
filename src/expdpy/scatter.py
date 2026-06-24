@@ -114,9 +114,9 @@ def explore_scatter_plot(
 
     ```python
     import expdpy as ex
-    from expdpy.data import load_kuznets
+    from expdpy.data import load_kuznets, load_kuznets_data_def
 
-    df = load_kuznets()
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
     ex.explore_scatter_plot(df, x="log_gdp_pc", y="gini_regional").fig
     ```
 
@@ -124,6 +124,10 @@ def explore_scatter_plot(
     smoother (the N-shaped Kuznets curve) and tune opacity:
 
     ```python
+    import expdpy as ex
+    from expdpy.data import load_kuznets, load_kuznets_data_def
+
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
     ex.explore_scatter_plot(
         df, x="log_gdp_pc", y="gini_regional",
         color="continent", size="population", loess=2, alpha=0.6,

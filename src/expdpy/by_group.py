@@ -78,9 +78,9 @@ def explore_bar_plot_by_group(
 
     ```python
     import expdpy as ex
-    from expdpy.data import load_kuznets
+    from expdpy.data import load_kuznets, load_kuznets_data_def
 
-    df = load_kuznets()
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
     ex.explore_bar_plot_by_group(df, "continent", "gini_regional").fig
     ```
 
@@ -89,7 +89,10 @@ def explore_bar_plot_by_group(
 
     ```python
     import numpy as np
+    import expdpy as ex
+    from expdpy.data import load_kuznets, load_kuznets_data_def
 
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
     result = ex.explore_bar_plot_by_group(
         df, "continent", "gini_regional",
         stat_fun=np.nanmedian, order_by_stat=True, color="#4682b4",
@@ -185,19 +188,23 @@ def explore_trend_plot_by_group(
 
     ```python
     import expdpy as ex
-    from expdpy.data import load_kuznets
+    from expdpy.data import load_kuznets, load_kuznets_data_def
 
-    df = load_kuznets()
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
     ex.explore_trend_plot_by_group(
-        df, group_var="continent", var="gini_regional", time="year"
+        df, group_var="continent", var="gini_regional"
     ).fig
     ```
 
     Advanced — add standard-error bars and drop the per-observation markers:
 
     ```python
+    import expdpy as ex
+    from expdpy.data import load_kuznets, load_kuznets_data_def
+
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
     ex.explore_trend_plot_by_group(
-        df, group_var="continent", var="gini_regional", time="year",
+        df, group_var="continent", var="gini_regional",
         error_bars=True, points=False,
     ).fig
     ```
@@ -290,15 +297,19 @@ def explore_violin_plot_by_group(
 
     ```python
     import expdpy as ex
-    from expdpy.data import load_kuznets
+    from expdpy.data import load_kuznets, load_kuznets_data_def
 
-    df = load_kuznets()
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
     ex.explore_violin_plot_by_group(df, "continent", "gini_regional").fig
     ```
 
     Advanced — order groups by their mean and orient the violins vertically:
 
     ```python
+    import expdpy as ex
+    from expdpy.data import load_kuznets, load_kuznets_data_def
+
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
     ex.explore_violin_plot_by_group(
         df, "continent", "gini_regional", order_by_mean=True, group_on_y=False
     ).fig

@@ -17,6 +17,7 @@ import pandas as pd
 from scipy import stats
 
 from expdpy._estimation import as_list
+from expdpy._panel import resolve_panel
 from expdpy._types import HausmanTestResult, RegressionTableResult
 from expdpy._validation import ensure_dataframe
 
@@ -97,8 +98,8 @@ def analyze_panel_table(
     dv: str,
     idvs: Sequence[str] | str,
     *,
-    entity: str,
-    time: str,
+    entity: str | None = None,
+    time: str | None = None,
     models: Sequence[Literal["pooled", "between", "fe", "re"]] = (
         "pooled",
         "between",
@@ -125,7 +126,8 @@ def analyze_panel_table(
     idvs
         Independent variable name(s).
     entity, time
-        The cross-section and time identifiers.
+        The cross-section and time identifiers. Default to the panel declared via
+        :func:`expdpy.set_panel` / :func:`expdpy.set_labels` (``set_panel=True``).
     models
         Which estimators to include, in order.
     cov_type
@@ -140,9 +142,46 @@ def analyze_panel_table(
     RegressionTableResult
         ``models`` (fitted linearmodels results), ``etable`` (the comparison table) and
         ``df`` (tidy coefficients with the same columns as the pyfixest path).
+
+    Examples
+    --------
+    Basic — pooled / between / FE / RE side by side. With the panel declared by
+    ``set_panel=True``, ``entity`` and ``time`` are resolved automatically.
+
+    ```python
+    import expdpy as ex
+    from expdpy.data import load_kuznets, load_kuznets_data_def
+
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
+    tab = ex.analyze_panel_table(df, dv="gini_regional", idvs=["log_gdp_pc"])
+    tab.etable          # comparison of the four estimators
+    tab.df              # tidy coefficients, same columns as the pyfixest path
+    ```
+
+    Advanced — pick a subset of estimators, robust SEs, and read the interpretation.
+
+    ```python
+    import expdpy as ex
+    from expdpy.data import load_kuznets, load_kuznets_data_def
+
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
+    tab = ex.analyze_panel_table(
+        df,
+        dv="gini_regional",
+        idvs=["log_gdp_pc", "trade_share"],
+        models=("between", "fe"),
+        cov_type="robust",
+    )
+    tab.etable
+    print(tab.interpret())
+    ```
     """
     lmp = _require_linearmodels()
     df = ensure_dataframe(df)
+    entity, time = resolve_panel(
+        df, entity, time, require_entity=True, require_time=True
+    )
+    assert entity is not None and time is not None  # guaranteed by require_*
     idv_list = as_list(idvs)
     if not idv_list:
         raise ValueError("at least one independent variable is required")
@@ -188,8 +227,8 @@ def analyze_hausman_test(
     dv: str,
     idvs: Sequence[str] | str,
     *,
-    entity: str,
-    time: str,
+    entity: str | None = None,
+    time: str | None = None,
 ) -> HausmanTestResult:
     """Run the Hausman test comparing fixed-effects and random-effects estimates.
 
@@ -202,15 +241,49 @@ def analyze_hausman_test(
     idvs
         Independent variable name(s).
     entity, time
-        The cross-section and time identifiers.
+        The cross-section and time identifiers. Default to the panel declared via
+        :func:`expdpy.set_panel` / :func:`expdpy.set_labels` (``set_panel=True``).
 
     Returns
     -------
     HausmanTestResult
         The test statistic, degrees of freedom, p-value and the compared coefficients.
+
+    Examples
+    --------
+    Basic — compare the FE and RE estimates. With the panel declared by
+    ``set_panel=True``, ``entity`` and ``time`` are resolved automatically.
+
+    ```python
+    import expdpy as ex
+    from expdpy.data import load_kuznets, load_kuznets_data_def
+
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
+    ht = ex.analyze_hausman_test(df, dv="gini_regional", idvs=["log_gdp_pc"])
+    ht.statistic, ht.df_test, ht.p_value
+    ```
+
+    Advanced — several regressors, then read the compared coefficients side by side.
+
+    ```python
+    import expdpy as ex
+    from expdpy.data import load_kuznets, load_kuznets_data_def
+
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
+    ht = ex.analyze_hausman_test(
+        df, dv="gini_regional", idvs=["log_gdp_pc", "trade_share"]
+    )
+    ht.fe_coefs         # fixed-effects estimates
+    ht.re_coefs         # random-effects estimates
+    print(ht.interpret())
+    ```
     """
     lmp = _require_linearmodels()
     df = ensure_dataframe(df)
+    entity, time = resolve_panel(
+        df, entity, time, require_entity=True, require_time=True
+    )
+    assert entity is not None and time is not None  # guaranteed by require_*
     idv_list = as_list(idvs)
     if not idv_list:
         raise ValueError("at least one independent variable is required")

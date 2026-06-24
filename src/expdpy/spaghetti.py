@@ -14,7 +14,7 @@ from plotly.subplots import make_subplots
 
 from expdpy._labels import resolve_label
 from expdpy._panel import resolve_panel
-from expdpy._theme import apply_default_layout, blank_rangeslider, color_for
+from expdpy._theme import apply_default_layout, color_for
 from expdpy._types import SpaghettiGraphResult
 from expdpy._validation import ensure_dataframe
 from expdpy.scatter import _default_alpha
@@ -136,10 +136,10 @@ def explore_spaghetti_plot(
     --------
     ```python
     import expdpy as ex
-    from expdpy.data import load_kuznets
+    from expdpy.data import load_kuznets, load_kuznets_data_def
 
-    df = load_kuznets()
-    ex.explore_spaghetti_plot(df, var="gini_regional", entity="country", time="year").fig
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
+    ex.explore_spaghetti_plot(df, var="log_gdp_pc").fig
     ```
     """
     df = ensure_dataframe(df)
@@ -213,8 +213,6 @@ def explore_spaghetti_plot(
             show_overlay_legend=True,
         )
         xaxis = _xaxis(time, ordered, ts_conv, title=time_label)
-        if not ordered:
-            xaxis["rangeslider"] = blank_rangeslider(fig)
         apply_default_layout(fig, xaxis=xaxis, yaxis={"title": var_label})
     else:
         levels = sorted(sub[facet].dropna().astype(str).unique())

@@ -315,9 +315,9 @@ def analyze_kuznets_waves(
 
     ```python
     import expdpy as ex
-    from expdpy.data import load_kuznets
+    from expdpy.data import load_kuznets, load_kuznets_data_def
 
-    df = ex.set_panel(load_kuznets(), entity="country", time="year")
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
     res = ex.analyze_kuznets_waves(df)
     res.gt_within        # the within (two-way FE) comparison table
     res.fig_within       # the within partial-residual wave
@@ -327,6 +327,10 @@ def analyze_kuznets_waves(
     Partialling covariates out of the between and within waves, with a cubic specification:
 
     ```python
+    import expdpy as ex
+    from expdpy.data import load_kuznets, load_kuznets_data_def
+
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
     ex.analyze_kuznets_waves(
         df, controls=["trade_share", "resource_rents"], degree=3
     ).fig_between

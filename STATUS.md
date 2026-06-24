@@ -7,43 +7,48 @@ port of the ExPanDaR R package — organized as three modules (**Explore**, **An
 three no-code Streamlit apps, and a Quarto + quartodoc documentation site
 (<https://cmg777.github.io/expdpy/>).
 
-Current version: **0.4.12** — on `main`, **not yet released to PyPI** (this batch is
-documentation/tooling-only).
+Current version: **0.4.13** — on `main` and **released to PyPI**.
 
-## Recently shipped — API reference documentation overhaul
+## Recently shipped — data-dictionary-driven readability
 
-The API reference now presents each function like the splot reference:
+This batch makes the library read better by leaning on the data dictionary (`df_def`) while still
+working without it:
 
-- **Live example output.** Every documented function's docstring `Examples` are executed at
-  docs-build time, so the real **interactive Plotly figure / Great Table / DataFrame** renders
-  directly below the code on its reference page.
-- **Source code on the site.** Each reference page carries a **`[source]`** link to a generated,
-  splot-style `reference/modules/<module>.qmd` page that lists the full, syntax-highlighted
-  module source, anchored at the function (with a "↩ docs" back-link and a GitHub link).
-- **Scannable index.** The reference index shows a brief, splot-style argument signature beside
-  each function name (`name(req[, opt, …])`) and drops the distracting link underline.
-- **Build tooling.** Two steps — `tools/build_source_pages.py` and
-  `tools/build_reference_enrichment.py` — run inside `docs-build` between `quartodoc build` and
-  `quarto render`. Their pure helpers are unit-tested in `tests/test_docs_tooling.py`.
-- **`write-function` skill updated.** New functions now ship documentation that works under this
-  workflow: registering a function in `docs/_quarto.yml` quartodoc `contents` is a **core** step,
-  and docstring `Examples` must be self-contained and runnable (they execute at build).
+- **Panel-aware descriptive table.** `explore_descriptive_table` now reflects the panel structure:
+  when a `time` column is known it shows each statistic **by period** (first and last by default,
+  `periods=` to override) under a spanning column header; otherwise it falls back to a flat table.
+  The default statistics are **Mean, Std. dev., Median, Min., Max.**, rows are labelled from the
+  dictionary, and the notes report the observation count and any variable with missing data. The
+  result gains a tidy `.by_period` frame, while `.df` keeps all eight pooled statistics.
+  **Breaking:** the old length-8 `digits` vector is replaced by `stats=` / `digits=` (scalar or
+  per-statistic mapping) / `periods=`.
+- **Histogram density overlays.** `explore_histogram` gains opt-in `kde=` and `normal=` flags that
+  draw a kernel-density estimate and/or a normal curve on the Density scale (off by default; the
+  Count/Density toggle hides them in Count view).
+- **No more range sliders** on the time-series plots (`explore_trend_plot`,
+  `explore_quantile_trend_plot`, `explore_spaghetti_plot`).
+- **`df_def` everywhere.** Regression / estimation / CRE tables relabel their coefficient and
+  dependent-variable rows from the dictionary (the tidy `.df` keeps raw term names); the panel
+  estimators (`analyze_panel_table`, `analyze_hausman_test`, `analyze_cre_table`) and DiD views
+  (`analyze_event_study`, `analyze_panel_view`) now resolve `entity` / `time` / `unit` from the
+  declared panel, so those arguments can be omitted after `set_panel` / `set_labels`; and every
+  function's docstring `Examples` now illustrate
+  `df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)`.
 
-Two latent docstring bugs surfaced by the now-executed examples were fixed:
-`explore_spaghetti_plot` was missing `time=`, and `explain` used `>>>` doctest style.
+An adversarial review of the diff surfaced and fixed two issues in the new descriptive table: a
+tolerant-fallback guard that wrongly re-raised when a valid explicit id accompanied a
+stored-missing one, and a period-range note that did not sort chronologically.
 
 ## Status of checks
 
-- **Tests** — `pixi run pytest` green, including `tests/test_docs_tooling.py`.
-- **Lint / types** — `ruff check` and `mypy src` clean.
-- **Docs** — `pixi run -e docs docs-build` renders the full site (reference + source pages) with
-  every example executing cleanly.
+- **Tests** — `pixi run pytest` green (439 passed, 4 skipped).
+- **Lint / types** — `ruff check`, `ruff format --check` and `mypy src` clean.
+- **Docs** — `pixi run -e docs docs-build` renders the full site with every example executing
+  cleanly; the quickstart/feature notebooks were regenerated and are drift-check fresh.
 
 ## Open items / next steps
 
-- **Release.** 0.4.12 is documentation/tooling-only, so no PyPI release was cut. Tag and publish
-  with `gh release create v0.4.12 --target main ...` if/when a release is wanted.
-- **CI docs-build time.** The reference build now executes ~40 examples. If CI gets slow, commit
-  `docs/_freeze/` with `execute: freeze: auto` to cache execution between builds.
+- **CI docs-build time.** The reference build executes every documented example. If CI gets slow,
+  commit `docs/_freeze/` with `execute: freeze: auto` to cache execution between builds.
 - **Typing nit.** A minor mypy warning in `tools/build_source_pages.py` (the heterogeneous
   `by_module` dict); `tools/` is outside CI's `mypy src` scope, so tidy when convenient.

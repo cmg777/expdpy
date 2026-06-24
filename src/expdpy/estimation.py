@@ -27,6 +27,7 @@ from expdpy._estimation import (
     tidy_model,
 )
 from expdpy._estimation._spec import Stepwise, VCovKind
+from expdpy._labels import label_map
 from expdpy._types import EstimationResult
 from expdpy._validation import ensure_dataframe
 
@@ -143,9 +144,9 @@ def analyze_estimation(
 
     ```python
     import expdpy as ex
-    from expdpy.data import load_kuznets
+    from expdpy.data import load_kuznets, load_kuznets_data_def
 
-    df = load_kuznets()
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
     ex.analyze_estimation(
         df,
         dv="gini_regional",
@@ -157,6 +158,10 @@ def analyze_estimation(
     Advanced — a cumulative-stepwise comparison with heteroskedastic SEs:
 
     ```python
+    import expdpy as ex
+    from expdpy.data import load_kuznets, load_kuznets_data_def
+
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
     res = ex.analyze_estimation(
         df,
         dv="gini_regional",
@@ -230,13 +235,15 @@ def analyze_estimation(
                 "clusters — consider a wild cluster bootstrap via analyze_robust_inference()."
             )
 
+    # Relabel the rendered table's rows from the data dictionary; ``.df`` stays raw.
+    labels = label_map(df) or None
     etable_type = "gt" if format == "html" else format
     if etable_type == "md":
         with capture_stdout() as buf:
-            pf.etable(models, type="md")
+            pf.etable(models, type="md", labels=labels)
         etable: Any = buf.getvalue()
     else:
-        etable = pf.etable(models, type=etable_type)
+        etable = pf.etable(models, type=etable_type, labels=labels)
         if format == "html" and hasattr(etable, "as_raw_html"):
             etable = etable.as_raw_html()
 

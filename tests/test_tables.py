@@ -28,11 +28,88 @@ def test_descriptive_matches_r_goldens(sample_df, goldens):
         assert row["Max."] == pytest.approx(gold["max"], rel=1e-9)
 
 
-def test_descriptive_digits_none_drops_column(sample_df):
-    res = explore_descriptive_table(
-        sample_df[["x1", "x2"]], digits=(0, 3, None, 3, 3, 3, 3, 3)
+def test_descriptive_df_always_has_all_stats(sample_df):
+    # `.df` carries all eight statistics regardless of which are rendered; no panel here.
+    res = explore_descriptive_table(sample_df[["x1", "x2", "x3"]], stats=("Mean",))
+    assert list(res.df.columns) == [
+        "N",
+        "Mean",
+        "Std. dev.",
+        "Min.",
+        "25 %",
+        "Median",
+        "75 %",
+        "Max.",
+    ]
+    assert res.by_period is None
+
+
+def test_descriptive_stats_selection_and_validation(sample_df):
+    assert isinstance(
+        explore_descriptive_table(sample_df[["x1", "x2"]], stats=("Mean", "Median")).gt,
+        GT,
     )
-    assert "Std. dev." not in res.df.columns
+    with pytest.raises(ValueError):
+        explore_descriptive_table(sample_df[["x1"]], stats=("Mean", "Bogus"))
+
+
+def test_descriptive_digits_scalar_and_mapping(sample_df):
+    # Both a scalar and a per-statistic mapping render without error.
+    explore_descriptive_table(sample_df[["x1", "x2"]], digits=2)
+    explore_descriptive_table(sample_df[["x1", "x2"]], digits={"Mean": 1})
+
+
+def test_descriptive_by_period_first_and_last(sample_df):
+    res = explore_descriptive_table(sample_df, entity="firm", time="year")
+    assert res.by_period is not None
+    years = sorted(sample_df["year"].unique())
+    assert sorted(res.by_period["period"].unique()) == [years[0], years[-1]]
+    # The entity/time ids are coordinates, never summarized as variables.
+    summarized = set(res.by_period["variable"].unique())
+    assert "year" not in summarized and "firm" not in summarized
+    html = res.gt.as_raw_html()
+    assert str(years[0]) in html and str(years[-1]) in html
+
+
+def test_descriptive_by_period_explicit_periods(sample_df):
+    chosen = [2014, 2017, 2021]
+    res = explore_descriptive_table(
+        sample_df, entity="firm", time="year", periods=chosen
+    )
+    assert sorted(res.by_period["period"].unique()) == chosen
+
+
+def test_descriptive_by_period_absent_period_warns(sample_df):
+    with pytest.warns(UserWarning):
+        res = explore_descriptive_table(sample_df, time="year", periods=[2014, 1900])
+    assert sorted(res.by_period["period"].unique()) == [2014]
+    with pytest.raises(ValueError):
+        explore_descriptive_table(sample_df, time="year", periods=[1900, 1901])
+
+
+def test_descriptive_missing_note(sample_df):
+    df = sample_df.copy()
+    df.loc[df.index[:3], "x1"] = np.nan
+    html = explore_descriptive_table(df[["x1", "x2", "x3"]]).gt.as_raw_html()
+    assert "missing data" in html.lower()
+
+
+def test_descriptive_declared_panel_columns_absent_falls_back(sample_df):
+    # A declared panel whose entity/time columns were dropped by a column subset must not
+    # raise — the table falls back to the flat (overall) layout.
+    from expdpy import set_panel
+
+    panel = set_panel(sample_df.copy(), entity="firm", time="year")
+    subset = panel[["x1", "x2", "x3"]]  # carries panel attrs but drops firm/year
+    res = explore_descriptive_table(subset)
+    assert res.by_period is None
+    # Mixed case: a valid explicit id alongside a stored id whose column was dropped must
+    # still fall back (the stored, not the explicit, column is the missing one).
+    mixed = panel[["firm", "x1", "x2"]]  # keeps entity, drops time
+    assert explore_descriptive_table(mixed, entity="firm").by_period is None
+    # An explicitly-named missing column, by contrast, still raises.
+    with pytest.raises(ValueError):
+        explore_descriptive_table(subset, time="year")
 
 
 def test_descriptive_requires_numeric():

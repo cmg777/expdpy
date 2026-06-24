@@ -109,9 +109,9 @@ def analyze_coefficient_plot(
 
     ```python
     import expdpy as ex
-    from expdpy.data import load_kuznets
+    from expdpy.data import load_kuznets, load_kuznets_data_def
 
-    df = load_kuznets()
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
     result = ex.analyze_regression_table(
         df, dvs="gini_regional", idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"]
     )
@@ -121,6 +121,10 @@ def analyze_coefficient_plot(
     Advanced — compare several models side by side with custom labels:
 
     ```python
+    import expdpy as ex
+    from expdpy.data import load_kuznets, load_kuznets_data_def
+
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
     pooled = ex.analyze_regression_table(
         df, dvs="gini_regional", idvs=["log_gdp_pc"]
     )

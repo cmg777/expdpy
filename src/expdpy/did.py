@@ -19,6 +19,7 @@ import pyfixest as pf
 
 from expdpy._estimation import SSC
 from expdpy._labels import resolve_label
+from expdpy._panel import resolve_panel
 from expdpy._theme import COLOR_SEQUENCE, apply_default_layout, color_for
 from expdpy._types import EventStudyResult, PanelViewResult
 from expdpy._validation import ensure_dataframe
@@ -83,8 +84,8 @@ def analyze_event_study(
     df: pd.DataFrame,
     *,
     outcome: str,
-    unit: str,
-    time: str,
+    unit: str | None = None,
+    time: str | None = None,
     cohort: str,
     estimator: Literal["did2s", "twfe", "saturated", "lpdid"] = "did2s",
     cluster: str | None = None,
@@ -102,9 +103,9 @@ def analyze_event_study(
     outcome
         Outcome variable name.
     unit
-        Unit (cross-section) identifier.
+        Unit (cross-section) identifier. Defaults to the declared panel entity.
     time
-        Time identifier.
+        Time identifier. Defaults to the declared panel time.
     cohort
         First-treated period for each unit; ``never_treated_value`` marks never-treated units.
     estimator
@@ -131,15 +132,18 @@ def analyze_event_study(
     --------
     ```python
     import expdpy as ex
-    from expdpy.data import load_staggered_did
+    from expdpy.data import load_staggered_did, load_staggered_did_data_def
 
-    df = load_staggered_did()
-    ex.analyze_event_study(
-        df, outcome="outcome", unit="unit", time="year", cohort="cohort"
-    ).fig
+    df = ex.set_labels(
+        load_staggered_did(), load_staggered_did_data_def(), set_panel=True
+    )
+    # Panel is declared, so unit=/time= are resolved automatically.
+    ex.analyze_event_study(df, outcome="outcome", cohort="cohort").fig
     ```
     """
     df = ensure_dataframe(df)
+    unit, time = resolve_panel(df, unit, time, require_entity=True, require_time=True)
+    assert unit is not None and time is not None  # guaranteed by require_*
     for col in (outcome, unit, time, cohort):
         if col not in df.columns:
             raise KeyError(f"column not found in df: {col!r}")
@@ -273,8 +277,8 @@ def _event_study_fig(
 def analyze_panel_view(
     df: pd.DataFrame,
     *,
-    unit: str,
-    time: str,
+    unit: str | None = None,
+    time: str | None = None,
     treat: str | None = None,
     cohort: str | None = None,
     outcome: str | None = None,
@@ -294,7 +298,7 @@ def analyze_panel_view(
     df
         Long panel data frame.
     unit, time
-        Unit and time identifiers.
+        Unit and time identifiers. Default to the declared panel entity and time.
     treat
         Binary (0/1) treatment-status column.
     cohort
@@ -314,8 +318,37 @@ def analyze_panel_view(
     -------
     PanelViewResult
         ``df`` (the treatment quilt, or the tidy outcome frame) and ``fig``.
+
+    Examples
+    --------
+    Basic — the staggered-adoption treatment quilt (derived from ``cohort``):
+
+    ```python
+    import expdpy as ex
+    from expdpy.data import load_staggered_did, load_staggered_did_data_def
+
+    df = ex.set_labels(
+        load_staggered_did(), load_staggered_did_data_def(), set_panel=True
+    )
+    # Panel is declared, so unit=/time= are resolved automatically.
+    ex.analyze_panel_view(df, cohort="cohort").fig
+    ```
+
+    Advanced — outcome trajectories per unit instead of the treatment quilt:
+
+    ```python
+    import expdpy as ex
+    from expdpy.data import load_staggered_did, load_staggered_did_data_def
+
+    df = ex.set_labels(
+        load_staggered_did(), load_staggered_did_data_def(), set_panel=True
+    )
+    ex.analyze_panel_view(df, cohort="cohort", outcome="outcome").fig
+    ```
     """
     df = ensure_dataframe(df)
+    unit, time = resolve_panel(df, unit, time, require_entity=True, require_time=True)
+    assert unit is not None and time is not None  # guaranteed by require_*
     for col in (unit, time):
         if col not in df.columns:
             raise KeyError(f"column not found in df: {col!r}")

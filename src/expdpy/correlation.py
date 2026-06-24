@@ -52,24 +52,32 @@ def explore_correlation_plot(
 
     Examples
     --------
-    Basic — a correlation heatmap for a few variables:
+    Basic — a correlation heatmap for a few variables (slice the columns first,
+    then attach labels so the axes read nicely):
 
     ```python
     import expdpy as ex
-    from expdpy.data import load_kuznets
+    from expdpy.data import load_kuznets, load_kuznets_data_def
 
-    df = load_kuznets()
-    ex.explore_correlation_plot(df[["gini_regional", "gdp_pc", "log_gdp_pc"]]).fig
+    df = ex.set_labels(
+        load_kuznets()[["gini_regional", "gdp_pc", "log_gdp_pc"]],
+        load_kuznets_data_def(),
+    )
+    ex.explore_correlation_plot(df).fig
     ```
 
     Advanced — the ellipse style (R ``corrplot`` look), with the underlying
     correlation matrix available from ``.df_corr``:
 
     ```python
-    result = ex.explore_correlation_plot(
-        df[["gini_regional", "gdp_pc", "log_gdp_pc", "trade_share"]],
-        style="ellipse",
+    import expdpy as ex
+    from expdpy.data import load_kuznets, load_kuznets_data_def
+
+    df = ex.set_labels(
+        load_kuznets()[["gini_regional", "gdp_pc", "log_gdp_pc", "trade_share"]],
+        load_kuznets_data_def(),
     )
+    result = ex.explore_correlation_plot(df, style="ellipse")
     result.fig
     result.df_corr
     ```

@@ -13,7 +13,7 @@ from pandas.api import types as pdt
 
 from expdpy._labels import resolve_label, resolve_labels
 from expdpy._panel import resolve_panel
-from expdpy._theme import apply_default_layout, blank_rangeslider, color_for
+from expdpy._theme import apply_default_layout, color_for
 from expdpy._types import QuantileTrendGraphResult, TrendGraphResult
 from expdpy._validation import ensure_dataframe
 
@@ -132,18 +132,20 @@ def explore_trend_plot(
 
     ```python
     import expdpy as ex
-    from expdpy.data import load_kuznets
+    from expdpy.data import load_kuznets, load_kuznets_data_def
 
-    df = load_kuznets()
-    ex.explore_trend_plot(df, var=["gini_regional"], time="year").fig
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
+    ex.explore_trend_plot(df, var=["log_gdp_pc"]).fig
     ```
 
     Advanced — several variables on one chart, with the aggregated frame from ``.df``:
 
     ```python
-    result = ex.explore_trend_plot(
-        df, var=["gini_regional", "trade_share"], time="year"
-    )
+    import expdpy as ex
+    from expdpy.data import load_kuznets, load_kuznets_data_def
+
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
+    result = ex.explore_trend_plot(df, var=["log_gdp_pc", "trade_share"])
     result.fig
     result.df.head()
     ```
@@ -226,8 +228,6 @@ def explore_trend_plot(
             )
         )
     xaxis = _xaxis(time, ordered, ts_conv, title=time_label)
-    if not ordered:
-        xaxis["rangeslider"] = blank_rangeslider(fig)
     yaxis_title = var_labels[0] if len(var) == 1 else "Value"
     apply_default_layout(fig, xaxis=xaxis, yaxis={"title": yaxis_title})
     return TrendGraphResult(df=gf, fig=fig)
@@ -268,17 +268,21 @@ def explore_quantile_trend_plot(
 
     ```python
     import expdpy as ex
-    from expdpy.data import load_kuznets
+    from expdpy.data import load_kuznets, load_kuznets_data_def
 
-    df = load_kuznets()
-    ex.explore_quantile_trend_plot(df, var="gini_regional", time="year").fig
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
+    ex.explore_quantile_trend_plot(df, var="log_gdp_pc").fig
     ```
 
     Advanced — custom quantile levels and no per-observation points:
 
     ```python
+    import expdpy as ex
+    from expdpy.data import load_kuznets, load_kuznets_data_def
+
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
     ex.explore_quantile_trend_plot(
-        df, quantiles=(0.1, 0.5, 0.9), var="gini_regional", time="year", points=False
+        df, quantiles=(0.1, 0.5, 0.9), var="log_gdp_pc", points=False
     ).fig
     ```
     """
@@ -343,7 +347,5 @@ def explore_quantile_trend_plot(
             )
         )
     xaxis = _xaxis(time, ordered, ts_conv, title=time_label)
-    if not ordered:
-        xaxis["rangeslider"] = blank_rangeslider(fig)
     apply_default_layout(fig, xaxis=xaxis, yaxis={"title": var_label})
     return QuantileTrendGraphResult(df=gf, fig=fig)

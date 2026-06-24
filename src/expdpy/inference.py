@@ -50,6 +50,49 @@ def analyze_robust_inference(
     RobustInferenceResult
         ``method``, ``param``, ``estimate``, ``p_value``, ``conf_int``, ``reps`` and the
         underlying ``raw`` pyfixest output.
+
+    Examples
+    --------
+    Basic — fit a regression (the data dictionary supplies the readable labels) and test
+    the slope on trade openness via randomization inference:
+
+    ```python
+    import expdpy as ex
+    from expdpy.data import load_kuznets, load_kuznets_data_def
+
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
+    model = ex.analyze_regression_table(
+        df,
+        dvs="gini_regional",
+        idvs=["log_gdp_pc", "trade_share"],
+    )
+    result = ex.analyze_robust_inference(model, "trade_share", reps=200, seed=0)
+    result.p_value
+    ```
+
+    Advanced — cluster the randomization inference by country (resampling permutes
+    treatment within clusters; the cluster column must be numeric, so encode the
+    country labels as integer codes first), then read the estimate and the raw
+    pyfixest output:
+
+    ```python
+    import expdpy as ex
+    from expdpy.data import load_kuznets, load_kuznets_data_def
+
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
+    df["country_id"] = df["country"].factorize()[0]
+    model = ex.analyze_regression_table(
+        df,
+        dvs="gini_regional",
+        idvs=["log_gdp_pc", "trade_share"],
+        clusters=["country_id"],
+    )
+    result = ex.analyze_robust_inference(
+        model, "trade_share", cluster="country_id", reps=200, seed=0
+    )
+    result.estimate
+    result.raw
+    ```
     """
     model = first_model(result_or_model)
 

@@ -470,27 +470,33 @@ def analyze_beta_convergence(
 
     Examples
     --------
-    Unconditional convergence of (log) GDP per capita across countries:
+    Basic — unconditional convergence of log GDP per capita across Bolivian provinces.
+    Setting the labels with ``set_panel=True`` declares the panel (entity, time), so the
+    call can omit ``entity=`` / ``time=`` and the figure/table get readable labels:
 
     ```python
-    import numpy as np
     import expdpy as ex
-    from expdpy.data import load_gapminder
+    from expdpy.data import load_bolivia112_gdppc, load_bolivia112_gdppc_data_def
 
-    df = load_gapminder()
-    df["log_gdppc"] = np.log(df["gdpPercap"])
-    res = ex.analyze_beta_convergence(df, "log_gdppc", entity="country", time="year")
+    df = ex.set_labels(
+        load_bolivia112_gdppc(), load_bolivia112_gdppc_data_def(), set_panel=True
+    )
+    res = ex.analyze_beta_convergence(df, "log_gdppc")
     res.fig
     res.gt
     res.speed, res.half_life
     ```
 
-    Conditional convergence, controlling for initial life expectancy:
+    Advanced — conditional convergence, controlling for the initial GDP-per-capita level:
 
     ```python
-    ex.analyze_beta_convergence(
-        df, "log_gdppc", controls=["lifeExp"], entity="country", time="year"
-    ).fig_conditional
+    import expdpy as ex
+    from expdpy.data import load_bolivia112_gdppc, load_bolivia112_gdppc_data_def
+
+    df = ex.set_labels(
+        load_bolivia112_gdppc(), load_bolivia112_gdppc_data_def(), set_panel=True
+    )
+    ex.analyze_beta_convergence(df, "log_gdppc", controls=["gdppc"]).fig_conditional
     ```
     """
     df = ensure_dataframe(df)
@@ -972,15 +978,18 @@ def analyze_sigma_convergence(
 
     Examples
     --------
-    Cross-country convergence of life expectancy (a bounded, non-negative level):
+    Basic — σ-convergence of log GDP per capita across Bolivian provinces. The panel must be
+    balanced; ``set_labels(..., set_panel=True)`` declares (entity, time) so the call omits
+    ``entity=`` / ``time=`` and the figure axes are labelled:
 
     ```python
     import expdpy as ex
-    from expdpy.data import load_gapminder
+    from expdpy.data import load_bolivia112_gdppc, load_bolivia112_gdppc_data_def
 
-    res = ex.analyze_sigma_convergence(
-        load_gapminder(), "lifeExp", entity="country", time="year"
+    df = ex.set_labels(
+        load_bolivia112_gdppc(), load_bolivia112_gdppc_data_def(), set_panel=True
     )
+    res = ex.analyze_sigma_convergence(df, "log_gdppc")
     res.fig          # std (left axis) and Gini (right axis) over time
     res.gt           # the trend table
     res.std_slope    # < 0 indicates σ-convergence
@@ -1800,14 +1809,18 @@ def analyze_convergence_clubs(
 
     Examples
     --------
-    Convergence clubs in (log) GDP per capita across countries:
+    Basic — convergence clubs in log GDP per capita across countries. The panel must be
+    balanced; ``set_labels(..., set_panel=True)`` declares (entity, time) so the call omits
+    ``entity=`` / ``time=`` and the figures get readable labels:
 
     ```python
     import expdpy as ex
-    from expdpy.data import load_productivity
+    from expdpy.data import load_productivity, load_productivity_data_def
 
-    df = load_productivity()
-    res = ex.analyze_convergence_clubs(df, "log_gdppc", entity="country", time="year")
+    df = ex.set_labels(
+        load_productivity(), load_productivity_data_def(), set_panel=True
+    )
+    res = ex.analyze_convergence_clubs(df, "log_gdppc")
     res.fig            # within-club average transition paths
     res.gt             # club classification table
     res.n_clubs, res.converged

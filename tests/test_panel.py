@@ -155,14 +155,7 @@ def test_spaghetti_sampling_and_highlight(sample_df):
     assert res.n_units == sample_df["firm"].nunique()
 
 
-# --------------------------------------------------------------------- blank rangeslider ---
-def _trace_y_min(fig: go.Figure) -> float:
-    ys = np.concatenate(
-        [np.asarray(tr.y, dtype=float) for tr in fig.data if tr.y is not None]
-    )
-    return float(np.nanmin(ys))
-
-
+# --------------------------------------------------------------------- no rangeslider ---
 @pytest.mark.parametrize(
     "build",
     [
@@ -171,14 +164,10 @@ def _trace_y_min(fig: go.Figure) -> float:
         lambda df: explore_spaghetti_plot(df, "x1", entity="firm", time="year").fig,
     ],
 )
-def test_rangeslider_is_blank_strip_below_data(sample_df, build):
-    # Continuous (numeric) time axis -> a rangeslider is added, but its internal y-axis is
-    # fixed to a window strictly below the data so no trend lines render inside the strip.
+def test_no_rangeslider(sample_df, build):
+    # The draggable x-axis rangeslider was removed from the time-series plots.
     fig = build(sample_df)
-    rs = fig.layout.xaxis.rangeslider
-    assert rs.visible is True
-    assert rs.yaxis.rangemode == "fixed"
-    assert rs.yaxis.range[1] < _trace_y_min(fig)
+    assert fig.layout.xaxis.rangeslider.visible in (None, False)
 
 
 # -------------------------------------------------------------------------- panel structure ---

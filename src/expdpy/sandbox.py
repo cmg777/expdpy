@@ -72,6 +72,18 @@ def learn_omitted_variable_bias(
     -------
     SandboxResult
         ``df`` (short vs long vs true coefficient), ``fig``, ``summary`` and ``topic``.
+
+    Examples
+    --------
+    These sandboxes generate their own data, so a call needs no DataFrame — turn the knobs
+    via the keyword parameters:
+
+    ```python
+    import expdpy as ex
+
+    res = ex.learn_omitted_variable_bias()
+    res.fig
+    ```
     """
     rng = np.random.default_rng(seed)
     z = rng.normal(size=n)
@@ -147,6 +159,17 @@ def learn_pooled_vs_fixed_effects(
     -------
     SandboxResult
         ``df`` (pooled vs FE vs true slope), ``fig``, ``summary`` and ``topic``.
+
+    Examples
+    --------
+    This sandbox simulates its own panel, so the call needs no DataFrame:
+
+    ```python
+    import expdpy as ex
+
+    res = ex.learn_pooled_vs_fixed_effects()
+    res.fig
+    ```
     """
     rng = np.random.default_rng(seed)
     alpha = rng.normal(size=n_units)  # unit effects
@@ -253,6 +276,17 @@ def learn_clustering_se(
     -------
     SandboxResult
         ``df`` (iid vs clustered standard error), ``fig``, ``summary`` and ``topic``.
+
+    Examples
+    --------
+    This sandbox simulates its own clustered data, so the call needs no DataFrame:
+
+    ```python
+    import expdpy as ex
+
+    res = ex.learn_clustering_se()
+    res.fig
+    ```
     """
     rng = np.random.default_rng(seed)
     beta = 1.0
@@ -377,6 +411,17 @@ def learn_first_differences(
     SandboxResult
         ``df`` (pooled vs first differences vs within vs true slope), ``fig``, ``summary``
         and ``topic``.
+
+    Examples
+    --------
+    This sandbox simulates its own two-period panel, so the call needs no DataFrame:
+
+    ```python
+    import expdpy as ex
+
+    res = ex.learn_first_differences()
+    res.fig
+    ```
     """
     rng = np.random.default_rng(seed)
     data = _panel_with_unit_effects(
@@ -475,6 +520,17 @@ def learn_within_vs_lsdv(
     -------
     SandboxResult
         ``df`` (within vs LSDV vs true slope), ``fig``, ``summary`` and ``topic``.
+
+    Examples
+    --------
+    This sandbox simulates its own panel, so the call needs no DataFrame:
+
+    ```python
+    import expdpy as ex
+
+    res = ex.learn_within_vs_lsdv()
+    res.fig
+    ```
     """
     rng = np.random.default_rng(seed)
     data = _panel_with_unit_effects(
@@ -577,6 +633,17 @@ def learn_beta_convergence(
     -------
     SandboxResult
         ``df`` (unconditional vs conditional vs true slope), ``fig``, ``summary`` and ``topic``.
+
+    Examples
+    --------
+    This sandbox simulates its own AR(1) panel, so the call needs no DataFrame:
+
+    ```python
+    import expdpy as ex
+
+    res = ex.learn_beta_convergence()
+    res.fig
+    ```
     """
     rng = np.random.default_rng(seed)
     horizon = float(n_years - 1)
@@ -679,6 +746,17 @@ def learn_sigma_convergence(
     SandboxResult
         ``df`` (recovered trend per measure vs the true ``ln(rho)``), ``fig``, ``summary`` and
         ``topic``.
+
+    Examples
+    --------
+    This sandbox simulates its own contracting panel, so the call needs no DataFrame:
+
+    ```python
+    import expdpy as ex
+
+    res = ex.learn_sigma_convergence()
+    res.fig
+    ```
     """
     rng = np.random.default_rng(seed)
     horizon = float(n_years - 1)
@@ -777,6 +855,18 @@ def learn_kuznets_waves(
     SandboxResult
         ``df`` (the top-order coefficient recovered by each estimator vs the true value),
         ``fig`` (the within partial-residual wave), ``summary`` and ``topic``.
+
+    Examples
+    --------
+    This sandbox simulates its own panel with a planted polynomial wave, so the call needs
+    no DataFrame:
+
+    ```python
+    import expdpy as ex
+
+    res = ex.learn_kuznets_waves()
+    res.fig
+    ```
     """
     rng = np.random.default_rng(seed)
     degree = len(betas)
@@ -864,6 +954,18 @@ def learn_convergence_clubs(
     SandboxResult
         ``df`` (each unit's planted vs detected club), ``fig`` (the recovered within-club average
         paths), ``summary`` and ``topic``.
+
+    Examples
+    --------
+    This sandbox simulates its own panel with a planted club structure, so the call needs
+    no DataFrame:
+
+    ```python
+    import expdpy as ex
+
+    res = ex.learn_convergence_clubs()
+    res.fig
+    ```
     """
     rng = np.random.default_rng(seed)
     rows = []

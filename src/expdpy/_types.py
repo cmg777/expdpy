@@ -92,10 +92,17 @@ __all__ = [
 
 @dataclass(frozen=True)
 class DescriptiveTableResult(Interpretable):
-    """Result of :func:`expdpy.explore_descriptive_table`."""
+    """Result of :func:`expdpy.explore_descriptive_table`.
+
+    ``df`` is always the pooled per-variable summary (raw-name index, the eight statistics
+    as columns), regardless of which statistics are rendered. ``by_period`` holds the
+    panel-aware breakdown — a tidy frame keyed by ``variable`` and ``period`` with one
+    column per shown statistic — and is ``None`` when no time dimension is summarized.
+    """
 
     df: pd.DataFrame
     gt: GT
+    by_period: pd.DataFrame | None = None
 
     def interpret(self, *, lang: str = "en") -> str:
         """Plain-language summary of central tendency, spread and skew per variable."""

@@ -2,6 +2,37 @@
 title: "Changelog"
 ---
 
+## 0.4.13 (2026-06-24)
+
+### Explore
+
+- **`explore_descriptive_table` is now panel-aware.** When a `time` column is known (declared
+  via `set_panel` / `set_labels`, or passed explicitly) each statistic is shown **by period**
+  — by default at the first and last period — under a spanning column header (e.g. `Mean` over
+  `2015` and `2025`); without a time dimension it falls back to one column per statistic. The
+  default statistics are now **Mean, Std. dev., Median, Min., Max.**, rows are labelled from
+  the data dictionary, and the notes report the number of observations and any variable with
+  missing data. **Breaking:** the old length-8 `digits` vector is replaced by a `stats=`
+  selection (any of the eight statistics), a scalar-or-mapping `digits=`, and a new `periods=`
+  argument; the result gains a tidy `.by_period` frame (`.df` still carries all eight
+  pooled statistics).
+- **`explore_histogram` gains opt-in density overlays.** New `kde=` and `normal=` flags draw a
+  Gaussian kernel-density estimate and/or a normal curve on the Density scale (off by default;
+  the Count/Density toggle hides them in Count view).
+- **The trend / time-series plots no longer show a draggable range slider**
+  (`explore_trend_plot`, `explore_quantile_trend_plot`, `explore_spaghetti_plot`).
+
+### Data dictionary (`df_def`) everywhere
+
+- **Every function now leans on the data dictionary for readable output, while still working
+  without it.** Regression / estimation / CRE tables relabel their coefficient and
+  dependent-variable rows from the dictionary (the tidy `.df` keeps raw term names), and the
+  panel estimators (`analyze_panel_table`, `analyze_hausman_test`, `analyze_cre_table`) and DiD
+  views (`analyze_event_study`, `analyze_panel_view`) now resolve `entity` / `time` / `unit`
+  from the declared panel, so those arguments can be omitted after `set_panel` / `set_labels`.
+- **Examples across the library now illustrate the dictionary**, opening with
+  `df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)`.
+
 ## 0.4.12 (2026-06-24)
 
 ### Docs

@@ -116,10 +116,10 @@ def explore_distribution_over_time(
     --------
     ```python
     import expdpy as ex
-    from expdpy.data import load_kuznets
+    from expdpy.data import load_kuznets, load_kuznets_data_def
 
-    df = load_kuznets()
-    ex.explore_distribution_over_time(df, var="gini_regional", time="year").fig
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
+    ex.explore_distribution_over_time(df, var="gini_regional").fig
     ```
     """
     df = ensure_dataframe(df)
@@ -372,12 +372,10 @@ def explore_transition_matrix(
     --------
     ```python
     import expdpy as ex
-    from expdpy.data import load_kuznets
+    from expdpy.data import load_kuznets, load_kuznets_data_def
 
-    df = load_kuznets()
-    ex.explore_transition_matrix(
-        df, var="gini_regional", entity="country", time="year", n_bins=4
-    ).fig
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
+    ex.explore_transition_matrix(df, var="gini_regional", n_bins=4).fig
     ```
     """
     df = ensure_dataframe(df)
@@ -508,10 +506,10 @@ def explore_within_persistence(
     --------
     ```python
     import expdpy as ex
-    from expdpy.data import load_kuznets
+    from expdpy.data import load_kuznets, load_kuznets_data_def
 
-    df = load_kuznets()
-    ex.explore_within_persistence(df, var="gini_regional", entity="country", time="year").fig
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
+    ex.explore_within_persistence(df, var="gini_regional").fig
     ```
     """
     df = ensure_dataframe(df)

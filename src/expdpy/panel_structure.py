@@ -75,10 +75,10 @@ def explore_panel_structure(
     --------
     ```python
     import expdpy as ex
-    from expdpy.data import load_kuznets
+    from expdpy.data import load_kuznets, load_kuznets_data_def
 
-    df = load_kuznets()
-    res = ex.explore_panel_structure(df, entity="country", time="year")
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
+    res = ex.explore_panel_structure(df)
     res.gt
     res.fig
     ```
@@ -233,12 +233,10 @@ def explore_value_heatmap(
     --------
     ```python
     import expdpy as ex
-    from expdpy.data import load_kuznets
+    from expdpy.data import load_kuznets, load_kuznets_data_def
 
-    df = load_kuznets()
-    ex.explore_value_heatmap(
-        df, var="gini_regional", entity="country", time="year", standardize="by_time"
-    ).fig
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
+    ex.explore_value_heatmap(df, var="gini_regional", standardize="by_time").fig
     ```
     """
     df = ensure_dataframe(df)

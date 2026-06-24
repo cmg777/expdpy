@@ -18,6 +18,7 @@ from expdpy._estimation import (
     fit_model,
     tidy_model,
 )
+from expdpy._labels import label_map
 from expdpy._types import RegressionTableResult
 from expdpy._validation import ensure_dataframe
 
@@ -96,13 +97,14 @@ def analyze_regression_table(
 
     Examples
     --------
-    Basic — a pooled OLS regression of the cubic Kuznets curve:
+    Basic — a pooled OLS regression of the cubic Kuznets curve (the data
+    dictionary supplies the readable labels shown in the rendered table):
 
     ```python
     import expdpy as ex
-    from expdpy.data import load_kuznets
+    from expdpy.data import load_kuznets, load_kuznets_data_def
 
-    df = load_kuznets()
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
     ex.analyze_regression_table(
         df,
         dvs="gini_regional",
@@ -114,6 +116,10 @@ def analyze_regression_table(
     clustered by country, then read the tidy coefficient frame and fitted models:
 
     ```python
+    import expdpy as ex
+    from expdpy.data import load_kuznets, load_kuznets_data_def
+
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
     result = ex.analyze_regression_table(
         df,
         dvs="gini_regional",
@@ -186,14 +192,17 @@ def analyze_regression_table(
             models.append(m)
             tidies.append(_tidy(m, 1, None))
 
+    # Relabel the rendered table's coefficient/dependent-variable rows from the data
+    # dictionary when available; the tidy ``.df`` keeps the raw term names.
+    labels = label_map(df) or None
     etable_type = "gt" if format == "html" else format
     if etable_type == "md":
         # pyfixest prints markdown to stdout and returns None; capture it.
         with capture_stdout() as buf:
-            pf.etable(models, type="md")
+            pf.etable(models, type="md", labels=labels)
         etable: Any = buf.getvalue()
     else:
-        etable = pf.etable(models, type=etable_type)
+        etable = pf.etable(models, type=etable_type, labels=labels)
         if format == "html" and hasattr(etable, "as_raw_html"):
             etable = etable.as_raw_html()
 

@@ -69,17 +69,21 @@ def explore_missing_values_plot(
 
     ```python
     import expdpy as ex
-    from expdpy.data import load_kuznets
+    from expdpy.data import load_kuznets, load_kuznets_data_def
 
-    df = load_kuznets()
-    ex.explore_missing_values_plot(df, time="year").fig
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
+    ex.explore_missing_values_plot(df).fig
     ```
 
     Advanced — missingness by unit, restricted to numeric variables, shown as a flag:
 
     ```python
+    import expdpy as ex
+    from expdpy.data import load_kuznets, load_kuznets_data_def
+
+    df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
     ex.explore_missing_values_plot(
-        df, entity="country", by="entity", no_factors=True, binary=True
+        df, by="entity", no_factors=True, binary=True
     ).fig
     ```
     """

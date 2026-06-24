@@ -79,6 +79,42 @@ def test_histogram_bins(sample_df):
     assert res.df["count"].sum() == sample_df["x3"].notna().sum()
 
 
+def test_histogram_plain_has_no_overlay(sample_df):
+    # Off by default: a single trace, Count view, default button active.
+    res = explore_histogram(sample_df, "x3")
+    assert len(res.fig.data) == 1
+    assert res.fig.layout.yaxis.title.text == "Count"
+    assert res.fig.layout.updatemenus[0].active == 0
+
+
+def test_histogram_kde_overlay(sample_df):
+    res = explore_histogram(sample_df, "x3", kde=True)
+    assert len(res.fig.data) == 2
+    assert res.fig.data[1].name == "KDE"
+    assert res.fig.data[1].mode == "lines"
+    # Overlays are density-scaled, so the figure opens in Density view.
+    assert res.fig.layout.yaxis.title.text == "Density"
+    assert res.fig.layout.updatemenus[0].active == 1
+    # The bin/count table is unchanged by overlays.
+    assert list(res.df.columns) == ["bin_left", "bin_right", "count"]
+
+
+def test_histogram_normal_overlay(sample_df):
+    res = explore_histogram(sample_df, "x3", normal=True)
+    assert len(res.fig.data) == 2
+    assert res.fig.data[1].name == "Normal"
+    assert res.fig.data[1].line.dash == "dash"
+
+
+def test_histogram_both_overlays_toggle_visibility(sample_df):
+    res = explore_histogram(sample_df, "x3", kde=True, normal=True)
+    assert len(res.fig.data) == 3
+    count_btn, density_btn = res.fig.layout.updatemenus[0].buttons
+    # Count view hides both overlays; Density view shows them.
+    assert list(count_btn.args[0]["visible"]) == [True, False, False]
+    assert list(density_btn.args[0]["visible"]) == [True, True, True]
+
+
 def test_bar_chart_counts(sample_df):
     res = explore_bar_plot(sample_df, "grp")
     assert res.df["count"].sum() == len(sample_df)
