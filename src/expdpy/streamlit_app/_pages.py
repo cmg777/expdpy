@@ -53,9 +53,31 @@ def _fe_choices(active: Active) -> list[str]:
     return active.var_cats.fe_choices or ["None"]
 
 
+def _show_panel_result(make: Callable[[], Any], *, interpret: bool = True) -> None:
+    """Render a panel result's figure (safely), interpretation tucked in an expander.
+
+    Surfaces the exception message instead of crashing the page on bad input, and keeps the
+    plain-language ``.interpret()`` behind a collapsed expander so the default view is just
+    the tool and its result (the app is a tool, not a tutorial).
+    """
+    try:
+        res = make()
+    except Exception as exc:  # surface the message, keep the page alive
+        st.info(str(exc))
+        return
+    if res is None:
+        return
+    st.plotly_chart(res.fig, width="stretch", config=PLOTLY_CONFIG)
+    if interpret and hasattr(res, "interpret"):
+        with st.expander("Plain-language reading"):
+            st.markdown(res.interpret())
+
+
 # --------------------------------------------------------------------------------- pages ---
 def page_overview() -> None:
-    """Sample preview, descriptive statistics, extreme observations, missing values."""
+    """Sample preview plus the panel skeleton: balance, missing values, value heatmap."""
+    from expdpy import explore_panel_structure, explore_value_heatmap
+
     active = _active_or_stop()
     st.header("Overview & Data")
     st.caption(
@@ -65,22 +87,47 @@ def page_overview() -> None:
     with st.expander("Preview the analysis sample", expanded=False):
         st.dataframe(active.sample.head(100), width="stretch", hide_index=True)
 
-    if _has(active, "descriptive_table"):
-        st.subheader("Descriptive statistics")
-        render.render_descriptive(active.sample)
-    if _has(active, "ext_obs"):
-        st.subheader("Extreme observations")
-        var = w.selectbox("Variable", _numeric(active), key="ext_obs_var")
-        render.render_ext_obs(active.sample, var)
+    panel = _is_panel(active)
+    entity = active.entities[0] if panel else None
+    time = active.time if panel else None
+
+    if panel:
+        st.subheader("Panel balance & coverage")
+        try:
+            struct = explore_panel_structure(active.sample, entity=entity, time=time)
+            st.plotly_chart(struct.fig, width="stretch", config=PLOTLY_CONFIG)
+            with st.expander("Balance summary"):
+                st.dataframe(struct.df_summary, width="stretch", hide_index=True)
+            with st.expander("Plain-language reading"):
+                st.markdown(struct.interpret())
+        except Exception as exc:  # surface the message, keep the page alive
+            st.info(str(exc))
+
     if _has(active, "missing_values"):
         st.subheader("Missing values")
         render.render_plotly(lambda: comp.missing(active.sample, active.time))
 
+    if panel:
+        st.subheader("Value heatmap")
+        vh_var = w.selectbox("Variable", _numeric(active), key="ps_vh_var")
+        standardize = w.selectbox(
+            "Standardize", ["none", "by_time", "by_entity", "global"], key="ps_vh_std"
+        )
+        _show_panel_result(
+            lambda: explore_value_heatmap(
+                active.sample, vh_var, entity=entity, time=time, standardize=standardize
+            ),
+            interpret=False,
+        )
 
-def page_distributions() -> None:
-    """Histogram and category bar chart."""
+
+def page_describe() -> None:
+    """Descriptive statistics, histogram, category bar chart, extreme observations."""
     active = _active_or_stop()
-    st.header("Distributions")
+    st.header("Describe variables")
+    if _has(active, "descriptive_table"):
+        st.subheader("Descriptive statistics")
+        render.render_descriptive(active.sample)
     if _has(active, "histogram"):
         st.subheader("Histogram")
         var = w.selectbox("Variable", _numeric(active), key="hist_var")
@@ -90,6 +137,49 @@ def page_distributions() -> None:
         st.subheader("Bar chart")
         var = w.selectbox("Variable", _factors(active), key="bar_chart_var1")
         render.render_plotly(lambda: comp.bar_chart(active.sample, var))
+    if _has(active, "ext_obs"):
+        st.subheader("Extreme observations")
+        var = w.selectbox("Variable", _numeric(active), key="ext_obs_var")
+        render.render_ext_obs(active.sample, var)
+
+
+def page_within_between() -> None:
+    """Within/between variance decomposition (xtsum) and per-unit trajectories."""
+    from expdpy import explore_spaghetti_plot, explore_xtsum_table
+
+    active = _active_or_stop()
+    st.header("Within & between")
+    if not _is_panel(active):
+        st.info("These views need a panel: a cross-section id and a time dimension.")
+        return
+    assert active.time is not None  # narrowed by _is_panel
+    entity, time = active.entities[0], active.time
+    st.caption(f"Entity: **{entity}** · Time: **{time}**")
+    nums = _numeric(active)
+
+    st.subheader("Within / between variation")
+    xtsum_vars = w.multiselect(
+        "Variables", nums, key="ps_xtsum_vars", default=nums[: min(4, len(nums))]
+    )
+    if [v for v in xtsum_vars if v not in (None, "None")]:
+        try:
+            res = explore_xtsum_table(
+                active.sample, var=list(xtsum_vars), entity=entity, time=time
+            )
+            st.html(res.gt.as_raw_html())
+            with st.expander("Plain-language reading"):
+                st.markdown(res.interpret())
+        except Exception as exc:  # surface the message, keep the page alive
+            st.info(str(exc))
+
+    st.divider()
+    st.subheader("Per-unit trajectories (spaghetti)")
+    spag_var = w.selectbox("Variable", nums, key="ps_spag_var")
+    _show_panel_result(
+        lambda: explore_spaghetti_plot(
+            active.sample, spag_var, entity=entity, time=time
+        )
+    )
 
 
 def page_by_group() -> None:
@@ -116,7 +206,9 @@ def page_by_group() -> None:
 
 
 def page_trends() -> None:
-    """Variable trends and quantile trends over the panel's time dimension."""
+    """Variable trends, quantile trends, and the distribution shifting over time."""
+    from expdpy import explore_distribution_over_time
+
     active = _active_or_stop()
     st.header("Trends")
     if _has(active, "trend_graph"):
@@ -137,12 +229,27 @@ def page_trends() -> None:
         render.render_plotly(
             lambda: comp.quantile_trend(active.sample, active.time, var)
         )
+    if _is_panel(active):
+        st.subheader("Distribution over time")
+        dot_var = w.selectbox("Variable", _numeric(active), key="ps_dot_var")
+        dot_style = w.selectbox(
+            "Style",
+            ["ridgeline", "animated_hist", "animated_violin"],
+            key="ps_dot_style",
+        )
+        _show_panel_result(
+            lambda: explore_distribution_over_time(
+                active.sample, dot_var, time=active.time, style=dot_style
+            )
+        )
 
 
 def page_correlations() -> None:
-    """Correlation table + heatmap and the scatter plot."""
+    """Correlation table + heatmap, the scatter plot, and the within/between split."""
+    from expdpy import explore_scatter_plot_within_between
+
     active = _active_or_stop()
-    st.header("Correlations & Scatter")
+    st.header("Relationships")
     if _has(active, "corrplot"):
         st.subheader("Correlations")
         render.render_correlation(active.sample)
@@ -163,6 +270,24 @@ def page_correlations() -> None:
         loess = w.checkbox("LOESS smoother", key="scatter_loess", default=True)
         render.render_plotly(
             lambda: comp.scatter(active.sample, x, y, color, size, loess)
+        )
+    if _is_panel(active):
+        assert active.time is not None  # narrowed by _is_panel
+        entity, time = active.entities[0], active.time
+        st.divider()
+        st.subheader("Within-vs-between scatter")
+        nums = _numeric(active)
+        c1, c2 = st.columns(2)
+        with c1:
+            wb_x = w.selectbox("X", nums, key="ps_wb_x")
+        with c2:
+            wb_y = w.selectbox(
+                "Y", nums, key="ps_wb_y", default=nums[1] if len(nums) > 1 else None
+            )
+        _show_panel_result(
+            lambda: explore_scatter_plot_within_between(
+                active.sample, wb_x, wb_y, entity=entity, time=time
+            )
         )
 
 
@@ -219,34 +344,8 @@ def page_regression() -> None:
         )
 
 
-# ----------------------------------------------------------------------------- navigation ---
-# (title, icon, url_path, function, components that justify showing the page)
-_PAGE_SPECS: list[PageSpec] = [
-    ("Overview & Data", "🏠", "overview", page_overview, None),
-    (
-        "Distributions",
-        "📊",
-        "distributions",
-        page_distributions,
-        ["histogram", "bar_chart"],
-    ),
-    (
-        "By group",
-        "👥",
-        "by_group",
-        page_by_group,
-        ["by_group_bar_graph", "by_group_violin_graph", "by_group_trend_graph"],
-    ),
-    ("Trends", "📈", "trends", page_trends, ["trend_graph", "quantile_trend_graph"]),
-    (
-        "Correlations & Scatter",
-        "🔗",
-        "correlations",
-        page_correlations,
-        ["corrplot", "scatter_plot"],
-    ),
-    ("Regression", "🧮", "regression", page_regression, ["regression"]),
-]
+# The page specs (title, icon, url_path, function, gate) are assembled at the bottom of this
+# module, once every page function and the ``_is_panel`` gate below have been defined.
 
 
 def page_sandboxes() -> None:
@@ -359,21 +458,12 @@ def _is_panel(active: Active) -> bool:
     return bool(active.time and active.entities)
 
 
-def page_panel_structure() -> None:
-    """Within/between variation, panel balance, spaghetti, dynamics and transitions."""
-    from expdpy import (
-        explore_distribution_over_time,
-        explore_panel_structure,
-        explore_scatter_plot_within_between,
-        explore_spaghetti_plot,
-        explore_transition_matrix,
-        explore_value_heatmap,
-        explore_within_persistence,
-        explore_xtsum_table,
-    )
+def page_dynamics() -> None:
+    """State transitions and within-unit persistence over the panel's time dimension."""
+    from expdpy import explore_transition_matrix, explore_within_persistence
 
     active = _active_or_stop()
-    st.header("Panel structure & dynamics")
+    st.header("Dynamics")
     if not _is_panel(active):
         st.info("These views need a panel: a cross-section id and a time dimension.")
         return
@@ -383,95 +473,10 @@ def page_panel_structure() -> None:
     nums = _numeric(active)
     factors = _factors(active)
 
-    def _show(make, *, interpret=True) -> None:
-        """Render a result's figure (safely) plus its plain-language interpretation."""
-        try:
-            res = make()
-        except Exception as exc:  # surface the message, keep the page alive
-            st.info(str(exc))
-            return
-        if res is None:
-            return
-        st.plotly_chart(res.fig, width="stretch", config=PLOTLY_CONFIG)
-        if interpret:
-            st.markdown(res.interpret())
-
-    st.subheader("Within / between variation")
-    xtsum_vars = w.multiselect(
-        "Variables", nums, key="ps_xtsum_vars", default=nums[: min(4, len(nums))]
-    )
-    if [v for v in xtsum_vars if v not in (None, "None")]:
-        try:
-            res = explore_xtsum_table(
-                active.sample, var=list(xtsum_vars), entity=entity, time=time
-            )
-            st.html(res.gt.as_raw_html())
-            st.markdown(res.interpret())
-        except Exception as exc:
-            st.info(str(exc))
-
-    st.divider()
-    st.subheader("Within-vs-between scatter")
-    c1, c2 = st.columns(2)
-    with c1:
-        wb_x = w.selectbox("X", nums, key="ps_wb_x")
-    with c2:
-        wb_y = w.selectbox(
-            "Y", nums, key="ps_wb_y", default=nums[1] if len(nums) > 1 else None
-        )
-    _show(
-        lambda: explore_scatter_plot_within_between(
-            active.sample, wb_x, wb_y, entity=entity, time=time
-        )
-    )
-
-    st.divider()
-    st.subheader("Panel balance & coverage")
-    try:
-        struct = explore_panel_structure(active.sample, entity=entity, time=time)
-        st.markdown(struct.interpret())
-        st.plotly_chart(struct.fig, width="stretch", config=PLOTLY_CONFIG)
-        with st.expander("Balance summary"):
-            st.dataframe(struct.df_summary, width="stretch", hide_index=True)
-    except Exception as exc:
-        st.info(str(exc))
-    vh_var = w.selectbox("Value heatmap variable", nums, key="ps_vh_var")
-    standardize = w.selectbox(
-        "Standardize", ["none", "by_time", "by_entity", "global"], key="ps_vh_std"
-    )
-    _show(
-        lambda: explore_value_heatmap(
-            active.sample, vh_var, entity=entity, time=time, standardize=standardize
-        ),
-        interpret=False,
-    )
-
-    st.divider()
-    st.subheader("Per-unit trajectories (spaghetti)")
-    spag_var = w.selectbox("Variable", nums, key="ps_spag_var")
-    _show(
-        lambda: explore_spaghetti_plot(
-            active.sample, spag_var, entity=entity, time=time
-        )
-    )
-
-    st.divider()
-    st.subheader("Distribution over time")
-    dot_var = w.selectbox("Variable", nums, key="ps_dot_var")
-    dot_style = w.selectbox(
-        "Style", ["ridgeline", "animated_hist", "animated_violin"], key="ps_dot_style"
-    )
-    _show(
-        lambda: explore_distribution_over_time(
-            active.sample, dot_var, time=time, style=dot_style
-        )
-    )
-
-    st.divider()
     st.subheader("Transition matrix")
     tm_var = w.selectbox("State variable", factors + nums, key="ps_tm_var")
     tm_bins = w.slider("Bins (numeric only)", 2, 8, key="ps_tm_bins", default=4)
-    _show(
+    _show_panel_result(
         lambda: explore_transition_matrix(
             active.sample, tm_var, entity=entity, time=time, n_bins=int(tm_bins)
         )
@@ -480,7 +485,7 @@ def page_panel_structure() -> None:
     st.divider()
     st.subheader("Within-unit persistence")
     wp_var = w.selectbox("Variable", nums, key="ps_wp_var")
-    _show(
+    _show_panel_result(
         lambda: explore_within_persistence(
             active.sample, wp_var, entity=entity, time=time
         )
@@ -766,42 +771,60 @@ def page_explainers() -> None:
         st.markdown(explain(topic).to_markdown())
 
 
-# Extra pages appended after the data-driven ones. Event study and panel models need a
-# panel structure (callable gate); the sandboxes and explainers pages are always available.
-_PAGE_SPECS.append(
-    ("Panel structure", "🧱", "panel_structure", page_panel_structure, _is_panel)
-)
-_PAGE_SPECS.append(
-    ("Event study & DiD", "🎯", "event_study", page_event_study, _is_panel)
-)
-_PAGE_SPECS.append(("Panel models", "🪧", "panel_models", page_panel_models, _is_panel))
-_PAGE_SPECS.append(
-    ("Sigma convergence", "📉", "sigma_convergence", page_sigma_convergence, _is_panel)
-)
-_PAGE_SPECS.append(
+# The page specs in display order: (title, icon, url_path, function, gate). The Explore pages
+# follow the case-study workflow of the docs (know the panel -> describe -> split its variation
+# -> trends -> groups -> relationships -> dynamics); the Analyze and Learn pages follow. A gate
+# is ``None`` (always shown), a list of component names (shown when any are active), or
+# ``_is_panel`` (a callable requiring a full panel).
+_PAGE_SPECS: list[PageSpec] = [
+    # Explore
+    ("Overview & Data", "🏠", "overview", page_overview, None),
     (
-        "Convergence clubs",
-        "🧩",
-        "convergence_clubs",
-        page_convergence_clubs,
-        _is_panel,
-    )
-)
-_PAGE_SPECS.append(
-    ("Kuznets waves", "🌊", "kuznets_waves", page_kuznets_waves, _is_panel)
-)
-_PAGE_SPECS.append(("Concept sandboxes", "🧪", "sandboxes", page_sandboxes, None))
-_PAGE_SPECS.append(("Concept explainers", "📚", "explainers", page_explainers, None))
+        "Describe variables",
+        "📊",
+        "describe",
+        page_describe,
+        ["descriptive_table", "histogram", "bar_chart", "ext_obs"],
+    ),
+    ("Within & between", "🔀", "within_between", page_within_between, _is_panel),
+    ("Trends", "📈", "trends", page_trends, ["trend_graph", "quantile_trend_graph"]),
+    (
+        "By group",
+        "👥",
+        "by_group",
+        page_by_group,
+        ["by_group_bar_graph", "by_group_violin_graph", "by_group_trend_graph"],
+    ),
+    (
+        "Relationships",
+        "🔗",
+        "correlations",
+        page_correlations,
+        ["corrplot", "scatter_plot"],
+    ),
+    ("Dynamics", "🔁", "dynamics", page_dynamics, _is_panel),
+    # Analyze
+    ("Regression", "🧮", "regression", page_regression, ["regression"]),
+    ("Event study & DiD", "🎯", "event_study", page_event_study, _is_panel),
+    ("Panel models", "🪧", "panel_models", page_panel_models, _is_panel),
+    ("Sigma convergence", "📉", "sigma_convergence", page_sigma_convergence, _is_panel),
+    ("Convergence clubs", "🧩", "convergence_clubs", page_convergence_clubs, _is_panel),
+    ("Kuznets waves", "🌊", "kuznets_waves", page_kuznets_waves, _is_panel),
+    # Learn
+    ("Concept sandboxes", "🧪", "sandboxes", page_sandboxes, None),
+    ("Concept explainers", "📚", "explainers", page_explainers, None),
+]
 
 # Which module each page belongs to. The three apps (Explore / Analyze / Learn) each render
 # only the pages mapped to their module; the combined nav (module=None) shows them all.
 _MODULE: dict[str, str] = {
     "overview": "explore",
-    "distributions": "explore",
-    "by_group": "explore",
+    "describe": "explore",
+    "within_between": "explore",
     "trends": "explore",
+    "by_group": "explore",
     "correlations": "explore",
-    "panel_structure": "explore",
+    "dynamics": "explore",
     "regression": "analyze",
     "event_study": "analyze",
     "panel_models": "analyze",

@@ -2,6 +2,25 @@
 title: "Changelog"
 ---
 
+## 0.4.15 (2026-06-25)
+
+### Explore
+
+- **The [Explore page](explore.html) is now a single-pass Kuznets case study.** A complete
+  redesign walks newcomers through *all 21* `explore_*` functions (and the `set_panel` /
+  `resolve_panel` / `treat_outliers` utilities) once each, in the order an analyst actually
+  works: know the panel's skeleton (`explore_panel_structure`, `explore_missing_values_plot`,
+  `explore_value_heatmap`) → describe variables → split within vs between variation
+  (`explore_xtsum_table`, `explore_spaghetti_plot`) → trends (incl.
+  `explore_distribution_over_time`) → compare groups → relationships and the N-shaped curve
+  (incl. `explore_scatter_plot_within_between`) → dynamics (`explore_transition_matrix`,
+  `explore_within_persistence`). The eight previously-undemonstrated panel-aware functions now
+  appear in the narrative.
+- **The Explore Streamlit app mirrors the case study.** Its pages are reorganized to the same
+  workflow — Overview & Data, Describe variables, Within & between, Trends, By group,
+  Relationships, Dynamics — replacing the single catch-all "Panel structure" page. The Colab
+  notebook is regenerated from the redesigned page.
+
 ## 0.4.14 (2026-06-24)
 
 ### Explore

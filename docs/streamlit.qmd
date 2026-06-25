@@ -52,19 +52,23 @@ switch between in the navigation menu.
 
 ## The pages
 
-Each app exposes the pages for its module. Time-series pages and components (Trends, missing
-values, by-group trend, event study, panel models) are **hidden automatically for
+Each app exposes the pages for its module, ordered as the [Explore](explore.qmd) case study
+runs: *know the panel → describe it → split its variation → trends → groups → relationships →
+dynamics*. Time-series and panel-only pages and components (Trends, Within & between, Dynamics,
+missing values, by-group trend, event study, panel models) are **hidden automatically for
 cross-sectional data**.
 
 ### Explore app
 
 | Page | Components |
 |---|---|
-| **Overview & Data** | sample preview, descriptive statistics, extreme observations, missing-value heatmap |
-| **Distributions** | histogram, category bar chart |
+| **Overview & Data** | sample preview, panel balance & coverage, missing-value heatmap, value heatmap |
+| **Describe variables** | descriptive statistics, histogram, category bar chart, extreme observations |
+| **Within & between** | within/between (`xtsum`) variation, per-unit trajectories (spaghetti) |
+| **Trends** | variable trend (1–3 series), quantile trend, distribution over time |
 | **By group** | group means (bar), distribution (violin), group means over time |
-| **Trends** | variable trend (1–3 series), quantile trend |
-| **Correlations & Scatter** | correlation table + heatmap, scatter with color/size/LOESS |
+| **Relationships** | correlation table + heatmap, scatter with color/size/LOESS, within-vs-between scatter |
+| **Dynamics** | state transition matrix, within-unit persistence |
 
 ### Analyze app
 
