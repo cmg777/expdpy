@@ -2,6 +2,26 @@
 title: "Changelog"
 ---
 
+## 0.4.17 (2026-06-25)
+
+### Learn
+
+- **The [Learn page](learn.html) is now a single-pass tutorial — "the ideas behind the case
+  study."** A complete redesign opens by interpreting a *real* two-way fixed-effects Kuznets model
+  (`.interpret()` / `.explain()`), browses the full concept index (`list_topics()` — 27 topics —
+  grouped by theme), then isolates each idea in a simulated sandbox where the truth is known: the
+  within-transformation identity (`learn_first_differences`, `learn_within_vs_lsdv`), why fixed
+  effects matter (`learn_pooled_vs_fixed_effects`), two inference classics
+  (`learn_omitted_variable_bias`, `learn_clustering_se`), convergence (`learn_beta_convergence`,
+  `learn_sigma_convergence`, `learn_convergence_clubs`), and the Kuznets wave
+  (`learn_kuznets_waves`). Every `learn_*` sandbox now appears once each, removing the old
+  tour/gallery duplication and adding the previously-undemonstrated `learn_kuznets_waves`.
+- **The Learn Streamlit app mirrors the tutorial.** The Concept sandboxes page grows from seven to
+  **nine** tabs — adding `learn_sigma_convergence` and `learn_convergence_clubs` — reordered to the
+  case-study sequence. The Concept explainers page browses all 27 topics.
+- **The [Learn Colab notebook](https://colab.research.google.com/github/cmg777/expdpy/blob/main/notebooks/learn.ipynb)
+  is regenerated** so the website, notebook and app present the same sequence.
+
 ## 0.4.16 (2026-06-25)
 
 ### Analyze

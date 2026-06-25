@@ -130,8 +130,8 @@ def test_postestimation_page_renders():
 def test_sandboxes_page_renders_all_tabs():
     at = _page("sandboxes")
     assert not at.exception
-    assert len(at.tabs) == 7  # OVB, pooled-vs-FE, clustering, first differences,
-    # within-vs-LSDV, beta convergence, Kuznets waves
+    assert len(at.tabs) == 9  # first differences, within-vs-LSDV, pooled-vs-FE, OVB,
+    # clustering, beta / sigma / clubs convergence, Kuznets waves
 
 
 def test_explainers_page_lists_topics():
