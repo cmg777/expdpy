@@ -2,6 +2,31 @@
 title: "Changelog"
 ---
 
+## 0.4.16 (2026-06-25)
+
+### Analyze
+
+- **The [Analyze page](analyze.html) is now a single-pass Kuznets case study.** A complete
+  redesign walks newcomers through *all 17* `analyze_*` functions once each, in the order an
+  analyst actually works: fit a first model and add fixed effects (`analyze_regression_table`,
+  `analyze_coefficient_plot`, `analyze_fwl_plot`) → enrich the estimation
+  (`analyze_estimation`) → read the fitted model (`analyze_predictions`, `analyze_fixef_plot`,
+  `analyze_joint_test`) → stress-test the inference (`analyze_robust_inference`) → choose the
+  panel estimator (`analyze_panel_table`, `analyze_hausman_test`, `analyze_cre_table`) → the
+  flagship Kuznets-waves curve (`analyze_kuznets_waves`) → a related income-convergence question
+  (`analyze_beta_convergence`, `analyze_sigma_convergence`, `analyze_convergence_clubs`) → a
+  causal design (`analyze_panel_view`, `analyze_event_study`). The four previously-undemonstrated
+  functions (the convergence trio and Kuznets waves) now appear in the narrative.
+- **The Analyze Streamlit app mirrors the case study.** Its pages are reorganized to the same
+  workflow — Regression, Post-estimation (new), Panel models, Kuznets waves, Convergence (β / σ
+  / clubs consolidated), Event study & DiD — surfacing the seven functions the app did not
+  previously render (`analyze_estimation`, `analyze_predictions`, `analyze_fixef_plot`,
+  `analyze_joint_test`, `analyze_robust_inference`, `analyze_beta_convergence`,
+  `analyze_panel_view`). Results only; plain-language readings sit behind a collapsed expander.
+- **The [Analyze Colab notebook](https://colab.research.google.com/github/cmg777/expdpy/blob/main/notebooks/analyze.ipynb)
+  is regenerated** from the redesigned page, so the website, notebook and app present the same
+  sequence of tools.
+
 ## 0.4.15 (2026-06-25)
 
 ### Explore

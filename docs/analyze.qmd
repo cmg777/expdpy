@@ -12,253 +12,97 @@ jupyter: python3
 </p>
 ```
 
-The **Analyze** module estimates models on a panel: OLS with **multi-way fixed effects** and
-**clustered standard errors**, **random effects**, **correlated random effects** (the Mundlak
-device), the **Frisch–Waugh–Lovell** plot, classic **pooled / between** models, the **Hausman
-test**, post-estimation tools, **robust inference**, and **event-study / difference-in-differences**
-designs.
+The **Analyze** module is where exploration becomes estimation. This page is a **case study**:
+having explored the country–year panel (see [Explore](explore.qmd)), you now want to *model* the
+**Kuznets curve** — does regional inequality rise then fall as economies develop? — and stress-test
+the answer the way a careful analyst would. We move through a single, intuitive workflow: **fit a
+first model → respect the panel structure → enrich the estimation → read the fitted model →
+stress-test the inference → choose the right panel estimator → assemble the flagship curve → ask a
+related convergence question → and finally a causal design.** Every Analyze function appears once,
+each with a note on *why* you reach for it at that step.
+
+The lead dataset is the bundled `kuznets` panel (80 countries observed every year over 2015–2025),
+whose inequality measure (`gini_regional`) traces an **N-shaped** pattern in (log) GDP per capita —
+a cubic — surrounded by realistic *determinants*: trade openness, resource rents, democracy,
+schooling, FDI, population.
+
+Every Analyze function takes a `pandas` DataFrame (or a fitted result) and returns a small **result
+object** carrying a tidy `.df`, plus a publication-quality table (`.etable` / `.gt`) or an
+interactive [Plotly](https://plotly.com/python/) figure (`.fig`). Most also offer a plain-language
+`.interpret()`. Estimation runs on [pyfixest](https://py-econometrics.github.io/pyfixest/) and
+[linearmodels](https://bashtage.github.io/linearmodels/) under the hood — you never hand-roll an
+OLS.
+
+::: {.callout-note}
+Every reading below describes an **association**, never a cause — even the fixed-effects and
+event-study results. The `.interpret()` text is deliberately associational; the [Learn](learn.qmd)
+module explains the assumptions a causal claim would additionally require.
+:::
+
+## Stage 0 — Set up the panel
+
+A panel has two coordinates: an **entity** (here the country) and a **time** index (the year).
+`set_labels` attaches the data dictionary's human-readable labels (so tables and axes read
+"Regional inequality (Gini)" instead of `gini_regional`), and with `set_panel=True` it also reads
+the `entity` / `time` tags and **declares the panel** — so every estimator below can omit
+`entity=` / `time=` and the fixed-effects and clustering defaults just work.
 
 ```{python}
 import expdpy as ex
 from expdpy.data import load_kuznets, load_kuznets_data_def
 
-# `set_labels` attaches the data dictionary's human-readable labels, so the FWL axes,
-# panel view and tables below read with full labels.
-df = ex.set_labels(load_kuznets(), load_kuznets_data_def())
+df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
+df[["country", "year", "gini_regional", "log_gdp_pc", "trade_share"]].head()
 ```
 
-## Guided tour
+## Stage 1 — A first model, and why fixed effects
 
-### Regression with fixed effects and clustered SEs
-
-`kuznets` is a country–year panel, so the natural specification absorbs **two-way (country +
-year) fixed effects**. A cubic in (log) GDP per capita recovers the N — a positive,
-significant cubic term — *within* country, with standard errors clustered by country:
-
-```{python}
-res = ex.analyze_regression_table(
-    df,
-    dvs="gini_regional",
-    idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"],
-    feffects=["country", "year"],
-    clusters=["country"],
-)
-res.etable
-```
-
-A coefficient plot compares specifications side by side — pooled OLS against two-way fixed
-effects:
+Start simple. `analyze_regression_table` fits OLS of inequality on a **cubic** in log GDP per
+capita — the functional form that can bend up, down, then up again (the N). A *pooled* regression
+treats every country-year as an independent draw:
 
 ```{python}
 pooled = ex.analyze_regression_table(
     df, dvs="gini_regional", idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"]
 )
-ex.analyze_coefficient_plot(
-    [pooled, res], model_labels=["Pooled OLS", "Two-way FE"]
-).fig
+pooled.etable
 ```
 
-Every result can explain itself in plain, **associational** language (see
-[Learn](learn.qmd) for the full teaching layer):
+But `kuznets` is a country–year panel, and pooled OLS confounds two very different comparisons:
+*rich versus poor countries* and *a country as it grows richer over time*. The standard fix is to
+absorb **two-way (country + year) fixed effects** — identifying the curve from within-country
+movement, net of common shocks — with standard errors **clustered by country**:
 
 ```{python}
-print(res.interpret())
-```
-
-### Frisch–Waugh–Lovell plot
-
-The same coefficient, *seen*. `analyze_fwl_plot` residualizes both the outcome and the focal
-regressor on the **other** regressors **and** the fixed effects, then scatters the two
-residuals. By the Frisch–Waugh–Lovell theorem the fitted slope equals the focal coefficient
-in the table above:
-
-```{python}
-ex.analyze_fwl_plot(
-    df,
-    dv="gini_regional",
-    var="log_gdp_pc",
-    controls=["log_gdp_pc_sq", "log_gdp_pc_cu"],
-    feffects=["country", "year"],
-    clusters=["country"],
-).fig
-```
-
-### Post-estimation
-
-**Predictions** — fitted values, residuals and actuals on the estimation sample:
-
-```{python}
-ex.analyze_predictions(res).df.head()
-```
-
-**Fixed-effect estimates** — the estimated country intercepts the panel absorbs (top 20):
-
-```{python}
-ex.analyze_fixef_plot(res, fixef="country", top_n=20).fig
-```
-
-**Joint (Wald) test** — are the curvature terms jointly different from zero?
-
-```{python}
-#| warning: false
-print(
-    ex.analyze_joint_test(res, hypotheses=["log_gdp_pc_sq", "log_gdp_pc_cu"]).summary()
-)
-```
-
-### Stepwise comparison and panel-friendly standard errors
-
-Beyond the OLS table, `analyze_estimation` adds **stepwise / multiple-outcome** comparison,
-serial-correlation-robust standard errors (**Newey–West**, **Driscoll–Kraay**) and weights.
-Here, a cumulative-stepwise comparison — watch the estimate move as terms are added:
-
-```{python}
-ex.analyze_estimation(
-    df,
-    dv="gini_regional",
-    idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"],
-    stepwise="csw",
-).etable
-```
-
-### Classic panel models, CRE and the Hausman test
-
-`analyze_panel_table` estimates **pooled / between / fixed / random effects** side by side:
-
-```{python}
-ex.analyze_panel_table(
-    df, dv="gini_regional", idvs=["log_gdp_pc"], entity="country", time="year"
-).etable
-```
-
-`analyze_cre_table` adds the **correlated-random-effects (Mundlak)** estimator — a
-random-effects model augmented with each regressor's unit mean. The coefficient on the
-regressor equals its fixed-effects (within) estimate, while a joint test on the mean terms is
-the regression-form Hausman test:
-
-```{python}
-cre = ex.analyze_cre_table(
-    df, dv="gini_regional", idvs=["log_gdp_pc"], entity="country", time="year"
-)
-print(cre.interpret())
-```
-
-`analyze_hausman_test` chooses between fixed and random effects directly:
-
-```{python}
-print(
-    ex.analyze_hausman_test(
-        df, dv="gini_regional", idvs=["log_gdp_pc"], entity="country", time="year"
-    ).interpret()
-)
-```
-
-### Treatment structure & event study
-
-For treated panels, the bundled `staggered_did` dataset is a ready-made example.
-`analyze_panel_view` shows the **treatment structure** (who is treated, when):
-
-```{python}
-from expdpy.data import load_staggered_did
-
-did = load_staggered_did()
-ex.analyze_panel_view(did, unit="unit", time="year", cohort="cohort").fig
-```
-
-`analyze_event_study` traces the **dynamic treatment effect** with a built-in pre-trend
-check, using a modern staggered-adoption estimator (Gardner's `did2s` here; `twfe`,
-Sun–Abraham `saturated` and `lpdid` are also available):
-
-```{python}
-ex.analyze_event_study(
-    did, outcome="outcome", unit="unit", time="year", cohort="cohort", estimator="did2s"
-).fig
-```
-
-### Robust inference
-
-When clusters are few, large-sample cluster-robust p-values can be over-confident.
-`analyze_robust_inference` offers **randomization inference** (`ritest`) and the **wild
-cluster bootstrap** (`wildboot`, needs the optional `wildboottest` package):
-
-```{python}
-#| warning: false
-did_f = did.assign(treated=did["treated"].astype(float))
-m = ex.analyze_regression_table(did_f, dvs="outcome", idvs=["treated"], clusters=["unit"])
-ri = ex.analyze_robust_inference(
-    m, param="treated", method="ritest", reps=500, cluster="unit", seed=0
-)
-print(
-    f"Randomization-inference for the treatment effect "
-    f"(estimate {ri.estimate:.3f}): p = {ri.p_value:.4f} over {ri.reps} permutations."
-)
-```
-
-## Examples
-
-A **basic** and **advanced** example for every Analyze function.
-
-### `analyze_regression_table`
-
-Basic — a pooled OLS regression of the cubic Kuznets curve:
-
-```{python}
-ex.analyze_regression_table(
-    df, dvs="gini_regional", idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"]
-).etable
-```
-
-Advanced — two-way fixed effects with standard errors clustered by country:
-
-```{python}
-ex.analyze_regression_table(
+fe = ex.analyze_regression_table(
     df,
     dvs="gini_regional",
     idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"],
     feffects=["country", "year"],
     clusters=["country"],
-).etable
+)
+fe.etable
 ```
 
-### `analyze_estimation`
-
-OLS with stepwise / multiple-outcome comparison and a rich choice of standard errors
-(HC1–HC3, CRV1/CRV3, Newey–West, Driscoll–Kraay) plus weights.
-
-Basic — a cumulative-stepwise comparison:
+Every result can explain itself in plain, associational language:
 
 ```{python}
-ex.analyze_estimation(
-    df,
-    dv="gini_regional",
-    idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"],
-    stepwise="csw",
-).etable
+print(fe.interpret())
 ```
 
-Advanced — Driscoll–Kraay standard errors (robust to cross-sectional and serial correlation):
+`analyze_coefficient_plot` puts the two specifications side by side, so you can *see* how absorbing
+fixed effects moves each coefficient and its confidence interval:
 
 ```{python}
-ex.analyze_estimation(
-    df,
-    dv="gini_regional",
-    idvs=["log_gdp_pc", "log_gdp_pc_sq"],
-    vcov="DK",
-    time_id="year",
-    panel_id="country",
-).etable
+ex.analyze_coefficient_plot(
+    [pooled, fe], model_labels=["Pooled OLS", "Two-way FE"]
+).fig
 ```
 
-### `analyze_fwl_plot`
-
-Basic — the partial relationship of the outcome and a single regressor:
-
-```{python}
-ex.analyze_fwl_plot(df, dv="gini_regional", var="log_gdp_pc").fig
-```
-
-Advanced — residualize on the other cubic terms and two-way fixed effects, with the reported
-standard error clustered by country:
+The same coefficient, *seen*. `analyze_fwl_plot` uses the **Frisch–Waugh–Lovell** theorem:
+it residualizes both the outcome and the focal regressor (`log_gdp_pc`) on the *other* terms **and**
+the fixed effects, then scatters the two residuals. The fitted slope equals the focal coefficient in
+the table above — the multivariate estimate, reduced to a single readable picture.
 
 ```{python}
 ex.analyze_fwl_plot(
@@ -271,125 +115,222 @@ ex.analyze_fwl_plot(
 ).fig
 ```
 
-### `analyze_coefficient_plot`
+## Stage 2 — Enrich the estimation
 
-Basic:
-
-```{python}
-reg = ex.analyze_regression_table(
-    df, dvs="gini_regional", idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"]
-)
-ex.analyze_coefficient_plot(reg).fig
-```
-
-Advanced — compare pooled OLS and two-way fixed effects, keeping one term:
+`analyze_estimation` is the richer companion to the regression table: same OLS / fixed-effects core,
+plus **stepwise** model comparison, multiple outcomes, weights, and serial-correlation-robust
+standard errors (**Newey–West**, **Driscoll–Kraay**). A *cumulative-stepwise* (`csw`) comparison
+adds one curvature term at a time — watch the linear coefficient move as the quadratic and cubic
+enter, the signature of a genuinely non-linear relationship:
 
 ```{python}
-fe = ex.analyze_regression_table(
-    df, dvs="gini_regional", idvs=["log_gdp_pc"], feffects=["country", "year"]
-)
-poolg = ex.analyze_regression_table(df, dvs="gini_regional", idvs=["log_gdp_pc"])
-ex.analyze_coefficient_plot(
-    [poolg.models[0], fe.models[0]],
-    model_labels=["Pooled OLS", "Two-way FE"],
-    keep=["log_gdp_pc"],
-).fig
-```
-
-### `analyze_fixef_plot`
-
-The estimated fixed effects of a model, ranked:
-
-```{python}
-country_fe = ex.analyze_regression_table(
-    df, dvs="gini_regional", idvs=["log_gdp_pc"], feffects=["country", "year"]
-)
-ex.analyze_fixef_plot(country_fe, fixef="country", top_n=20).fig
-```
-
-### `analyze_predictions`
-
-```{python}
-ex.analyze_predictions(reg).df.head()
-```
-
-### `analyze_joint_test`
-
-```{python}
-joint = ex.analyze_joint_test(reg, ["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"])
-print(joint.summary())
-```
-
-### `analyze_panel_table`
-
-Pooled / between / fixed / random effects side by side:
-
-```{python}
-ex.analyze_panel_table(
-    df, dv="gini_regional", idvs=["log_gdp_pc"], entity="country", time="year"
+ex.analyze_estimation(
+    df,
+    dv="gini_regional",
+    idvs=["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"],
+    stepwise="csw",
 ).etable
 ```
 
-### `analyze_cre_table`
+## Stage 3 — Read the fitted model
 
-The correlated-random-effects (Mundlak) estimator — its `log_gdp_pc` coefficient equals the
-fixed-effects (within) estimate:
+A fitted model carries more than a coefficient table. The next three tools all take the **fitted
+result** from Stage 1 and interrogate it.
+
+`analyze_predictions` returns fitted values, residuals and actuals on the estimation sample — the
+raw material for residual diagnostics:
 
 ```{python}
-ex.analyze_cre_table(
-    df, dv="gini_regional", idvs=["log_gdp_pc"], entity="country", time="year"
-).df
+ex.analyze_predictions(fe).df.head()
 ```
 
-### `analyze_hausman_test`
+`analyze_fixef_plot` ranks the **country intercepts** the fixed effects absorbed — which countries
+sit structurally high or low on inequality, before development plays any role (top 20 shown):
 
 ```{python}
+ex.analyze_fixef_plot(fe, fixef="country", top_n=20).fig
+```
+
+`analyze_joint_test` runs a Wald test that the **curvature terms are jointly zero**. Rejecting it is
+the formal statement that the relationship really bends — that a straight line would not do:
+
+```{python}
+#| warning: false
+print(ex.analyze_joint_test(fe, ["log_gdp_pc_sq", "log_gdp_pc_cu"]).summary())
+```
+
+## Stage 4 — Stress-test the inference
+
+Cluster-robust standard errors lean on having *many* clusters. When that is in doubt, large-sample
+p-values can be over-confident. `analyze_robust_inference` offers two finite-sample alternatives:
+**randomization inference** (`ritest`) and the **wild cluster bootstrap** (`wildboot`). Here we test
+a determinant — does **trade openness** move inequality? — re-randomizing within country.
+
+::: {.callout-note}
+pyfixest's randomization inference needs an **integer** cluster code, so we add a numeric
+`country_id` alongside the string `country`.
+:::
+
+```{python}
+#| warning: false
+df = df.assign(country_id=df["country"].astype("category").cat.codes)
+trade_model = ex.analyze_regression_table(
+    df,
+    dvs="gini_regional",
+    idvs=["log_gdp_pc", "trade_share"],
+    feffects=["year"],
+    clusters=["country_id"],
+)
+ri = ex.analyze_robust_inference(
+    trade_model, "trade_share", method="ritest", reps=500, cluster="country_id", seed=0
+)
 print(
-    ex.analyze_hausman_test(
-        df, dv="gini_regional", idvs=["log_gdp_pc"], entity="country", time="year"
-    ).interpret()
+    f"Trade-share coefficient {ri.estimate:.3f}: randomization-inference "
+    f"p = {ri.p_value:.3f} over {ri.reps} permutations."
 )
 ```
 
-### `analyze_robust_inference`
+A randomization-inference p-value well above 0.05 is a useful caution: the association that an
+asymptotic cluster standard error might call significant does not survive a stricter, assumption-light
+test.
+
+## Stage 5 — Which panel estimator?
+
+Fixed effects are one choice among several. `analyze_panel_table` lays the classics side by side —
+**pooled**, **between** (cross-country means), **fixed** (within), and **random** effects:
 
 ```{python}
-clustered = ex.analyze_regression_table(
-    df, dvs="gini_regional", idvs=["log_gdp_pc"], feffects=["country"], clusters=["country"]
-)
-ri = ex.analyze_robust_inference(clustered, "log_gdp_pc", method="ritest", reps=200, seed=0)
-ri.p_value, ri.conf_int
+ex.analyze_panel_table(df, dv="gini_regional", idvs=["log_gdp_pc"]).etable
 ```
 
-### `analyze_panel_view`
+Fixed or random effects? Random effects is more efficient but assumes the country effect is
+uncorrelated with the regressors. `analyze_hausman_test` tests exactly that:
 
 ```{python}
-ex.analyze_panel_view(did, unit="unit", time="year", cohort="cohort").fig
+print(ex.analyze_hausman_test(df, dv="gini_regional", idvs=["log_gdp_pc"]).interpret())
 ```
 
-### `analyze_event_study`
-
-Basic — Gardner's `did2s`:
+`analyze_cre_table` gives the same comparison a more readable form: the **correlated random effects**
+(Mundlak) device augments a random-effects model with each regressor's country mean. The coefficient
+on `log_gdp_pc` then equals its fixed-effects (within) estimate, while a test on the *mean* terms is
+the regression-form Hausman test — one table that holds the within estimate, the between signal, and
+the specification test together:
 
 ```{python}
-es = ex.analyze_event_study(
-    did, outcome="outcome", unit="unit", time="year", cohort="cohort", estimator="did2s"
+cre = ex.analyze_cre_table(df, dv="gini_regional", idvs=["log_gdp_pc"])
+print(cre.interpret())
+```
+
+## Stage 6 — The flagship: Kuznets waves across estimators
+
+`analyze_kuznets_waves` is the synthesis. It fits the extended polynomial
+`gini = b_1*g + b_2*g^2 + ... + b_degree*g^degree` under **three estimators at once** — pooled OLS,
+between, and within two-way fixed effects — so you can read off the one question that matters:
+**is the N-shape a between-country pattern, a within-country pattern, or both?** Controls (here trade
+openness) are partialled out by Frisch–Waugh–Lovell before the component plots are drawn.
+
+```{python}
+waves = ex.analyze_kuznets_waves(df, controls=["trade_share"])
+waves.fig
+```
+
+The within (two-way FE) component plot isolates the wave that survives *inside* countries, net of
+common shocks — the most demanding test of the Kuznets hypothesis:
+
+```{python}
+waves.fig_within
+```
+
+```{python}
+print(waves.interpret())
+```
+
+The `.gt_pooled`, `.gt_between` and `.gt_within` tables hold the full cumulative-stepwise estimates
+behind each curve, and `.summary` reports the implied turning points.
+
+## Stage 7 — A related question: income convergence
+
+Inequality *between* countries depends on whether poorer economies are catching up. The convergence
+tools answer that for the income driver itself, `log_gdp_pc`.
+
+::: {.callout-warning}
+These estimators are designed for **long** balanced panels; the `kuznets` window is only 11 years
+(2015–2025), so read the results as an illustration of the *tools*, not a settled finding. For a
+full treatment on long panels see the dedicated notebooks for
+[β-convergence](https://colab.research.google.com/github/cmg777/expdpy/blob/main/notebooks/analyze_beta_convergence.ipynb),
+[σ-convergence](https://colab.research.google.com/github/cmg777/expdpy/blob/main/notebooks/analyze_sigma_convergence.ipynb)
+and [convergence clubs](https://colab.research.google.com/github/cmg777/expdpy/blob/main/notebooks/analyze_convergence_clubs.ipynb).
+:::
+
+`analyze_beta_convergence` asks whether initially **poorer** countries grow **faster** (β-convergence):
+it regresses annualized growth on the starting level and converts the slope into a *speed* and a
+*half-life*. With controls it reports the *conditional* version (a partial-residual plot) beside the
+unconditional one.
+
+```{python}
+beta = ex.analyze_beta_convergence(df, "log_gdp_pc")
+beta.fig
+```
+
+`analyze_sigma_convergence` tracks whether the **dispersion** of income across countries shrinks over
+time — the standard deviation, Gini and coefficient of variation per year, with a trend test (a
+negative slope is σ-convergence):
+
+```{python}
+ex.analyze_sigma_convergence(df, "log_gdp_pc").fig
+```
+
+`analyze_convergence_clubs` runs the **Phillips–Sul** log(t) test and, when a single converging group
+is rejected, clusters countries into **convergence clubs** that each approach their own path:
+
+```{python}
+clubs = ex.analyze_convergence_clubs(df, "log_gdp_pc")
+clubs.fig
+```
+
+## Stage 8 — A causal design: event study and DiD
+
+The tools so far describe associations. When a *determinant* is a datable policy or shock, a
+**difference-in-differences / event study** design can identify its dynamic effect. The `kuznets`
+panel has no such treatment, so we switch to the bundled `staggered_did` example — a panel where
+units adopt a treatment in different years.
+
+```{python}
+from expdpy.data import load_staggered_did, load_staggered_did_data_def
+
+did = ex.set_labels(
+    load_staggered_did(), load_staggered_did_data_def(), set_panel=True
 )
-print(es.interpret())
+```
+
+`analyze_panel_view` shows the **treatment structure** — who is treated and when — as a quilt over
+the unit-by-year grid, the first thing to inspect in any staggered design:
+
+```{python}
+ex.analyze_panel_view(did, cohort="cohort").fig
+```
+
+`analyze_event_study` traces the **dynamic treatment path** with a built-in pre-trend check, using a
+modern staggered-adoption estimator (Gardner's `did2s` here; `twfe`, Sun–Abraham `saturated` and
+`lpdid` are also available). Flat pre-trends and a clean post-treatment jump are what a credible
+design looks like:
+
+```{python}
+es = ex.analyze_event_study(did, outcome="outcome", cohort="cohort", estimator="did2s")
 es.fig
 ```
 
-Advanced — the Sun–Abraham (`saturated`) estimator, one curve per treatment cohort:
-
 ```{python}
-ex.analyze_event_study(
-    did, outcome="outcome", unit="unit", time="year", cohort="cohort", estimator="saturated"
-).fig
+print(es.interpret())
 ```
 
 ## Where to go next
 
-- [Learn panel data](learn.qmd) — the ideas behind fixed effects, demeaning, first
-  differences and CRE, with runnable sandboxes.
-- [Explore panel data](explore.qmd) — the EDA that precedes a model.
-- Prefer no code? Launch the [Analyze app](streamlit.qmd).
+You have fit the Kuznets curve, shown the N largely survives *within* countries under two-way fixed
+effects, stress-tested a determinant with randomization inference, chosen among panel estimators, and
+seen how a staggered DiD design would identify a policy effect.
+
+- [Explore panel data](explore.qmd) — the exploratory analysis that should precede every model.
+- [Learn panel data](learn.qmd) — the ideas behind fixed effects, demeaning, correlated random
+  effects and convergence, with runnable sandboxes.
+- Prefer no code? Launch the [Analyze app](streamlit.qmd) and click through these same tools.

@@ -122,6 +122,11 @@ def test_regression_renders_table():
     assert len(at.dataframe) >= 1  # coefficient table
 
 
+def test_postestimation_page_renders():
+    at = _page("postestimation")  # predictions / fixef / joint test / robust inference
+    assert not at.exception
+
+
 def test_sandboxes_page_renders_all_tabs():
     at = _page("sandboxes")
     assert not at.exception
@@ -180,31 +185,17 @@ def test_dynamics_page_renders():
     assert not at.exception
 
 
-def test_sigma_convergence_page_needs_full_panel():
+def test_convergence_page_needs_full_panel():
     full = [spec[0] for spec in selected_specs(_active("year", entities=["country"]))]
     ts_only = [spec[0] for spec in selected_specs(_active("year"))]  # no entity id
     cross = [spec[0] for spec in selected_specs(_active(None))]
-    assert "Sigma convergence" in full
-    assert "Sigma convergence" not in ts_only
-    assert "Sigma convergence" not in cross
+    assert "Convergence" in full
+    assert "Convergence" not in ts_only
+    assert "Convergence" not in cross
 
 
-def test_sigma_convergence_page_renders():
-    at = _page("sigma_convergence")  # default dataset (Kuznets) is a balanced panel
-    assert not at.exception
-
-
-def test_convergence_clubs_page_needs_full_panel():
-    full = [spec[0] for spec in selected_specs(_active("year", entities=["country"]))]
-    ts_only = [spec[0] for spec in selected_specs(_active("year"))]  # no entity id
-    cross = [spec[0] for spec in selected_specs(_active(None))]
-    assert "Convergence clubs" in full
-    assert "Convergence clubs" not in ts_only
-    assert "Convergence clubs" not in cross
-
-
-def test_convergence_clubs_page_renders():
-    at = _page("convergence_clubs")  # default dataset (Kuznets) is a balanced panel
+def test_convergence_page_renders():
+    at = _page("convergence")  # default dataset (Kuznets) is a balanced panel
     assert not at.exception
 
 
@@ -231,8 +222,8 @@ def test_each_module_shows_only_its_pages():
 
     assert "Overview & Data" in explore and "Trends" in explore
     assert "Regression" in analyze and "Panel models" in analyze
-    assert "Sigma convergence" in analyze
-    assert "Convergence clubs" in analyze
+    assert "Post-estimation" in analyze
+    assert "Convergence" in analyze
     assert "Concept sandboxes" in learn and "Concept explainers" in learn
     # The three modules partition the pages — no page appears in two of them.
     assert explore.isdisjoint(analyze) and analyze.isdisjoint(learn)
