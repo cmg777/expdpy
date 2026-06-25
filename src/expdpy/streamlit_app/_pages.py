@@ -343,6 +343,111 @@ def page_regression() -> None:
             )
         )
 
+        st.divider()
+        st.subheader("Stepwise estimation")
+        st.caption(
+            "A cumulative-stepwise (`csw`) comparison adds one regressor at a time — watch "
+            "each estimate move as terms enter. `analyze_estimation` also offers "
+            "serial-correlation-robust standard errors (Newey-West, Driscoll-Kraay) and weights."
+        )
+        if w.checkbox(
+            "Show cumulative-stepwise table", key="est_stepwise", default=True
+        ):
+            from expdpy import analyze_estimation
+
+            try:
+                est = analyze_estimation(
+                    active.sample, dv=y, idvs=valid_xs, stepwise="csw"
+                )
+            except Exception as exc:  # surface the message, keep the page alive
+                st.info(str(exc))
+            else:
+                if hasattr(est.etable, "as_raw_html"):
+                    st.html(est.etable.as_raw_html())
+                else:
+                    st.text(est.etable)
+
+
+def page_postestimation() -> None:
+    """Read a fitted model: predictions, absorbed fixed effects, joint test, robust inference."""
+    from expdpy import (
+        analyze_fixef_plot,
+        analyze_joint_test,
+        analyze_predictions,
+        analyze_regression_table,
+        analyze_robust_inference,
+    )
+
+    active = _active_or_stop()
+    st.header("Post-estimation")
+    if not _has(active, "regression"):
+        st.info("The regression component is disabled for this app.")
+        return
+    st.caption(
+        "Fit a model from the same controls as the Regression page, then interrogate it."
+    )
+    y = w.selectbox("Dependent variable", _numeric(active), key="reg_y")
+    xs = w.multiselect("Independent variables", _numeric(active), key="reg_x")
+    fe1 = w.selectbox("Fixed effect", _fe_choices(active), key="reg_fe1", none=True)
+    valid_xs = [x for x in xs if x not in (None, "", "None")]
+    if not (y and y != "None" and valid_xs):
+        st.info("Choose a dependent variable and at least one independent variable.")
+        return
+    fes = [fe1] if fe1 not in (None, "", "None") else []
+    try:
+        model = analyze_regression_table(
+            active.sample, dvs=y, idvs=valid_xs, feffects=fes
+        )
+    except Exception as exc:  # surface the message, keep the page alive
+        st.info(str(exc))
+        return
+
+    st.subheader("Predictions")
+    st.caption("Fitted values, residuals and actuals on the estimation sample.")
+    try:
+        st.dataframe(
+            analyze_predictions(model).df.head(20), width="stretch", hide_index=True
+        )
+    except Exception as exc:  # surface the message, keep the page alive
+        st.info(str(exc))
+
+    if fes:
+        st.subheader("Fixed-effect estimates")
+        st.caption("The group intercepts the fixed effects absorbed, ranked (top 20).")
+        _show_panel_result(
+            lambda: analyze_fixef_plot(model, fixef=fes[0], top_n=20), interpret=False
+        )
+
+    st.subheader("Joint (Wald) test")
+    st.caption("Test that a set of coefficients are jointly zero.")
+    hyps = w.multiselect(
+        "Coefficients jointly = 0", valid_xs, key="pe_hyps", default=valid_xs
+    )
+    valid_hyps = [h for h in hyps if h not in (None, "", "None")]
+    if valid_hyps:
+        try:
+            st.text(analyze_joint_test(model, valid_hyps).summary())
+        except Exception as exc:  # surface the message, keep the page alive
+            st.info(str(exc))
+
+    st.subheader("Robust inference (randomization)")
+    st.caption(
+        "A randomization-inference p-value for one coefficient — more cautious than the "
+        "asymptotic standard error when clusters are few."
+    )
+    param = w.selectbox("Coefficient", valid_xs, key="pe_param")
+    if st.button("Run randomization inference", key="pe_run"):
+        try:
+            ri = analyze_robust_inference(
+                model, param, method="ritest", reps=200, seed=0
+            )
+            st.write(
+                f"Estimate {ri.estimate:.4f} — randomization-inference p = "
+                f"{ri.p_value:.4f} over {ri.reps} permutations."
+            )
+        except Exception as exc:  # surface the message, keep the page alive
+            st.info(str(exc))
+
 
 # The page specs (title, icon, url_path, function, gate) are assembled at the bottom of this
 # module, once every page function and the ``_is_panel`` gate below have been defined.
@@ -493,11 +598,11 @@ def page_dynamics() -> None:
 
 
 def page_event_study() -> None:
-    """Event study / staggered difference-in-differences for a treated panel."""
-    from expdpy import analyze_event_study
+    """Treatment structure (panel view) and the event-study / staggered DiD path."""
+    from expdpy import analyze_event_study, analyze_panel_view
 
     active = _active_or_stop()
-    st.header("Event study & staggered DiD")
+    st.header("Event study & DiD")
     if not _is_panel(active):
         st.info("Event studies need a panel: a cross-section id and a time dimension.")
         return
@@ -520,6 +625,18 @@ def page_event_study() -> None:
         estimator = st.selectbox(
             "Estimator", ["did2s", "twfe", "saturated", "lpdid"], key="es_estimator"
         )
+
+    st.subheader("Treatment structure")
+    st.caption(
+        "Who is treated, and when — the first thing to inspect in a staggered design."
+    )
+    _show_panel_result(
+        lambda: analyze_panel_view(active.sample, unit=unit, time=time, cohort=cohort),
+        interpret=False,
+    )
+
+    st.divider()
+    st.subheader("Event study")
     try:
         res = analyze_event_study(
             active.sample,
@@ -599,91 +716,92 @@ def page_panel_models() -> None:
         st.markdown(cre.explain().to_markdown())
 
 
-def page_sigma_convergence() -> None:
-    """Track whether the cross-sectional dispersion of a variable shrinks over time."""
-    from expdpy import analyze_sigma_convergence
+def page_convergence() -> None:
+    """Do incomes converge? Beta, sigma, and Phillips-Sul club convergence side by side."""
+    from expdpy import (
+        analyze_beta_convergence,
+        analyze_convergence_clubs,
+        analyze_sigma_convergence,
+    )
 
     active = _active_or_stop()
-    st.header("Sigma convergence")
+    st.header("Convergence")
     if not _is_panel(active):
-        st.info(
-            "Sigma convergence needs a panel: a cross-section id and a time dimension."
-        )
+        st.info("Convergence needs a panel: a cross-section id and a time dimension.")
         return
     assert active.time is not None  # narrowed by _is_panel
     entity, time = active.entities[0], active.time
     st.caption(f"Entity: **{entity}** · Time: **{time}**")
-    var = st.selectbox("Variable", _numeric(active), key="sigma_var")
-    if not var or var == "None":
-        st.info("Choose a numeric variable to track its cross-sectional dispersion.")
-        return
-    try:
-        res = analyze_sigma_convergence(active.sample, var, entity=entity, time=time)
-    except Exception as exc:  # surface the message, keep the page alive
-        st.info(str(exc))
-        return
-    st.plotly_chart(res.fig, width="stretch", config=PLOTLY_CONFIG)
-    st.markdown(res.interpret())
-    for note in res.notes:
-        st.caption(f"⚠️ {note}")
-    with st.expander("❓ What is this? (method explainer)"):
-        st.markdown(res.explain().to_markdown())
+    nums = _numeric(active)
 
-
-def page_convergence_clubs() -> None:
-    """Find Phillips-Sul convergence clubs: the log(t) test plus data-driven clustering."""
-    from expdpy import analyze_convergence_clubs
-
-    active = _active_or_stop()
-    st.header("Convergence clubs")
-    if not _is_panel(active):
-        st.info(
-            "Convergence clubs need a balanced panel: a cross-section id and a time dimension."
+    st.subheader("Beta convergence")
+    st.caption(
+        "Do initially poorer units grow faster? (speed and half-life of catch-up.)"
+    )
+    beta_var = st.selectbox("Variable", nums, key="beta_var")
+    if beta_var and beta_var != "None":
+        _show_panel_result(
+            lambda: analyze_beta_convergence(
+                active.sample, beta_var, entity=entity, time=time
+            )
         )
-        return
-    assert active.time is not None  # narrowed by _is_panel
-    entity, time = active.entities[0], active.time
-    st.caption(f"Entity: **{entity}** · Time: **{time}**")
-    var = st.selectbox("Variable (pass it in logs)", _numeric(active), key="clubs_var")
-    if not var or var == "None":
-        st.info(
-            "Choose a numeric variable (e.g. log GDP per capita) to cluster into clubs."
-        )
-        return
+
+    st.divider()
+    st.subheader("Sigma convergence")
+    st.caption("Does the cross-sectional dispersion shrink over time?")
+    sigma_var = st.selectbox("Variable", nums, key="sigma_var")
+    if sigma_var and sigma_var != "None":
+        try:
+            sig = analyze_sigma_convergence(
+                active.sample, sigma_var, entity=entity, time=time
+            )
+        except Exception as exc:  # surface the message, keep the page alive
+            st.info(str(exc))
+        else:
+            st.plotly_chart(sig.fig, width="stretch", config=PLOTLY_CONFIG)
+            for note in sig.notes:
+                st.caption(f"⚠️ {note}")
+            with st.expander("Plain-language reading"):
+                st.markdown(sig.interpret())
+
+    st.divider()
+    st.subheader("Convergence clubs")
+    st.caption("Phillips-Sul log(t) test plus data-driven clustering into clubs.")
+    clubs_var = st.selectbox("Variable (pass it in logs)", nums, key="clubs_var")
     col1, col2 = st.columns(2)
     use_hp = col1.checkbox("HP-filter trend (lambda=400)", value=True, key="clubs_hp")
     merge = col2.selectbox(
         "Merge adjacent clubs", ("iterative", "single", "none"), key="clubs_merge"
     )
-    try:
-        res = analyze_convergence_clubs(
-            active.sample,
-            var,
-            entity=entity,
-            time=time,
-            filter="hp" if use_hp else None,
-            merge=cast('Literal["iterative", "single", "none"]', merge),
-        )
-    except Exception as exc:  # surface the message, keep the page alive
-        st.info(str(exc))
-        return
-    if res.converged:
-        st.success(
-            f"The whole panel converges (global log(t) t = {res.global_tstat:.2f} > -1.65): "
-            "a single convergence club."
-        )
-    else:
-        st.info(
-            f"Global convergence rejected (t = {res.global_tstat:.2f}). "
-            f"{res.n_clubs} club(s); {res.n_divergent} divergent unit(s)."
-        )
-    st.plotly_chart(res.fig, width="stretch", config=PLOTLY_CONFIG)
-    st.dataframe(res.summary, width="stretch", hide_index=True)
-    st.markdown(res.interpret())
-    for note in res.notes:
-        st.caption(f"⚠️ {note}")
-    with st.expander("❓ What is this? (method explainer)"):
-        st.markdown(res.explain().to_markdown())
+    if clubs_var and clubs_var != "None":
+        try:
+            clubs = analyze_convergence_clubs(
+                active.sample,
+                clubs_var,
+                entity=entity,
+                time=time,
+                filter="hp" if use_hp else None,
+                merge=cast('Literal["iterative", "single", "none"]', merge),
+            )
+        except Exception as exc:  # surface the message, keep the page alive
+            st.info(str(exc))
+        else:
+            if clubs.converged:
+                st.success(
+                    f"The whole panel converges (global log(t) t = {clubs.global_tstat:.2f} "
+                    "> -1.65): a single convergence club."
+                )
+            else:
+                st.info(
+                    f"Global convergence rejected (t = {clubs.global_tstat:.2f}). "
+                    f"{clubs.n_clubs} club(s); {clubs.n_divergent} divergent unit(s)."
+                )
+            st.plotly_chart(clubs.fig, width="stretch", config=PLOTLY_CONFIG)
+            st.dataframe(clubs.summary, width="stretch", hide_index=True)
+            for note in clubs.notes:
+                st.caption(f"⚠️ {note}")
+            with st.expander("Plain-language reading"):
+                st.markdown(clubs.interpret())
 
 
 def page_kuznets_waves() -> None:
@@ -803,13 +921,14 @@ _PAGE_SPECS: list[PageSpec] = [
         ["corrplot", "scatter_plot"],
     ),
     ("Dynamics", "🔁", "dynamics", page_dynamics, _is_panel),
-    # Analyze
+    # Analyze (in the docs case-study order: fit -> read it -> choose the estimator ->
+    # the flagship curve -> a related convergence question -> a causal design)
     ("Regression", "🧮", "regression", page_regression, ["regression"]),
-    ("Event study & DiD", "🎯", "event_study", page_event_study, _is_panel),
+    ("Post-estimation", "🔎", "postestimation", page_postestimation, ["regression"]),
     ("Panel models", "🪧", "panel_models", page_panel_models, _is_panel),
-    ("Sigma convergence", "📉", "sigma_convergence", page_sigma_convergence, _is_panel),
-    ("Convergence clubs", "🧩", "convergence_clubs", page_convergence_clubs, _is_panel),
     ("Kuznets waves", "🌊", "kuznets_waves", page_kuznets_waves, _is_panel),
+    ("Convergence", "📉", "convergence", page_convergence, _is_panel),
+    ("Event study & DiD", "🎯", "event_study", page_event_study, _is_panel),
     # Learn
     ("Concept sandboxes", "🧪", "sandboxes", page_sandboxes, None),
     ("Concept explainers", "📚", "explainers", page_explainers, None),
@@ -826,11 +945,11 @@ _MODULE: dict[str, str] = {
     "correlations": "explore",
     "dynamics": "explore",
     "regression": "analyze",
-    "event_study": "analyze",
+    "postestimation": "analyze",
     "panel_models": "analyze",
-    "sigma_convergence": "analyze",
-    "convergence_clubs": "analyze",
     "kuznets_waves": "analyze",
+    "convergence": "analyze",
+    "event_study": "analyze",
     "sandboxes": "learn",
     "explainers": "learn",
 }

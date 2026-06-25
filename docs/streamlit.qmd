@@ -55,8 +55,8 @@ switch between in the navigation menu.
 Each app exposes the pages for its module, ordered as the [Explore](explore.qmd) case study
 runs: *know the panel → describe it → split its variation → trends → groups → relationships →
 dynamics*. Time-series and panel-only pages and components (Trends, Within & between, Dynamics,
-missing values, by-group trend, event study, panel models) are **hidden automatically for
-cross-sectional data**.
+missing values, by-group trend, Panel models, Kuznets waves, Convergence, Event study & DiD)
+are **hidden automatically for cross-sectional data**.
 
 ### Explore app
 
@@ -72,11 +72,18 @@ cross-sectional data**.
 
 ### Analyze app
 
+The Analyze pages follow the [Analyze](analyze.qmd) case study: *fit a first model → read it →
+choose the panel estimator → the flagship Kuznets curve → a related convergence question → a
+causal design*.
+
 | Page | Components |
 |---|---|
-| **Regression** | OLS with fixed effects and clustered standard errors — with plain-language interpretation, a method explainer, a coefficient plot and the Frisch–Waugh–Lovell plot |
-| **Event study & DiD** | staggered difference-in-differences / event study and the treatment-structure panel view (panel data) |
+| **Regression** | OLS with fixed effects and clustered standard errors, a coefficient plot, the Frisch–Waugh–Lovell plot, and a cumulative-stepwise estimation table |
+| **Post-estimation** | fitted-value predictions, the absorbed fixed effects, a joint (Wald) test, and randomization-inference robustness (panel data) |
 | **Panel models** | pooled / between / fixed / random effects, the Hausman test, and correlated random effects (Mundlak) (panel data) |
+| **Kuznets waves** | the extended Kuznets curve under pooled / between / within estimators, with turning points (panel data) |
+| **Convergence** | β-convergence, σ-convergence, and Phillips–Sul convergence clubs (panel data) |
+| **Event study & DiD** | the treatment-structure panel view and a staggered difference-in-differences / event study (panel data) |
 
 ### Learn app
 
