@@ -90,8 +90,8 @@ def test_app_runs_bundle_kuznets(monkeypatch):
 # --- individual pages ---------------------------------------------------------
 # Variables are picked from the widgets' actual options so these stay valid regardless
 # of which bundled dataset is the picker default.
-def test_distributions_histogram():
-    at = _page("distributions")
+def test_describe_histogram():
+    at = _page("describe")
     assert not at.exception
     var = at.selectbox(key="hist_var")
     var.set_value(var.options[0])
@@ -160,17 +160,23 @@ def test_trends_page_only_for_panel():
     assert "Overview & Data" in panel and "Overview & Data" in cross
 
 
-def test_panel_structure_page_needs_full_panel():
+def test_panel_pages_need_full_panel():
     full = [spec[0] for spec in selected_specs(_active("year", entities=["country"]))]
     ts_only = [spec[0] for spec in selected_specs(_active("year"))]  # no entity id
     cross = [spec[0] for spec in selected_specs(_active(None))]
-    assert "Panel structure" in full
-    assert "Panel structure" not in ts_only
-    assert "Panel structure" not in cross
+    for page in ("Within & between", "Dynamics"):
+        assert page in full
+        assert page not in ts_only
+        assert page not in cross
 
 
-def test_panel_structure_page_renders():
-    at = _page("panel_structure")  # default dataset (Kuznets) is a full panel
+def test_within_between_page_renders():
+    at = _page("within_between")  # default dataset (Kuznets) is a full panel
+    assert not at.exception
+
+
+def test_dynamics_page_renders():
+    at = _page("dynamics")  # default dataset (Kuznets) is a full panel
     assert not at.exception
 
 

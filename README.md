@@ -146,8 +146,8 @@ pip install "expdpy[streamlit] @ git+https://github.com/cmg777/expdpy.git"
 Pin to a release, branch, or commit for reproducible installs:
 
 ```bash
-pip install "expdpy==0.4.14"
-pip install "git+https://github.com/cmg777/expdpy.git@v0.4.14"
+pip install "expdpy==0.4.15"
+pip install "git+https://github.com/cmg777/expdpy.git@v0.4.15"
 pip install "git+https://github.com/cmg777/expdpy.git@main"
 ```
 
