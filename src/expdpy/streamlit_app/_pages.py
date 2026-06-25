@@ -453,15 +453,25 @@ def page_postestimation() -> None:
 # module, once every page function and the ``_is_panel`` gate below have been defined.
 
 
+def _show_sandbox(res: Any) -> None:
+    """Render a ``learn_*`` sandbox result: figure, inline reading, explainer expander."""
+    st.plotly_chart(res.fig, width="stretch", config=PLOTLY_CONFIG)
+    st.markdown(res.interpret())
+    with st.expander("❓ What is this?"):
+        st.markdown(res.explain().to_markdown())
+
+
 def page_sandboxes() -> None:
     """Interactive teaching demos that simulate data — no dataset required."""
     from expdpy import (
         learn_beta_convergence,
         learn_clustering_se,
+        learn_convergence_clubs,
         learn_first_differences,
         learn_kuznets_waves,
         learn_omitted_variable_bias,
         learn_pooled_vs_fixed_effects,
+        learn_sigma_convergence,
         learn_within_vs_lsdv,
     )
 
@@ -470,57 +480,53 @@ def page_sandboxes() -> None:
         "Simulated demonstrations — turn the knobs to see each concept in action. "
         "These need no dataset."
     )
+    # Ordered as the Learn case study runs: the within-transformation identity, why fixed
+    # effects matter, two inference classics, convergence, then the Kuznets wave.
     tabs = st.tabs(
         [
-            "Omitted-variable bias",
-            "Pooled vs fixed effects",
-            "Clustered standard errors",
             "First differences",
             "Within vs LSDV",
+            "Pooled vs fixed effects",
+            "Omitted-variable bias",
+            "Clustered standard errors",
             "Beta convergence",
+            "Sigma convergence",
+            "Convergence clubs",
             "Kuznets waves",
         ]
     )
     with tabs[0]:
-        corr = st.slider(
-            "Correlation between x and the omitted z", 0.0, 0.95, 0.6, 0.05
-        )
-        bz = st.slider("Effect of the omitted z", -2.0, 2.0, 1.0, 0.25)
-        res = learn_omitted_variable_bias(corr_xz=corr, beta_z=bz)
-        st.plotly_chart(res.fig, width="stretch", config=PLOTLY_CONFIG)
-        st.markdown(res.interpret())
-        with st.expander("❓ What is this?"):
-            st.markdown(res.explain().to_markdown())
-    with tabs[1]:
-        uc = st.slider(
-            "Correlation between x and the unit effect", 0.0, 0.95, 0.8, 0.05
-        )
-        res = learn_pooled_vs_fixed_effects(unit_effect_corr=uc)
-        st.plotly_chart(res.fig, width="stretch", config=PLOTLY_CONFIG)
-        st.markdown(res.interpret())
-        with st.expander("❓ What is this?"):
-            st.markdown(res.explain().to_markdown())
-    with tabs[2]:
-        icc = st.slider("Intra-cluster correlation (ICC)", 0.0, 0.9, 0.3, 0.05)
-        res = learn_clustering_se(icc=icc)
-        st.plotly_chart(res.fig, width="stretch", config=PLOTLY_CONFIG)
-        st.markdown(res.interpret())
-        with st.expander("❓ What is this?"):
-            st.markdown(res.explain().to_markdown())
-    with tabs[3]:
         periods = st.slider("Periods per unit", 2, 8, 2, 1, key="fd_periods")
-        res = learn_first_differences(n_periods=int(periods))
-        st.plotly_chart(res.fig, width="stretch", config=PLOTLY_CONFIG)
-        st.markdown(res.interpret())
-        with st.expander("❓ What is this?"):
-            st.markdown(res.explain().to_markdown())
-    with tabs[4]:
+        _show_sandbox(learn_first_differences(n_periods=int(periods)))
+    with tabs[1]:
         periods = st.slider("Periods per unit", 2, 12, 6, 1, key="wl_periods")
-        res = learn_within_vs_lsdv(n_periods=int(periods))
-        st.plotly_chart(res.fig, width="stretch", config=PLOTLY_CONFIG)
-        st.markdown(res.interpret())
-        with st.expander("❓ What is this?"):
-            st.markdown(res.explain().to_markdown())
+        _show_sandbox(learn_within_vs_lsdv(n_periods=int(periods)))
+    with tabs[2]:
+        uc = st.slider(
+            "Correlation between x and the unit effect",
+            0.0,
+            0.95,
+            0.8,
+            0.05,
+            key="pfe_uc",
+        )
+        _show_sandbox(learn_pooled_vs_fixed_effects(unit_effect_corr=uc))
+    with tabs[3]:
+        corr = st.slider(
+            "Correlation between x and the omitted z",
+            0.0,
+            0.95,
+            0.6,
+            0.05,
+            key="ovb_corr",
+        )
+        bz = st.slider("Effect of the omitted z", -2.0, 2.0, 1.0, 0.25, key="ovb_bz")
+        _show_sandbox(learn_omitted_variable_bias(corr_xz=corr, beta_z=bz))
+    with tabs[4]:
+        icc = st.slider(
+            "Intra-cluster correlation (ICC)", 0.0, 0.9, 0.3, 0.05, key="cl_icc"
+        )
+        _show_sandbox(learn_clustering_se(icc=icc))
     with tabs[5]:
         rho = st.slider(
             "AR(1) persistence rho (higher = slower convergence)",
@@ -541,21 +547,29 @@ def page_sandboxes() -> None:
         gamma = st.slider(
             "Loading on the determinant z", 0.0, 2.0, 0.6, 0.1, key="bc_g"
         )
-        res = learn_beta_convergence(rho=rho, corr=corr, gamma=gamma)
-        st.plotly_chart(res.fig, width="stretch", config=PLOTLY_CONFIG)
-        st.markdown(res.interpret())
-        with st.expander("❓ What is this?"):
-            st.markdown(res.explain().to_markdown())
+        _show_sandbox(learn_beta_convergence(rho=rho, corr=corr, gamma=gamma))
     with tabs[6]:
+        rho = st.slider(
+            "Contraction rate rho (lower = faster convergence)",
+            0.5,
+            0.99,
+            0.93,
+            0.01,
+            key="sc_rho",
+        )
+        _show_sandbox(learn_sigma_convergence(rho=rho))
+    with tabs[7]:
+        rho = st.slider(
+            "Within-club AR(1) persistence rho", 0.5, 0.99, 0.9, 0.01, key="cc_rho"
+        )
+        spread = st.slider("Within-club spread", 0.1, 1.0, 0.4, 0.05, key="cc_spread")
+        _show_sandbox(learn_convergence_clubs(rho=rho, spread=spread))
+    with tabs[8]:
         n_units = st.slider("Number of units", 30, 150, 80, 10, key="kw_units")
         within_sd = st.slider(
             "Within-unit spread of development", 0.3, 2.0, 0.9, 0.1, key="kw_within"
         )
-        res = learn_kuznets_waves(n_units=int(n_units), within_sd=within_sd)
-        st.plotly_chart(res.fig, width="stretch", config=PLOTLY_CONFIG)
-        st.markdown(res.interpret())
-        with st.expander("❓ What is this?"):
-            st.markdown(res.explain().to_markdown())
+        _show_sandbox(learn_kuznets_waves(n_units=int(n_units), within_sd=within_sd))
 
 
 def _is_panel(active: Active) -> bool:

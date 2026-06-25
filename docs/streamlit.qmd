@@ -89,8 +89,8 @@ causal design*.
 
 | Page | Components |
 |---|---|
-| **Concept sandboxes** | simulated teaching demos — omitted-variable bias, pooled-vs-fixed-effects, clustering, first differences, within vs LSDV |
-| **Concept explainers** | a browsable index of every concept explainer (`list_topics()` / `explain()`) |
+| **Concept sandboxes** | nine simulated teaching demos — first differences, within vs LSDV, pooled vs fixed effects, omitted-variable bias, clustered standard errors, and β / σ / club convergence plus the Kuznets wave |
+| **Concept explainers** | a browsable index of all 27 concept explainers (`list_topics()` / `explain()`) |
 
 ![The Analyze app's Regression page: the cubic in log GDP per capita recovers the N — a native coefficient table with significance stars and fit statistics.](images/streamlit-regression.png)
 

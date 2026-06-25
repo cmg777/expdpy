@@ -12,27 +12,38 @@ jupyter: python3
 </p>
 ```
 
-The **Learn** module is the teaching layer. Every result speaks plain language through
-`.interpret()` and `.explain()`; **concept sandboxes** simulate data so you can *see* and tune
-an idea; and **concept explainers** give a what / when / caveats summary for every method.
+The **Learn** module is the teaching layer behind the rest of the library. The [Explore](explore.qmd)
+and [Analyze](analyze.qmd) case studies leaned on a handful of ideas — within vs between variation,
+fixed effects, clustered standard errors, convergence, the Kuznets wave. This page explains *why*
+those moves work, **two complementary ways**:
 
-This page is a short guided tour of the core panel-data ideas — first differences, demeaning
-and dummy variables, and the fixed-vs-random-effects choice — followed by the full sandbox
-and explainer galleries.
+1. **A plain-language layer on every result.** Each `explore_*` / `analyze_*` result can explain
+   itself with `.interpret()` (an associational reading) and `.explain()` (a concept explainer).
+2. **Simulated sandboxes.** Each `learn_*` function generates its *own* data from known parameters,
+   so you can see an estimator hit — or miss — a truth you control, and turn the knobs.
+
+Read it top to bottom: we start from the real Kuznets model you fit in Analyze, browse the concept
+index, then isolate each idea in a sandbox — the mechanics of fixed effects, two inference classics,
+convergence, and the Kuznets wave itself.
+
+::: {.callout-note}
+The sandboxes *simulate* data to make a teaching point; the `.interpret()` text is always
+**associational** (never a causal claim). The `correlation_vs_causation` explainer spells out what a
+causal reading would additionally require.
+:::
 
 ```{python}
 import expdpy as ex
 from expdpy.data import load_kuznets, load_kuznets_data_def
 
-# `set_labels` attaches the data dictionary's human-readable labels, so the figures and
-# tables on this page read with full labels.
-df = ex.set_labels(load_kuznets(), load_kuznets_data_def())
+df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
 ```
 
-## Read a model in plain language
+## Stage 1 — Read a real result in plain language
 
-Fit a model anywhere in [Analyze](analyze.qmd), then ask it to explain itself. `.interpret()`
-gives an **associational** reading (never a causal claim unless the design supports it):
+Fit a model anywhere in [Analyze](analyze.qmd), then ask it to explain itself. Here is the two-way
+fixed-effects cubic Kuznets curve from the Analyze case study. `.interpret()` gives an
+**associational** reading of what was estimated:
 
 ```{python}
 res = ex.analyze_regression_table(
@@ -45,14 +56,44 @@ res = ex.analyze_regression_table(
 print(res.interpret())
 ```
 
-`.explain()` — or `ex.explain(topic)` — returns a concept explainer; `ex.list_topics()` lists
-every topic:
+`.explain()` returns the **concept explainer** for the method — what it is, when to use it, and its
+caveats — the same content as `ex.explain("fixed_effects")`:
+
+```{python}
+print(res.explain().to_markdown())
+```
+
+Every `explore_*` and `analyze_*` result carries these two methods. The rest of this page is the
+ideas they describe, isolated one at a time.
+
+## Stage 2 — The browsable concept index
+
+`ex.list_topics()` returns every registered concept explainer (currently 27); pass any of them (or
+an alias) to `ex.explain(...)`:
+
+```{python}
+ex.list_topics()
+```
 
 ```{python}
 ex.explain("fixed_effects")
 ```
 
-## The core identity: first differences ≈ demeaning ≈ dummy variables
+The full catalog, grouped by theme — every entry is a key you can pass to `ex.explain(...)`:
+
+| Theme | Explainer topics |
+|---|---|
+| OLS & regression | `ols`, `fwl`, `omitted_variable_bias`, `descriptive_stats` |
+| Panel structure & variation | `panel_structure`, `within_between_variation`, `time_trends`, `transition_matrix` |
+| Fixed effects & the within transform | `fixed_effects`, `within_transformation`, `dummy_variables`, `first_differences` |
+| Random effects, CRE & Hausman | `random_effects`, `correlated_random_effects`, `hausman` |
+| Standard errors & inference | `clustered_se` |
+| Convergence | `beta_convergence`, `sigma_convergence`, `convergence_clubs`, `kuznets_waves` |
+| Causal designs / DiD | `event_study`, `parallel_trends`, `correlation_vs_causation` |
+| Correlation | `pearson`, `spearman` |
+| Outlier treatment | `winsorize`, `truncate` |
+
+## Stage 3 — The core identity: first differences ≈ demeaning ≈ dummy variables
 
 A unit fixed effect is anything constant within a unit over time. Three transformations all
 **remove** it and recover the same within-unit slope:
@@ -61,9 +102,9 @@ A unit fixed effect is anything constant within a unit over time. Three transfor
 - **The within transformation (demeaning)** subtracts each unit's time-average.
 - **Least-squares dummy variables (LSDV)** add one dummy per unit to an OLS regression.
 
-`learn_first_differences` simulates a panel where the regressor is correlated with the unit
-effect (so pooled OLS is biased) and recovers the slope by first differences and by demeaning.
-On a two-period panel the two coincide exactly, and both recover the truth:
+`learn_first_differences` simulates a panel where the regressor is correlated with the unit effect
+(so pooled OLS is biased) and recovers the slope by first differences and by demeaning. On a
+two-period panel the two coincide exactly, and both recover the truth:
 
 ```{python}
 fd = ex.learn_first_differences(n_periods=2)
@@ -71,29 +112,18 @@ print(fd.interpret())
 fd.fig
 ```
 
-`learn_within_vs_lsdv` shows that demeaning and unit dummies give the **identical** slope —
-the Frisch–Waugh–Lovell theorem at work — for any number of periods:
+`learn_within_vs_lsdv` shows that demeaning and unit dummies give the **identical** slope — the
+Frisch–Waugh–Lovell theorem at work — for any number of periods:
 
 ```{python}
-wl = ex.learn_within_vs_lsdv(n_periods=6)
-print(wl.interpret())
-wl.fig
+ex.learn_within_vs_lsdv(n_periods=6).fig
 ```
 
-The matching explainers spell out when to reach for each:
+## Stage 4 — Why fixed effects matter
 
-```{python}
-ex.explain("first_differences")
-```
-
-```{python}
-ex.explain("dummy_variables")
-```
-
-## Fixed vs random effects, and the Mundlak bridge
-
-Pooled OLS is biased when the unit effects are correlated with the regressor; fixed effects
-fix it by using only within-unit variation:
+`learn_pooled_vs_fixed_effects` makes the bias concrete: when the unit effect is correlated with the
+regressor, pooled OLS is biased, and using only within-unit variation (fixed effects) recovers the
+true slope. This is exactly the move the Analyze case study made on the Kuznets curve.
 
 ```{python}
 pf = ex.learn_pooled_vs_fixed_effects(unit_effect_corr=0.8)
@@ -101,83 +131,37 @@ print(pf.interpret())
 pf.fig
 ```
 
-The **correlated random effects (Mundlak)** estimator builds a bridge between the two — see
-its explainer, and `analyze_cre_table` in [Analyze](analyze.qmd):
+The **correlated random effects (Mundlak)** estimator bridges fixed and random effects — see its
+explainer, and `analyze_cre_table` in [Analyze](analyze.qmd):
 
 ```{python}
 ex.explain("correlated_random_effects")
 ```
 
-## Two more classics
+## Stage 5 — Two inference classics
 
-**Omitted-variable bias** — what happens to a coefficient when a correlated confounder is left
-out:
+**Omitted-variable bias** — what happens to a coefficient when a correlated confounder is left out.
+The short regression is biased; controlling for the confounder recovers the truth:
 
 ```{python}
 ex.learn_omitted_variable_bias(corr_xz=0.6).fig
 ```
 
-**Clustered standard errors** — why ignoring within-cluster correlation understates
-uncertainty:
+**Clustered standard errors** — clustering changes the *standard error*, not the point estimate.
+Ignoring within-cluster correlation understates uncertainty (the bars shrink too far):
 
 ```{python}
 ex.learn_clustering_se(icc=0.3).fig
 ```
 
-## Explainer index
+## Stage 6 — Convergence, simulated
 
-`ex.list_topics()` returns every registered concept explainer; pass any of them (or an alias)
-to `ex.explain(...)`:
+The Analyze case study asked whether incomes converge. These sandboxes plant a *known* answer so you
+can watch each tool recover it.
 
-```{python}
-ex.list_topics()
-```
-
-```{python}
-print(ex.explain("clustered_se"))
-```
-
-## Sandbox gallery
-
-Every sandbox returns a figure, a small comparison table (`.df`), a `summary` of the facts it
-turns on, and a plain-language `.interpret()`.
-
-### `learn_omitted_variable_bias`
-
-```{python}
-ex.learn_omitted_variable_bias(corr_xz=0.6).fig
-```
-
-### `learn_pooled_vs_fixed_effects`
-
-```{python}
-ex.learn_pooled_vs_fixed_effects(unit_effect_corr=0.8).fig
-```
-
-### `learn_clustering_se`
-
-```{python}
-ex.learn_clustering_se(icc=0.4).fig
-```
-
-### `learn_first_differences`
-
-```{python}
-ex.learn_first_differences(n_periods=2).fig
-```
-
-### `learn_within_vs_lsdv`
-
-```{python}
-ex.learn_within_vs_lsdv(n_periods=6).fig
-```
-
-### `learn_beta_convergence`
-
-Absolute vs. **conditional** convergence on a known-parameter AR(1) panel: omitting a
-steady-state determinant biases the unconditional slope; conditioning on it recovers the true
-convergence slope. See [`analyze_beta_convergence`](analyze_beta_convergence.qmd) for the full
-analysis on real data.
+`learn_beta_convergence` — absolute vs **conditional** convergence on a known-parameter AR(1) panel:
+omitting a steady-state determinant biases the unconditional slope; conditioning on it recovers the
+true convergence speed. (See [`analyze_beta_convergence`](analyze_beta_convergence.qmd) on real data.)
 
 ```{python}
 bc = ex.learn_beta_convergence(rho=0.9, gamma=0.6, corr=0.7)
@@ -185,34 +169,42 @@ print(bc.interpret())
 bc.fig
 ```
 
-### `learn_sigma_convergence`
-
-σ-convergence on a panel whose cross-sectional dispersion narrows at a **known** rate: every
-unit's value contracts toward a common mean, so the standard deviation, the Gini index and the
-coefficient of variation all shrink at the log-rate `ln(rho)` — and the function recovers it. See
-[`analyze_sigma_convergence`](analyze_sigma_convergence.qmd) for the full analysis on real data.
+`learn_sigma_convergence` — a panel whose cross-sectional dispersion narrows at a **known** rate:
+the standard deviation, the Gini index and the coefficient of variation all shrink at the log-rate
+`ln(rho)`, and the function recovers it. (See
+[`analyze_sigma_convergence`](analyze_sigma_convergence.qmd) on real data.)
 
 ```{python}
-sc = ex.learn_sigma_convergence(rho=0.93)
-print(sc.interpret())
-sc.fig
+ex.learn_sigma_convergence(rho=0.93).fig
 ```
 
-### `learn_convergence_clubs`
-
-Club convergence on a panel with a **planted** structure: each unit belongs to one of several
-clubs that converge to distinct levels, so the panel does not converge globally but the
-Phillips–Sul clustering algorithm recovers the clubs — without being told they exist. See
-[`analyze_convergence_clubs`](analyze_convergence_clubs.qmd) for the full workflow on real data.
+`learn_convergence_clubs` — a panel with a **planted** club structure: each unit belongs to one of
+several clubs converging to distinct levels, so the panel does not converge globally, yet the
+Phillips–Sul clustering algorithm recovers the clubs without being told they exist. (See
+[`analyze_convergence_clubs`](analyze_convergence_clubs.qmd) on real data.)
 
 ```{python}
-cc = ex.learn_convergence_clubs()
-print(cc.interpret())
-cc.fig
+ex.learn_convergence_clubs().fig
+```
+
+## Stage 7 — The Kuznets wave, simulated
+
+`learn_kuznets_waves` is the teaching counterpart to the flagship `analyze_kuznets_waves`. It plants
+a **known** polynomial wave into a panel and fits it under three estimators. The within and pooled
+estimators recover the true top-order coefficient; the **between** estimator differs — because the
+average of a nonlinear function is not the function of the average. That gap is exactly why the
+Analyze case study asked whether the N-shape was a within- or a between-country pattern.
+
+```{python}
+kw = ex.learn_kuznets_waves()
+print(kw.interpret())
+kw.fig
 ```
 
 ## Where to go next
 
-- [Explore panel data](explore.qmd) — describe your data first.
-- [Analyze panel data](analyze.qmd) — the estimators these ideas underpin.
+- [Explore panel data](explore.qmd) — describe your data before you model it.
+- [Analyze panel data](analyze.qmd) — the estimators these ideas underpin, on the real Kuznets panel.
+- Browse every concept explainer in the [API reference](reference/index.qmd), or pass any
+  `list_topics()` key to `ex.explain(...)`.
 - Prefer no code? Launch the [Learn app](streamlit.qmd) — the sandboxes and explainers, interactive.
