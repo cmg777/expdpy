@@ -139,11 +139,13 @@ quartodoc:
         - learn_kuznets_waves
     - title: Utilities
       desc: >-
-        Cross-cutting helpers shared across modules — panel declaration, outlier
-        treatment, and the concept-explainer registry.
+        Cross-cutting helpers shared across modules — panel declaration,
+        data-dictionary inference, outlier treatment, and the concept-explainer
+        registry.
       contents:
         - set_panel
         - resolve_panel
+        - build_data_def
         - treat_outliers
         - explain
         - list_topics

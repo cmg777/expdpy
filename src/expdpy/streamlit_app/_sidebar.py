@@ -15,6 +15,8 @@ from dataclasses import dataclass
 import pandas as pd
 import streamlit as st
 
+from expdpy import build_data_def, set_labels, set_panel
+from expdpy.data import _normalize_def
 from expdpy.streamlit_app import _handoff as handoff
 from expdpy.streamlit_app import _pipeline as pipeline
 from expdpy.streamlit_app import _widgets as w
@@ -25,6 +27,15 @@ from expdpy.streamlit_app._export_nb import build_export_zip
 from expdpy.streamlit_app._state import parse_config
 from expdpy.streamlit_app._upload import read_uploaded
 from expdpy.streamlit_app._varcat import VarCats
+
+#: The five columns of a data dictionary (df_def), in order.
+_DDEF_COLUMNS = ["var_name", "var_def", "label", "type", "can_be_na"]
+
+#: The allowed ``type`` values for a data dictionary (df_def).
+_DDEF_TYPES = ["entity", "time", "factor", "logical", "numeric"]
+
+#: Stored-widget values that are *not* column names and so survive a dataset switch.
+_RESET_SKIP_VALUES = {"None", "All", "Full Sample", "1", "2", "3", "4", "5"}
 
 __all__ = [
     "Active",
@@ -62,9 +73,9 @@ def _load_dataset(name: str) -> tuple[pd.DataFrame, pd.DataFrame]:
     return loader(), def_loader()
 
 
-def _parse_upload(up) -> tuple[pd.DataFrame, str]:
-    """Parse an uploaded file once, caching by its Streamlit ``file_id``."""
-    cache = st.session_state.get("_upload_cache", {})
+def _parse_file(up, cache_key: str) -> pd.DataFrame:
+    """Parse an uploaded file once, caching it under ``cache_key`` by Streamlit ``file_id``."""
+    cache = st.session_state.get(cache_key, {})
     if cache.get("id") != up.file_id:
         suffix = os.path.splitext(up.name)[1]
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
@@ -75,8 +86,116 @@ def _parse_upload(up) -> tuple[pd.DataFrame, str]:
         finally:
             os.unlink(path)
         cache = {"id": up.file_id, "name": up.name, "df": df}
-        st.session_state["_upload_cache"] = cache
-    return cache["df"], cache["name"]
+        st.session_state[cache_key] = cache
+    return cache["df"]
+
+
+def _editable_data_def(
+    df: pd.DataFrame, data_id: str, factor_cutoff: int
+) -> pd.DataFrame:
+    """Show an editable auto-built data dictionary; return the *applied* df_def.
+
+    The dictionary is inferred once per ``data_id`` (so a new upload re-guesses), shown in an
+    ``st.data_editor``, and only drives the analysis once the user clicks **Apply** — so edits
+    don't churn every figure mid-typing.
+    """
+    if st.session_state.get("_ddef_seed_id") != data_id:
+        guess = build_data_def(df, factor_cutoff=factor_cutoff).to_dict("records")
+        st.session_state["_ddef_rows"] = guess
+        st.session_state["_ddef_applied"] = guess
+        st.session_state["_ddef_seed_id"] = data_id
+        st.session_state.pop("ddef_editor", None)  # clear stale editor deltas
+
+    with st.expander(
+        "Data dictionary (auto-detected — edit, then Apply)", expanded=True
+    ):
+        st.caption(
+            "Auto-detected from your data. Set one row's type to **entity** and one to "
+            "**time** to unlock the panel views, tidy the labels, then **Apply**."
+        )
+        edited = st.data_editor(
+            pd.DataFrame(st.session_state["_ddef_rows"], columns=_DDEF_COLUMNS),
+            key="ddef_editor",
+            num_rows="fixed",
+            width="stretch",
+            hide_index=True,
+            column_config={
+                "var_name": st.column_config.TextColumn("Variable", disabled=True),
+                "label": st.column_config.TextColumn("Label"),
+                "var_def": st.column_config.TextColumn("Description"),
+                "type": st.column_config.SelectboxColumn("Type", options=_DDEF_TYPES),
+                "can_be_na": st.column_config.CheckboxColumn("Can be NA"),
+            },
+        )
+        c1, c2 = st.columns(2)
+        if c1.button("Apply", key="ddef_apply", width="stretch"):
+            rows = edited.to_dict("records")
+            bad = sorted({str(r.get("type")) for r in rows} - set(_DDEF_TYPES))
+            if bad:
+                st.warning(
+                    f"Unknown type(s) {', '.join(bad)} — those rows stay untyped."
+                )
+            st.session_state["_ddef_rows"] = rows
+            st.session_state["_ddef_applied"] = rows
+            st.rerun()
+        c2.download_button(
+            "Download .csv",
+            data=pd.DataFrame(st.session_state["_ddef_applied"], columns=_DDEF_COLUMNS)
+            .to_csv(index=False)
+            .encode(),
+            file_name="expdpy_data_def.csv",
+            mime="text/csv",
+            width="stretch",
+        )
+
+    applied = pd.DataFrame(st.session_state["_ddef_applied"], columns=_DDEF_COLUMNS)
+    return _normalize_def(applied)
+
+
+def _apply_labels_panel(df: pd.DataFrame, df_def: pd.DataFrame | None) -> pd.DataFrame:
+    """Attach the dictionary's labels and (when the id columns survive) declare the panel.
+
+    Mutates ``df.attrs`` in place (idempotent) and returns ``df``. A malformed dictionary
+    degrades gracefully to bare column names rather than crashing the app.
+    """
+    if df_def is None or "var_name" not in getattr(df_def, "columns", []):
+        return df
+    try:
+        set_labels(df, df_def)
+        entities, time = handoff.resolve_ids(df_def, None, None)
+        kw: dict[str, str] = {}
+        entity = entities[0] if entities else None
+        if entity and entity in df.columns:
+            kw["entity"] = entity
+        if time and time in df.columns:
+            kw["time"] = time
+        if kw:
+            set_panel(df, **kw)
+    except Exception as exc:  # malformed dictionary → keep raw names, never crash
+        st.warning(f"Could not apply the data dictionary: {exc}")
+    return df
+
+
+def _reset_stale_inputs(data_id: str, columns) -> None:
+    """On a genuine data switch, drop stored selections that name a now-absent column.
+
+    Layers on top of the per-widget coercion in :mod:`expdpy.streamlit_app._widgets` so the
+    raw ``st.selectbox`` call sites (cluster, event-study, panel-model selectors) also re-seed
+    cleanly when the dataset changes.
+    """
+    if st.session_state.get("_data_id") == data_id:
+        return
+    st.session_state["_data_id"] = data_id
+    cols = {str(c) for c in columns}
+    for key in _CONFIG_INPUT_KEYS:
+        val = st.session_state.get(key)
+        if isinstance(val, str):
+            if val and val not in cols and val not in _RESET_SKIP_VALUES:
+                del st.session_state[key]
+        elif isinstance(val, (list, tuple)):
+            kept = [v for v in val if not isinstance(v, str) or v in cols]
+            if list(kept) != list(val):
+                st.session_state[key] = kept
 
 
 def _resolve_source(ctx: AppContext):
@@ -86,15 +205,33 @@ def _resolve_source(ctx: AppContext):
     selected = w.selectbox("Dataset", built_in, key="sample") if built_in else None
 
     up = st.file_uploader(
-        "…or upload your own",
+        "…or upload your own data",
         type=["csv", "xlsx", "xls", "parquet"],
         key="data_upload",
         help="CSV, Excel or Parquet. An upload overrides the dataset above.",
     )
     if up is not None:
-        df, name = _parse_upload(up)
-        st.caption(f"Using uploaded file **{name}** ({len(df):,} rows).")
-        return f"upload:{up.file_id}", f"upload:{up.file_id}", df, None, [], None
+        df = _parse_file(up, "_upload_cache")
+        st.caption(f"Using uploaded file **{up.name}** ({len(df):,} rows).")
+        dict_up = st.file_uploader(
+            "…and its data dictionary (optional)",
+            type=["csv", "xlsx", "xls", "parquet"],
+            key="dict_upload",
+            help=(
+                "A df_def with columns var_name / var_def / label / type / can_be_na. "
+                "Leave empty to auto-build an editable one below."
+            ),
+        )
+        if dict_up is not None:
+            ddef = _normalize_def(_parse_file(dict_up, "_dict_upload_cache"))
+            st.caption(f"Using dictionary **{dict_up.name}**.")
+            entities, time = handoff.resolve_ids(ddef, None, None)
+            data_id = f"upload:{up.file_id}|dict:{dict_up.file_id}"
+            return up.name, data_id, df, ddef, entities, time
+        data_id = f"upload:{up.file_id}"
+        ddef = _editable_data_def(df, data_id, ctx.factor_cutoff)
+        entities, time = handoff.resolve_ids(ddef, None, None)
+        return up.name, data_id, df, ddef, entities, time
 
     name = str(selected)
     if ctx.samples:  # launch bundle: all samples share the fixed panel definition
@@ -224,6 +361,7 @@ def _render_io(ctx: AppContext, active: Active) -> None:
                 active.active_components,
                 active.sample,
                 active.time,
+                active.df_def,
             ),
             file_name="ExPdPy_analysis.zip",
             mime="application/zip",
@@ -237,10 +375,15 @@ def render_sidebar(ctx: AppContext) -> Active:
     with st.sidebar:
         st.title("ExPdPy")
         source_name, data_id, base_df, df_def, entities, time = _resolve_source(ctx)
+        _reset_stale_inputs(data_id, base_df.columns)
+        base_df = _apply_labels_panel(base_df, df_def)
 
         sample, var_cats, pre_subset, udv_error = pipeline.analysis(
             data_id, base_df, entities, time, ctx.factor_cutoff
         )
+        # Re-attach labels/panel to the prepared sample: the subset/outlier steps preserve
+        # ``attrs``, but the user-defined-variables path builds a fresh frame that drops them.
+        sample = _apply_labels_panel(sample, df_def)
         active = Active(
             source_name=source_name,
             data_id=data_id,
