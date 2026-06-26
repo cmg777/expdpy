@@ -82,15 +82,18 @@ def build_analysis_sample(
     entities = list(entities) if entities else []
     out = df.copy()
 
-    # 1. Subset by a factor level.
-    sf = config.get("subset_factor", "Full Sample")
-    sv = config.get("subset_value", "All")
-    if (
-        sf not in (None, "Full Sample")
-        and sf in out.columns
-        and sv not in (None, "All")
-    ):
-        out = out[out[sf].astype(str) == str(sv)]
+    # 1. Subset: period range, then category-value filters, then continuous-range filters
+    #    (all combined with AND). Each is a no-op when its selection spans the full data.
+    pr = config.get("period_range")
+    if pr and time and time in out.columns:
+        out = out[out[time].between(pr[0], pr[1])]
+    for var, values in config.get("cat_filters", ()):  # ((var, (v1, v2, …)), …)
+        if var in out.columns and values:
+            wanted = {str(v) for v in values}
+            out = out[out[var].astype(str).isin(wanted)]
+    for var, (lo, hi) in config.get("range_filters", ()):  # ((var, (lo, hi)), …)
+        if var in out.columns:
+            out = out[out[var].between(lo, hi)]
 
     # 2. Balanced panel: keep cross-sections present in every period.
     if config.get("balanced_panel") and entities and time and time in out.columns:

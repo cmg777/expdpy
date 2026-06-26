@@ -2,6 +2,30 @@
 title: "Changelog"
 ---
 
+## 0.4.19 (2026-06-26)
+
+### Apps — a richer, more robust sample selector
+
+- **The Sample menu now filters by category, by value range, and by period.** Pick one or
+  more **factor variables** and the categories to keep; one or more **continuous variables**
+  and a min–max range; and a dedicated **Period** slider over the time id. All filters combine
+  (AND), and an always-visible **Active sample** summary (dataset · period · filters · "rows
+  kept = n / N") with a **Reset filters** button keeps you oriented on every page.
+- **Single-year → cross-section.** Collapse the Period slider to one year and the app switches
+  to **cross-sectional mode** — the panel / over-time views (within-between, trends, dynamics,
+  convergence, event-study, panel-models, missing-by-time) hide with a notice, and the
+  cross-sectional views keep working.
+- **Fixed the disappearing-selection bug.** Filter options are now computed from the
+  *pre-subset* frame, so choosing `continent = X` no longer collapses the factor and resets the
+  selection — selections persist across pages, and every analysis updates as you filter.
+- **Missing-values view no longer looks blank.** When a sample has no missing values (e.g. the
+  unbalanced **firms** panel), it now says so clearly and points to **Panel structure** for the
+  structural gaps, instead of drawing an all-zero heatmap. (A mixed-type balance-summary table
+  also renders cleanly now.)
+- **Export reproduces the filters as code.** "Export notebook + data" now ships the *unfiltered*
+  working frame plus a runnable **Subset the sample** cell (`df = df[… isin/between …]`) and the
+  outlier-treatment step, so the notebook rebuilds the exact analysis sample from the full data.
+
 ## 0.4.18 (2026-06-26)
 
 ### Apps — the two-file (data + dictionary) workflow

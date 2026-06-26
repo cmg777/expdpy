@@ -14,8 +14,9 @@ from dataclasses import dataclass
 
 import pandas as pd
 import streamlit as st
+from pandas.api import types as pdt
 
-from expdpy import build_data_def, set_labels, set_panel
+from expdpy import build_data_def, resolve_label, set_labels, set_panel
 from expdpy.data import _normalize_def
 from expdpy.streamlit_app import _handoff as handoff
 from expdpy.streamlit_app import _pipeline as pipeline
@@ -26,7 +27,7 @@ from expdpy.streamlit_app._context import DATASETS, AppContext
 from expdpy.streamlit_app._export_nb import build_export_zip
 from expdpy.streamlit_app._state import parse_config
 from expdpy.streamlit_app._upload import read_uploaded
-from expdpy.streamlit_app._varcat import VarCats
+from expdpy.streamlit_app._varcat import VarCats, create_var_categories
 
 #: The five columns of a data dictionary (df_def), in order.
 _DDEF_COLUMNS = ["var_name", "var_def", "label", "type", "can_be_na"]
@@ -55,10 +56,17 @@ class Active:
     base_df: pd.DataFrame
     df_def: pd.DataFrame | None
     entities: list[str]
+    #: The *effective* time id: the declared time column, or ``None`` when the active sample
+    #: spans a single period (so panel/over-time views fall back to cross-sectional gating).
     time: str | None
     sample: pd.DataFrame
     var_cats: VarCats
     active_components: list[str]
+    #: The post-UDV, pre-subset working frame (the full data the filters narrow) — used by the
+    #: reproducible export so the notebook can rebuild the sample from the unfiltered data.
+    working: pd.DataFrame | None = None
+    #: The declared time column even when the sample is a single-period cross-section.
+    panel_time: str | None = None
 
 
 def get_active() -> Active | None:
@@ -196,6 +204,25 @@ def _reset_stale_inputs(data_id: str, columns) -> None:
             kept = [v for v in val if not isinstance(v, str) or v in cols]
             if list(kept) != list(val):
                 st.session_state[key] = kept
+    # The sample filters reference this dataset's columns/levels/ranges — clear them outright
+    # (period slider bounds and category levels differ across datasets).
+    _clear_filter_state()
+
+
+def _clear_filter_state() -> None:
+    """Remove all sample-filter widget state (period / category / range)."""
+    for key in (
+        "period_slider",
+        "cat_filter_vars",
+        "range_filter_vars",
+    ):
+        st.session_state.pop(key, None)
+    for key in [
+        k
+        for k in st.session_state
+        if isinstance(k, str) and (k.startswith("catf::") or k.startswith("rangef::"))
+    ]:
+        st.session_state.pop(key, None)
 
 
 def _resolve_source(ctx: AppContext):
@@ -249,16 +276,99 @@ def _resolve_source(ctx: AppContext):
 
 
 # ------------------------------------------------------------------------------ pipeline ---
-def _render_pipeline(active: Active, pre_subset: pd.DataFrame) -> None:
-    st.subheader("Sample")
-    factors = ["Full Sample", *active.var_cats.grouping]
-    sf = w.selectbox("Subset by", factors, key="subset_factor")
-    if sf not in (None, "Full Sample") and sf in pre_subset.columns:
-        levels = [str(v) for v in sorted(pre_subset[sf].dropna().unique(), key=str)]
-        w.selectbox("Value", ["All", *levels], key="subset_value")
-    else:
-        st.session_state["subset_value"] = "All"
+def _range_slider(label: str, lo, hi, key: str, *, as_int: bool):
+    """Render a range ``st.slider`` over ``[lo, hi]`` respecting a stored ``session_state`` value."""
+    lo, hi = (int(lo), int(hi)) if as_int else (float(lo), float(hi))
+    if key in st.session_state:
+        cur = st.session_state[key]  # clamp a stale stored value into the new bounds
+        st.session_state[key] = (max(lo, min(hi, cur[0])), max(lo, min(hi, cur[1])))
+        return st.slider(label, lo, hi, key=key)
+    return st.slider(label, lo, hi, value=(lo, hi), key=key)
 
+
+def _candidate_cats(pre_subset, entities, time, factor_cutoff) -> tuple[list, list]:
+    """Return ``(category_vars, range_vars)`` from the *pre-subset* frame.
+
+    Computing candidates from the unfiltered frame is what keeps a selected factor from
+    vanishing once the sample collapses it to a single value.
+    """
+    vc = create_var_categories(pre_subset, entities, time, factor_cutoff=factor_cutoff)
+    cat_vars = list(vc.grouping)
+    ids = {*entities, time}
+    range_vars = [
+        c
+        for c in pre_subset.columns
+        if c not in ids
+        and pdt.is_numeric_dtype(pre_subset[c])
+        and not pdt.is_bool_dtype(pre_subset[c])
+        and pre_subset[c].dropna().nunique() > 1
+    ]
+    return cat_vars, range_vars
+
+
+def _render_sample(
+    active: Active,
+    pre_subset: pd.DataFrame,
+    time: str | None,
+    factor_cutoff: int,
+) -> None:
+    """Render the sample-selection menu: period, category and range filters + outliers."""
+    st.subheader("Sample")
+    cat_vars, range_vars = _candidate_cats(
+        pre_subset, active.entities, time, factor_cutoff
+    )
+
+    # --- Period (time) sub-sampling -------------------------------------------------------
+    if time and time in pre_subset.columns:
+        periods = pre_subset[time].dropna()
+        if pdt.is_numeric_dtype(periods) and periods.nunique() > 1:
+            lo, hi = _range_slider(
+                "Period",
+                periods.min(),
+                periods.max(),
+                key="period_slider",
+                as_int=bool(pdt.is_integer_dtype(periods)),
+            )
+            st.caption(
+                f"Single period ({lo}) — cross-sectional analysis."
+                if lo == hi
+                else "Drag the handles together for a single-year cross-section."
+            )
+
+    # --- Filter by category ----------------------------------------------------------------
+    chosen_cats = w.multiselect(
+        "Filter by category",
+        cat_vars,
+        key="cat_filter_vars",
+        help="Keep rows whose value is one of the categories you pick for each variable.",
+    )
+    for var in chosen_cats:
+        levels = [str(v) for v in sorted(pre_subset[var].dropna().unique(), key=str)]
+        w.multiselect(
+            f"{_label(active, var)} is any of",
+            levels,
+            key=f"catf::{var}",
+            default=levels,
+        )
+
+    # --- Filter by range -------------------------------------------------------------------
+    chosen_ranges = w.multiselect(
+        "Filter by range",
+        range_vars,
+        key="range_filter_vars",
+        help="Keep rows whose value falls inside the range you set for each variable.",
+    )
+    for var in chosen_ranges:
+        col = pre_subset[var].dropna()
+        _range_slider(
+            f"{_label(active, var)} range",
+            col.min(),
+            col.max(),
+            key=f"rangef::{var}",
+            as_int=bool(pdt.is_integer_dtype(col)),
+        )
+
+    # --- Outlier treatment -----------------------------------------------------------------
     opts = list(pipeline.OUTLIER_CHOICES)
     if st.session_state.get("outlier_treatment") not in opts:
         st.session_state["outlier_treatment"] = "1"
@@ -268,6 +378,50 @@ def _render_pipeline(active: Active, pre_subset: pd.DataFrame) -> None:
         key="outlier_treatment",
         format_func=lambda k: pipeline.OUTLIER_CHOICES[k],
     )
+
+
+def _label(active: Active, name: str) -> str:
+    """Human-readable label for ``name`` from the active sample's stored labels."""
+    return resolve_label(active.sample, name)
+
+
+def _active_filter_summary() -> tuple[list[str], list[str]]:
+    """Return ``(category_lines, range_lines)`` describing the active filters for the summary."""
+    cat_lines = []
+    for var in st.session_state.get("cat_filter_vars") or []:
+        vals = st.session_state.get(f"catf::{var}")
+        if vals:
+            shown = ", ".join(str(v) for v in vals[:3]) + ("…" if len(vals) > 3 else "")
+            cat_lines.append(f"{var} ∈ {{{shown}}}")
+    range_lines = []
+    for var in st.session_state.get("range_filter_vars") or []:
+        b = st.session_state.get(f"rangef::{var}")
+        if b is not None:
+            range_lines.append(f"{var} ∈ [{b[0]:g}, {b[1]:g}]")
+    return cat_lines, range_lines
+
+
+def _render_active_summary(active: Active, pre_subset: pd.DataFrame) -> None:
+    """Always-visible summary of the sample being analyzed (dataset, period, filters, n/N)."""
+    n, total = len(active.sample), len(pre_subset)
+    period = st.session_state.get("period_slider")
+    with st.container(border=True):
+        st.markdown(f"**Active sample** · {active.source_name}")
+        if active.panel_time and period:
+            tag = period[0] if period[0] == period[1] else f"{period[0]}-{period[1]}"
+            st.caption(f"{active.panel_time}: {tag}")
+        cat_lines, range_lines = _active_filter_summary()
+        for line in (*cat_lines, *range_lines):
+            st.caption(line)
+        st.caption(f"Rows kept: **{n:,} / {total:,}**")
+        narrowed = bool(
+            n < total or cat_lines or range_lines or (period and period[0] != period[1])
+        )
+        if narrowed and st.button(
+            "Reset filters", key="reset_filters", width="stretch"
+        ):
+            _clear_filter_state()
+            st.rerun()
 
 
 def _render_udv(active: Active, udv_error: str | None) -> None:
@@ -305,6 +459,21 @@ def current_config(ctx: AppContext) -> dict:
     cfg["udvars"] = [
         r for r in (st.session_state.get("udvars") or []) if r.get("var_name")
     ]
+    # Sample filters (JSON-serializable) — also consumed by the reproducible export.
+    period = st.session_state.get("period_slider")
+    cfg["period_range"] = list(period) if period is not None else None
+    cat_filters: dict[str, list] = {}
+    for var in st.session_state.get("cat_filter_vars") or []:
+        vals = st.session_state.get(f"catf::{var}")
+        if vals:
+            cat_filters[var] = list(vals)
+    cfg["cat_filters"] = cat_filters
+    range_filters: dict[str, list] = {}
+    for var in st.session_state.get("range_filter_vars") or []:
+        bounds = st.session_state.get(f"rangef::{var}")
+        if bounds is not None:
+            range_filters[var] = [float(b) for b in bounds]
+    cfg["range_filters"] = range_filters
     return cfg
 
 
@@ -324,6 +493,31 @@ def apply_pending_config(ctx: AppContext) -> None:
         st.session_state[key] = value
     if isinstance(cfg.get("udvars"), list):
         st.session_state["udvars"] = cfg["udvars"]
+    _apply_filter_config(cfg)
+
+
+def _apply_filter_config(cfg: dict) -> None:
+    """Seed the sample-filter widgets from a loaded config (migrating the legacy subset)."""
+    _clear_filter_state()
+    period = cfg.get("period_range")
+    if period:
+        st.session_state["period_slider"] = tuple(period)
+
+    cat = dict(cfg.get("cat_filters") or {})
+    if not cat:  # migrate a legacy single-factor subset (subset_factor == subset_value)
+        sf, sv = cfg.get("subset_factor"), cfg.get("subset_value")
+        if sf not in (None, "Full Sample") and sv not in (None, "All"):
+            cat = {sf: [sv]}
+    if cat:
+        st.session_state["cat_filter_vars"] = list(cat)
+        for var, vals in cat.items():
+            st.session_state[f"catf::{var}"] = list(vals)
+
+    rng = dict(cfg.get("range_filters") or {})
+    if rng:
+        st.session_state["range_filter_vars"] = list(rng)
+        for var, bounds in rng.items():
+            st.session_state[f"rangef::{var}"] = tuple(bounds)
 
 
 def _render_io(ctx: AppContext, active: Active) -> None:
@@ -354,14 +548,18 @@ def _render_io(ctx: AppContext, active: Active) -> None:
 
     if ctx.export_nb_option:
         st.divider()
+        # Export the *working* frame (pre-subset) so the notebook reproduces the filters as
+        # code; fall back to the prepared sample if the working frame is unavailable.
+        export_df = active.working if active.working is not None else active.sample
         st.download_button(
             "📓 Export notebook + data",
             data=build_export_zip(
                 current_config(ctx),
                 active.active_components,
-                active.sample,
-                active.time,
+                export_df,
+                active.panel_time,
                 active.df_def,
+                active.entities,
             ),
             file_name="ExPdPy_analysis.zip",
             mime="application/zip",
@@ -384,19 +582,35 @@ def render_sidebar(ctx: AppContext) -> Active:
         # Re-attach labels/panel to the prepared sample: the subset/outlier steps preserve
         # ``attrs``, but the user-defined-variables path builds a fresh frame that drops them.
         sample = _apply_labels_panel(sample, df_def)
+
+        # When the period filter collapses the sample to a single period it is no longer a
+        # panel — fall back to the cross-sectional gating (``effective_time = None``) so the
+        # over-time / panel views hide rather than error.
+        n_periods = (
+            int(sample[time].nunique()) if time and time in sample.columns else 0
+        )
+        effective_time = time if n_periods >= 2 else None
+
         active = Active(
             source_name=source_name,
             data_id=data_id,
             base_df=base_df,
             df_def=df_def,
             entities=entities,
-            time=time,
+            time=effective_time,
             sample=sample,
             var_cats=var_cats,
-            active_components=handoff.active_components(ctx.components, time),
+            active_components=handoff.active_components(ctx.components, effective_time),
+            working=pre_subset,
+            panel_time=time,
         )
 
-        _render_pipeline(active, pre_subset)
+        _render_active_summary(active, pre_subset)
+        if time and effective_time is None and n_periods == 1:
+            st.warning(
+                "Single period selected → cross-sectional analysis (panel views hidden)."
+            )
+        _render_sample(active, pre_subset, time, ctx.factor_cutoff)
         _render_udv(active, udv_error)
         _render_io(ctx, active)
 

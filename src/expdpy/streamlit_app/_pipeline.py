@@ -15,7 +15,7 @@ import streamlit as st
 from expdpy.streamlit_app._sample import apply_user_vars, build_analysis_sample
 from expdpy.streamlit_app._varcat import VarCats, create_var_categories
 
-__all__ = ["OUTLIER_CHOICES", "pipeline_cfg", "udv_records", "analysis"]
+__all__ = ["OUTLIER_CHOICES", "pipeline_cfg", "filter_spec", "udv_records", "analysis"]
 
 #: Outlier-treatment radio value → label.
 OUTLIER_CHOICES = {
@@ -39,11 +39,40 @@ def udv_records() -> tuple[tuple[str, str], ...]:
     return tuple(out)
 
 
+def filter_spec() -> tuple:
+    """Reconstruct the active sample filters from the sidebar widget keys.
+
+    Returns ``(period_range, cat_filters, range_filters)`` in **hashable** form (so it can go
+    into the pipeline memo key). The widget values live under their own keys (``period_slider``,
+    ``cat_filter_vars`` + ``catf::<var>``, ``range_filter_vars`` + ``rangef::<var>``) and
+    Streamlit updates them *before* the script reruns, so reading them here applies a selection
+    on the same run (no lag). An empty category selection means "no filter" (keeps all).
+    """
+    period = st.session_state.get("period_slider")
+    period_range = tuple(period) if period is not None else None
+
+    cat: list[tuple[str, tuple]] = []
+    for var in st.session_state.get("cat_filter_vars") or []:
+        vals = st.session_state.get(f"catf::{var}")
+        if vals:
+            cat.append((var, tuple(str(v) for v in vals)))
+
+    rng: list[tuple[str, tuple]] = []
+    for var in st.session_state.get("range_filter_vars") or []:
+        bounds = st.session_state.get(f"rangef::{var}")
+        if bounds is not None:
+            rng.append((var, (float(bounds[0]), float(bounds[1]))))
+
+    return period_range, tuple(cat), tuple(rng)
+
+
 def pipeline_cfg() -> dict:
     """Return the subset / balanced-panel / outlier config from ``session_state``."""
+    period_range, cat_filters, range_filters = filter_spec()
     return {
-        "subset_factor": st.session_state.get("subset_factor", "Full Sample"),
-        "subset_value": st.session_state.get("subset_value", "All"),
+        "period_range": period_range,
+        "cat_filters": cat_filters,
+        "range_filters": range_filters,
         "outlier_treatment": st.session_state.get("outlier_treatment", "1"),
         "balanced_panel": st.session_state.get("balanced_panel", False),
         "outlier_factor": st.session_state.get("outlier_factor", "None"),

@@ -66,7 +66,7 @@ def test_pipeline_subset(kuznets):
         kuznets,
         ["country"],
         "year",
-        {"subset_factor": "continent", "subset_value": level, "outlier_treatment": "1"},
+        {"cat_filters": (("continent", (str(level),)),), "outlier_treatment": "1"},
     )
     assert len(out) < len(kuznets)
     assert set(out["continent"].astype(str)) == {str(level)}

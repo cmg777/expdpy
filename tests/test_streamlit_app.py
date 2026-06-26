@@ -408,6 +408,137 @@ def test_apply_labels_panel_tolerates_missing_dict():
     assert _apply_labels_panel(df, None) is df  # no dictionary → unchanged, no crash
 
 
+# --- sample selection: filters, period, persistence, cross-section ------------
+_SIDEBAR_SCRIPT = """
+import streamlit as st
+from expdpy.streamlit_app._context import resolve_context
+from expdpy.streamlit_app._sidebar import render_sidebar
+from expdpy.streamlit_app import _pages
+ctx = resolve_context()
+active = render_sidebar(ctx)
+st.session_state["_n"] = len(active.sample)
+st.session_state["_eff_time"] = active.time
+getattr(_pages, "page_" + (st.session_state["_test_page"]
+        if "_test_page" in st.session_state else "overview"))()
+"""
+
+
+def _sidebar(dataset: str | None = None) -> AppTest:
+    at = AppTest.from_string(_SIDEBAR_SCRIPT, default_timeout=90)
+    at.session_state["_test_page"] = "overview"
+    if dataset:
+        at.session_state["sample"] = dataset
+    return at.run()
+
+
+def test_build_analysis_sample_filters():
+    import pandas as pd
+
+    from expdpy.streamlit_app._sample import build_analysis_sample
+
+    df = pd.DataFrame(
+        {
+            "country": ["A", "A", "B", "B", "C", "C"],
+            "year": [2000, 2001, 2000, 2001, 2000, 2001],
+            "continent": ["X", "X", "Y", "Y", "Z", "Z"],
+            "gdp": [10, 20, 30, 40, 50, 60],
+        }
+    )
+    cfg = {
+        "period_range": (2000, 2001),
+        "cat_filters": (("continent", ("X", "Y")),),  # multi-value
+        "range_filters": (("gdp", (15.0, 100.0)),),  # AND-combined
+    }
+    out = build_analysis_sample(df, ["country"], "year", cfg)
+    assert sorted(out["gdp"].tolist()) == [20, 30, 40]
+    # single-year collapse → one period
+    one = build_analysis_sample(df, ["country"], "year", {"period_range": (2000, 2000)})
+    assert one["year"].nunique() == 1 and len(one) == 3
+
+
+def test_category_filter_persists_across_pages():
+    """Regression: a chosen category subset must survive a page switch (the reset bug)."""
+    at = _sidebar()
+    at.multiselect(key="cat_filter_vars").set_value(["continent"])
+    at.run()
+    levels = list(at.multiselect(key="catf::continent").options)
+    at.multiselect(key="catf::continent").set_value(levels[:2])
+    at.run()
+    assert at.session_state["_n"] < 880  # the sample actually shrank
+    at.session_state["_test_page"] = "describe"  # navigate
+    at.run()
+    assert not at.exception
+    assert at.multiselect(key="cat_filter_vars").value == ["continent"]
+    assert at.multiselect(key="catf::continent").value == levels[:2]
+
+
+def test_single_year_switches_to_cross_section():
+    at = _sidebar()
+    yr = at.slider(key="period_slider")
+    one = int(yr.value[0])
+    at.slider(key="period_slider").set_value((one, one))
+    at.run()
+    assert not at.exception
+    assert at.session_state["_eff_time"] is None  # collapsed to a cross-section
+    assert any("cross-sectional" in str(wn.value) for wn in at.warning)
+
+
+def test_single_year_hides_panel_pages():
+    active = _active("year", entities=["country"])
+    panel = {spec[0] for spec in selected_specs(active)}
+    cross = {spec[0] for spec in selected_specs(_active(None, entities=["country"]))}
+    # the cross-section (effective time=None) drops the panel/over-time pages
+    for page in ("Within & between", "Trends", "Dynamics"):
+        assert page in panel and page not in cross
+
+
+def test_firms_shows_no_missing_message():
+    at = _sidebar("Firms (unbalanced)")
+    assert not at.exception
+    assert any("No missing values" in str(s.value) for s in at.success)
+
+
+def test_export_reproduces_active_filters():
+    from expdpy.data import load_kuznets, load_kuznets_data_def
+
+    cfg = {
+        "period_range": [2018, 2025],
+        "cat_filters": {"continent": ["Continent A", "Continent B"]},
+        "range_filters": {},
+        "outlier_treatment": "1",
+    }
+    payload = build_export_zip(
+        cfg,
+        ["descriptive_table"],
+        load_kuznets(),
+        "year",
+        load_kuznets_data_def(),
+        ["country"],
+    )
+    import io
+    import zipfile
+
+    with zipfile.ZipFile(io.BytesIO(payload)) as zf:
+        script = zf.read("ExPdPy_analysis.py").decode()
+    assert "df = df[" in script
+    assert ".between(2018, 2025)" in script
+    assert "isin(['Continent A', 'Continent B'])" in script
+
+
+def test_export_without_filters_has_no_subset_cell():
+    from expdpy.data import load_kuznets
+
+    payload = build_export_zip(
+        {}, ["descriptive_table"], load_kuznets().head(40), "year"
+    )
+    import io
+    import zipfile
+
+    with zipfile.ZipFile(io.BytesIO(payload)) as zf:
+        script = zf.read("ExPdPy_analysis.py").decode()
+    assert "Subset the sample" not in script
+
+
 # --- launcher (no subprocess) -------------------------------------------------
 def test_launcher_command_and_bundle(monkeypatch):
     from expdpy.data import load_kuznets
