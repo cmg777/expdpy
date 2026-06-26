@@ -2,6 +2,31 @@
 title: "Changelog"
 ---
 
+## 0.4.18 (2026-06-26)
+
+### Apps — the two-file (data + dictionary) workflow
+
+- **The ExPdPy apps now revolve around two files: a data file *and* a data dictionary
+  (`df_def`).** Upload your own data and (optionally) its dictionary, and every figure and table
+  updates with the right labels and panel structure. Upload **data only** and the app
+  auto-builds an **editable** dictionary in the sidebar — set the `entity` and `time` rows to
+  unlock the panel views, tidy the labels, then **Apply**. A new public helper,
+  [`build_data_def`](reference/build_data_def.html), infers that dictionary (types + entity/time)
+  from any frame, so the same workflow is available in notebooks:
+  `ex.set_labels(df, ex.build_data_def(df), set_panel=True)`.
+- **The data dictionary is applied throughout** — labelled axes/legends/headers now render for the
+  bundled datasets too (previously the labels were never attached in the app), and switching
+  datasets resets stale variable selections cleanly. This fixes views that could silently
+  disappear on an upload (e.g. the missing-values map) because the panel was never declared.
+- **The dataset picker now offers *every* bundled dataset** — `Productivity` and
+  `Bolivia (provinces)` join Kuznets, Gapminder, Staggered DiD and Firms.
+- **Export now ships the dictionary, and the notebook is Colab-ready.** "Export notebook + data"
+  writes `expdpy_data_def.csv` alongside the sample, and the generated notebook reloads both with
+  `ex.set_labels(df, data_def, set_panel=True)`. The `.ipynb` is a **Google Colab** notebook: a
+  pinned install cell (`expdpy==<version>`, NumPy/Numba upgrade) restarts the runtime once so
+  NumPy loads cleanly, with markdown explaining the setup. The `.py` script stays a plain
+  local-run script.
+
 ## 0.4.17 (2026-06-25)
 
 ### Learn

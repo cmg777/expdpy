@@ -18,7 +18,7 @@ Guidance for working in this repository. Keep it current when commands or conven
   every result.
 
 Three no-code **Streamlit** apps (one per module). `src/` layout, Python ≥ 3.10, managed with
-**pixi**. Current version: 0.4.17.
+**pixi**. Current version: 0.4.18.
 
 ## Commands
 
@@ -63,9 +63,11 @@ public API is curated in `src/expdpy/__init__.py` (`__all__` grouped by module).
 - **Learn**: `sandbox.py` + `pedagogy/` (`_registry` `Explainer`/`explain`/`list_topics`,
   `_interpret`, `_mixin` `Interpretable`, `_format`, and `_text/*` topic registrations).
 - **Infra**: `_types.py` (frozen result dataclasses), `_theme.py` (shared Plotly theme),
-  `_validation.py`, `_corr.py`; `data/` (bundled parquets + loaders); `streamlit_app/` (the
+  `_validation.py`, `_corr.py`, `_labels.py` (`set_labels`), `_data_def.py` (`build_data_def` —
+  infer a `df_def` from a raw frame); `data/` (bundled parquets + loaders); `streamlit_app/` (the
   three apps — subprocess bundle handoff in `_handoff`/`_launcher`/`_context`, the sample
-  pipeline, and `_pages`).
+  pipeline, the two-file data+dictionary upload / editable auto-dictionary in `_sidebar`, the
+  Colab-ready notebook export in `_export_nb`, and `_pages`).
 
 ## Conventions (follow these)
 
@@ -77,8 +79,8 @@ public API is curated in `src/expdpy/__init__.py` (`__all__` grouped by module).
   `sandbox_*` names): `explore_*` (Explore), `analyze_*` (Analyze), `learn_*` (Learn).
   Plotly-figure functions end in `_plot`, Great-Tables functions in `_table`, and scope
   qualifiers go last (e.g. `explore_violin_plot_by_group`). The cross-cutting helpers
-  `set_panel` / `resolve_panel` / `treat_outliers` / `explain` / `list_topics` are
-  **unprefixed** and grouped as "Utilities" in `__all__`.
+  `set_panel` / `resolve_panel` / `set_labels` / `build_data_def` / `treat_outliers` /
+  `explain` / `list_topics` are **unprefixed** and grouped as "Utilities" in `__all__`.
 - **Every `explore_*` / `analyze_*` / `learn_*` function returns a frozen result dataclass**
   (defined in `_types.py`) exposing `.df` plus `.fig` (Plotly) or `.gt` (Great Tables) — never
   a bare figure. Many mix in `Interpretable`, adding

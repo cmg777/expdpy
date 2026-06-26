@@ -26,12 +26,16 @@ import pandas as pd
 import streamlit as st
 
 from expdpy.data import (
+    load_bolivia112_gdppc,
+    load_bolivia112_gdppc_data_def,
     load_firms,
     load_firms_data_def,
     load_gapminder,
     load_gapminder_data_def,
     load_kuznets,
     load_kuznets_data_def,
+    load_productivity,
+    load_productivity_data_def,
     load_staggered_did,
     load_staggered_did_data_def,
 )
@@ -41,12 +45,15 @@ from expdpy.streamlit_app._state import parse_config
 __all__ = ["AppContext", "DATASETS", "resolve_context"]
 
 #: Example datasets offered by the picker: name → (data loader, data-def loader).
-#: Kuznets is listed first so it is the picker's default selection.
+#: Kuznets is listed first so it is the picker's default selection. Every bundled dataset is
+#: offered so the user can load any of them (not just a few).
 DATASETS: dict[str, tuple[Callable[[], pd.DataFrame], Callable[[], pd.DataFrame]]] = {
     "Kuznets": (load_kuznets, load_kuznets_data_def),
     "Gapminder": (load_gapminder, load_gapminder_data_def),
     "Staggered DiD": (load_staggered_did, load_staggered_did_data_def),
     "Firms (unbalanced)": (load_firms, load_firms_data_def),
+    "Productivity": (load_productivity, load_productivity_data_def),
+    "Bolivia (provinces)": (load_bolivia112_gdppc, load_bolivia112_gdppc_data_def),
 }
 
 _DEFAULT_TITLE = "ExPdPy — Explore your data!"

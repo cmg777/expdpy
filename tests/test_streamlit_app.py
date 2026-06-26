@@ -15,12 +15,14 @@ pytest.importorskip("streamlit")
 
 from streamlit.testing.v1 import AppTest
 
+import expdpy as ex
 from expdpy.streamlit_app import AnalyzeApp, ExploreApp, LearnApp
 from expdpy.streamlit_app import _handoff as handoff
 from expdpy.streamlit_app._config_io import dump_config, load_config
+from expdpy.streamlit_app._context import DATASETS
 from expdpy.streamlit_app._export_nb import build_export_zip
 from expdpy.streamlit_app._pages import selected_specs
-from expdpy.streamlit_app._sidebar import Active
+from expdpy.streamlit_app._sidebar import Active, _apply_labels_panel
 from expdpy.streamlit_app._state import parse_config
 
 pytestmark = pytest.mark.streamlit
@@ -53,6 +55,81 @@ def _page(name: str, **timeout) -> AppTest:
     at = AppTest.from_string(_PAGE_SCRIPT, default_timeout=timeout.get("t", 90))
     at.session_state["_test_page"] = name
     return at.run()
+
+
+# Sidebar controls (some use a format_func, so their AppTest .options are display labels,
+# not raw values) — skipped so the driver only touches a page's analysis selectors.
+_CONTROL_KEYS = {
+    "sample",
+    "subset_factor",
+    "subset_value",
+    "outlier_treatment",
+    "cluster",
+}
+
+_EXPLORE_PAGES = [
+    "overview",
+    "describe",
+    "within_between",
+    "trends",
+    "by_group",
+    "correlations",
+    "dynamics",
+]
+_ANALYZE_PAGES = [
+    "regression",
+    "postestimation",
+    "panel_models",
+    "kuznets_waves",
+    "convergence",
+    "event_study",
+]
+
+
+def _drive(at: AppTest) -> AppTest:
+    """Set every page selector to a valid value and rerun — exercises the page's functions.
+
+    ``*_y`` selectboxes and multiselects take a *different* option from the ``*_x`` / dv
+    choices so paired selectors (scatter x/y, regression dv/idvs) don't collide.
+    """
+    for sb in at.selectbox:
+        key = sb.key or ""
+        opts = list(sb.options or [])
+        if not opts or key in _CONTROL_KEYS:
+            continue
+        pick = opts[-1] if (key.endswith("_y") and len(opts) > 1) else opts[0]
+        sb.set_value(pick)
+    for ms in at.multiselect:
+        if ms.key in _CONTROL_KEYS:
+            continue
+        opts = list(ms.options or [])
+        if opts:
+            ms.set_value([opts[-1]])
+    return at.run()
+
+
+def _sweep(page: str, dataset: str) -> None:
+    at = AppTest.from_string(_PAGE_SCRIPT, default_timeout=120)
+    at.session_state["_test_page"] = page
+    at.session_state["sample"] = dataset
+    at.run()
+    assert not at.exception, f"{page} x {dataset} (render): {at.exception}"
+    _drive(at)
+    assert not at.exception, f"{page} x {dataset} (driven): {at.exception}"
+
+
+@pytest.mark.parametrize("dataset", list(DATASETS))
+def test_explore_pages_drive_clean_on_every_dataset(dataset):
+    """Every Explore page renders *and* runs its functions on each bundled dataset."""
+    for page in _EXPLORE_PAGES:
+        _sweep(page, dataset)
+
+
+@pytest.mark.parametrize("dataset", list(DATASETS))
+def test_analyze_pages_drive_clean_on_every_dataset(dataset):
+    """Every Analyze page renders *and* runs its functions on each bundled dataset."""
+    for page in _ANALYZE_PAGES:
+        _sweep(page, dataset)
 
 
 # --- full-app smoke -----------------------------------------------------------
@@ -245,19 +322,90 @@ def test_config_roundtrip_plain():
 
 # --- reproducible export ------------------------------------------------------
 def test_export_zip_contents():
-    from expdpy.data import load_kuznets
+    from expdpy.data import load_kuznets, load_kuznets_data_def
 
     cfg = {"hist_var": "gdp_pc", "reg_y": "gini_regional", "reg_x": ["log_gdp_pc"]}
     comps = ["descriptive_table", "histogram", "regression"]
-    payload = build_export_zip(cfg, comps, load_kuznets().head(50), "year")
+    payload = build_export_zip(
+        cfg, comps, load_kuznets().head(50), "year", load_kuznets_data_def()
+    )
     import io
+    import json
     import zipfile
 
     with zipfile.ZipFile(io.BytesIO(payload)) as zf:
         names = zf.namelist()
+        # The data dictionary is shipped alongside the data so labels/panel round-trip.
+        assert "expdpy_data_def.csv" in names
+        ddef_csv = zf.read("expdpy_data_def.csv").decode()
+        assert ddef_csv.splitlines()[0] == "var_name,var_def,label,type,can_be_na"
+        nb = json.loads(zf.read("ExPdPy_analysis.ipynb"))
+        cells = ["".join(c["source"]) for c in nb["cells"]]
+        # Colab-ready: a pinned install + restart cell, and a set_labels(set_panel) load.
+        assert any(f"expdpy=={ex.__version__}" in c and "os.kill" in c for c in cells)
+        assert any("ex.set_labels(df, data_def, set_panel=True)" in c for c in cells)
     assert "expdpy_sample.parquet" in names
     assert "ExPdPy_analysis.ipynb" in names
     assert "ExPdPy_analysis.py" in names
+
+
+def test_export_dict_is_inferred_when_absent():
+    """With no df_def, the export still ships an inferred dictionary."""
+    from expdpy.data import load_gapminder
+
+    payload = build_export_zip(
+        {}, ["descriptive_table"], load_gapminder().head(40), "year"
+    )
+    import io
+    import zipfile
+
+    with zipfile.ZipFile(io.BytesIO(payload)) as zf:
+        ddef = zf.read("expdpy_data_def.csv").decode()
+    assert "country,Country,Country,entity" in ddef.replace(
+        '"', ""
+    )  # auto-built entity row
+
+
+# --- two-file workflow: data + dictionary -------------------------------------
+@pytest.mark.parametrize("name", list(DATASETS))
+def test_autodict_recovers_panel_for_every_dataset(name):
+    """A data-only upload (auto-built dict) declares the panel for any bundled dataset."""
+    loader, _ = DATASETS[name]
+    ddef = ex.build_data_def(loader())  # what the app auto-builds on a data-only upload
+    entities, time = handoff.resolve_ids(ddef, None, None)
+    assert entities and time  # the dictionary unlocks panel features
+
+
+def test_autodict_unhides_panel_pages_and_missing_values():
+    """Regression: uploaded data with an auto-dict shows panel pages + missing-values.
+
+    Previously uploads resolved to ``entities=[], time=None`` so panel pages and the
+    missing-values view were silently hidden — the reported bug.
+    """
+    from expdpy.data import load_gapminder
+
+    ddef = ex.build_data_def(load_gapminder())
+    entities, time = handoff.resolve_ids(ddef, None, None)
+    pages = [spec[0] for spec in selected_specs(_active(time, entities=entities))]
+    assert "Within & between" in pages and "Dynamics" in pages
+    assert "missing_values" in handoff.active_components(None, time)
+
+
+def test_apply_labels_panel_attaches_labels_and_panel():
+    from expdpy.data import load_kuznets, load_kuznets_data_def
+
+    df = _apply_labels_panel(load_kuznets(), load_kuznets_data_def())
+    assert ex.resolve_panel(df) == ("country", "year")
+    assert (
+        ex.resolve_label(df, "gini_regional") != "gini_regional"
+    )  # a label was attached
+
+
+def test_apply_labels_panel_tolerates_missing_dict():
+    from expdpy.data import load_kuznets
+
+    df = load_kuznets()
+    assert _apply_labels_panel(df, None) is df  # no dictionary → unchanged, no crash
 
 
 # --- launcher (no subprocess) -------------------------------------------------

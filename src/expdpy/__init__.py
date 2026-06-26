@@ -13,8 +13,9 @@ conceptual modules:
   plain-language ``.interpret()`` on every result, and runnable concept sandboxes.
 * **Utilities** — shared helpers used across modules: ``set_panel`` / ``resolve_panel``
   (declare the panel once), ``set_labels`` / ``resolve_label`` (declare human-readable
-  variable labels once), ``treat_outliers`` (winsorize/truncate), and the
-  concept-explainer registry entry points (``explain`` / ``list_topics``).
+  variable labels once), ``build_data_def`` (infer a data dictionary from a raw frame),
+  ``treat_outliers`` (winsorize/truncate), and the concept-explainer registry entry points
+  (``explain`` / ``list_topics``).
 
 Three no-code ``ExPdPy`` apps (one per module) build on the same functions — see
 :mod:`expdpy.streamlit_app`.
@@ -22,6 +23,7 @@ Three no-code ``ExPdPy`` apps (one per module) build on the same functions — s
 
 from __future__ import annotations
 
+from expdpy._data_def import build_data_def
 from expdpy._labels import resolve_label, set_labels
 from expdpy._panel import resolve_panel, set_panel
 from expdpy._types import (
@@ -123,7 +125,7 @@ from expdpy.tables import (
 )
 from expdpy.trends import explore_quantile_trend_plot, explore_trend_plot
 
-__version__ = "0.4.17"
+__version__ = "0.4.18"
 
 __all__ = [
     # ===== EXPLORE =====
@@ -208,6 +210,8 @@ __all__ = [
     # variable labels (human-readable display names)
     "set_labels",
     "resolve_label",
+    # data dictionary inference (df_def)
+    "build_data_def",
     # outlier treatment
     "treat_outliers",
     # concept explainers (registry entry points)
