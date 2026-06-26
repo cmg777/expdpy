@@ -9,6 +9,7 @@
 [![codecov](https://codecov.io/gh/cmg777/expdpy/branch/main/graph/badge.svg)](https://codecov.io/gh/cmg777/expdpy)
 [![Docs](https://github.com/cmg777/expdpy/actions/workflows/docs.yml/badge.svg)](https://cmg777.github.io/expdpy/)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/cmg777/expdpy/blob/main/notebooks/explore.ipynb)
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://expdpy-explore.streamlit.app/)
 [![PyPI](https://img.shields.io/pypi/v/expdpy.svg)](https://pypi.org/project/expdpy/)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://pypi.org/project/expdpy/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -73,25 +74,36 @@ variation on a dual-axis chart — and tests whether the distribution narrows (*
 When a panel is plausibly *not* one homogeneous group, `analyze_convergence_clubs` runs the
 **Phillips–Sul log(t)** workflow — HP-filter trend, relative transition paths, the log(t)
 convergence test and a data-driven **clustering** algorithm — to split units into convergence
-**clubs** (a faithful port of the Stata `psecta` package).
+**clubs** (a faithful port of the Stata `psecta` package). Finally, `analyze_kuznets_waves` fits
+the **extended Kuznets curve** — the polynomial inequality–development relationship under pooled,
+between and within (two-way fixed-effects) estimators side by side, with partial-residual component
+plots and turning-point analytics.
 
 ### Learn panel data
 
 Every result speaks plain language. `.interpret()` gives an **associational** reading of the
 output (never a causal claim unless the design supports it); `.explain()`, together with
-`explain(topic)` and `list_topics()`, provides concept explainers for fixed effects,
+`explain(topic)` and `list_topics()`, browse **27** concept explainers — fixed effects,
 clustering, random effects, the Mundlak device, first differences, demeaning, dummy variables,
-event studies, omitted-variable bias and more. Result objects also expose broom-style
-`.tidy()` / `.glance()`. **Concept sandboxes** simulate data so a learner can *see* and tune a
-concept — `learn_omitted_variable_bias`, `learn_pooled_vs_fixed_effects`,
-`learn_clustering_se`, `learn_first_differences`, and `learn_within_vs_lsdv` (which shows
-first differences ≈ demeaning ≈ least-squares dummy variables).
+event studies, omitted-variable bias, convergence and more. Result objects also expose broom-style
+`.tidy()` / `.glance()`. **Nine concept sandboxes** simulate data so a learner can *see* and tune a
+known truth — `learn_first_differences` and `learn_within_vs_lsdv` (first differences ≈ demeaning ≈
+least-squares dummy variables), `learn_pooled_vs_fixed_effects`, `learn_omitted_variable_bias`,
+`learn_clustering_se`, the convergence trio `learn_beta_convergence` / `learn_sigma_convergence` /
+`learn_convergence_clubs`, and `learn_kuznets_waves`.
 
 ### Three no-code apps — Streamlit
 
 The whole workflow without writing code, in three apps — **Explore**, **Analyze** and
 **Learn** — that share a sidebar **sample pipeline** (subset filters, outlier treatment,
-user-defined variables) and differ only in which pages they expose. The apps deploy to
+user-defined variables) and differ only in which pages they expose. **Try them live in your
+browser — no install required:**
+
+- 🔍 **[Explore app](https://expdpy-explore.streamlit.app/)** — describe and visualize the panel
+- 🧮 **[Analyze app](https://expdpy-analyze.streamlit.app/)** — estimate panel models
+- 📚 **[Learn app](https://expdpy-learn.streamlit.app/)** — concept sandboxes and explainers
+
+Each is the no-code companion to a docs case study, and deploys to
 [Streamlit Community Cloud](https://streamlit.io/cloud) in one click.
 
 ### Reproducibility & safety
