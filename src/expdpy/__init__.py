@@ -125,7 +125,7 @@ from expdpy.tables import (
 )
 from expdpy.trends import explore_quantile_trend_plot, explore_trend_plot
 
-__version__ = "0.4.18"
+__version__ = "0.4.19"
 
 __all__ = [
     # ===== EXPLORE =====

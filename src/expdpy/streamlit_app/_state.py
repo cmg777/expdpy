@@ -10,7 +10,11 @@ __all__ = ["DEFAULT_CONFIG", "create_config", "parse_config"]
 # Values are scalars/lists; "None"/"All"/"Full Sample" are the app's sentinel strings.
 DEFAULT_CONFIG: dict = {
     "sample": None,
-    "subset_factor": "Full Sample",
+    # Sample selection: period range, category-value filters, continuous-range filters.
+    "period_range": None,  # [lo, hi] over the time id, or None for the full span
+    "cat_filters": {},  # {factor_var: [selected categories]}
+    "range_filters": {},  # {numeric_var: [lo, hi]}
+    "subset_factor": "Full Sample",  # legacy single-factor subset (migrated on load)
     "subset_value": "All",
     "group_factor": "None",
     "balanced_panel": False,

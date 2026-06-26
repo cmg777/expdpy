@@ -50,7 +50,39 @@ def _factors(active: Active) -> list[str]:
 
 
 def _fe_choices(active: Active) -> list[str]:
+    # In a single-period cross-section (``active.time is None``) there is one observation per
+    # entity, so entity/time fixed effects are degenerate — offer only the grouping factors.
+    if active.time is None:
+        return active.var_cats.grouping or ["None"]
     return active.var_cats.fe_choices or ["None"]
+
+
+def _is_unbalanced(active: Active) -> bool:
+    """Return ``True`` for a panel where not every entity is observed in every period."""
+    entity = active.entities[0] if active.entities else None
+    time = active.time
+    df = active.sample
+    if not entity or not time or entity not in df.columns or time not in df.columns:
+        return False
+    return len(df) != df[entity].nunique() * df[time].nunique()
+
+
+def _render_missing(active: Active) -> None:
+    """Missing-value heatmap, or a clear message when the sample has no missing values."""
+    time = active.time
+    df = active.sample
+    if not time or time not in df.columns:
+        return
+    others = df.drop(columns=[time], errors="ignore")
+    if len(others.columns) and not bool(others.isna().any().any()):
+        st.success("No missing values in this sample.")
+        if _is_unbalanced(active):
+            st.caption(
+                "This is an unbalanced panel — the absent unit-years (structural gaps) are "
+                "shown in **Panel balance & coverage** above, not here."
+            )
+        return
+    render.render_plotly(lambda: comp.missing(df, time))
 
 
 def _show_panel_result(make: Callable[[], Any], *, interpret: bool = True) -> None:
@@ -97,7 +129,10 @@ def page_overview() -> None:
             struct = explore_panel_structure(active.sample, entity=entity, time=time)
             st.plotly_chart(struct.fig, width="stretch", config=PLOTLY_CONFIG)
             with st.expander("Balance summary"):
-                st.dataframe(struct.df_summary, width="stretch", hide_index=True)
+                # The summary's ``value`` column mixes bool/int/float; stringify it so
+                # Streamlit's Arrow serialization renders it cleanly.
+                summary = struct.df_summary.astype({"value": str})
+                st.dataframe(summary, width="stretch", hide_index=True)
             with st.expander("Plain-language reading"):
                 st.markdown(struct.interpret())
         except Exception as exc:  # surface the message, keep the page alive
@@ -105,7 +140,7 @@ def page_overview() -> None:
 
     if _has(active, "missing_values"):
         st.subheader("Missing values")
-        render.render_plotly(lambda: comp.missing(active.sample, active.time))
+        _render_missing(active)
 
     if panel:
         st.subheader("Value heatmap")
