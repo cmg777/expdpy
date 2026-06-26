@@ -309,4 +309,3 @@ persistent. The natural next step is to estimate it.
   and clustered standard errors, then compare pooled / between / within estimators.
 - [Learn panel data](learn.qmd) — the ideas behind within vs between, fixed effects and
   demeaning, with runnable sandboxes.
-- Prefer no code? Launch the [Explore app](streamlit.qmd) and click through these same tools.

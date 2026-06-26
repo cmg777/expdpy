@@ -76,7 +76,7 @@ data so a learner can *see* and tune a concept (`learn_omitted_variable_bias`,
 `learn_pooled_vs_fixed_effects`, `learn_clustering_se`, `learn_first_differences`,
 `learn_within_vs_lsdv`).
 
-**Three no-code apps.** [Streamlit](streamlit.qmd) apps — one per module — bring the whole
+**Three no-code apps.** Streamlit apps — one per module — bring the whole
 workflow to the browser with a sample pipeline, point-and-click analysis, native sortable
 tables, reproducible notebook export, and one-click deployment to
 [Streamlit Community Cloud](https://streamlit.io/cloud).
@@ -182,8 +182,8 @@ ExploreApp(load_kuznets(), df_def=load_kuznets_data_def(), config_list=get_confi
 ```
 
 Head to [Explore](explore.qmd), [Analyze](analyze.qmd) and [Learn](learn.qmd) to see every
-function in action, the [kuznets dataset](explanation/kuznets-dataset.qmd) page for the data
-dictionary, or the [app guide](streamlit.qmd) to launch the interactive apps.
+function in action, or the [kuznets dataset](explanation/kuznets-dataset.qmd) page for the data
+dictionary.
 
 ## Acknowledgement
 

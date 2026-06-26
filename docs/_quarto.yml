@@ -23,8 +23,6 @@ website:
         file: analyze.qmd
       - text: "Learn"
         file: learn.qmd
-      - text: "App"
-        file: streamlit.qmd
       - text: "Articles"
         menu:
           - text: "Beta convergence (analyze_beta_convergence)"

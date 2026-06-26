@@ -91,8 +91,7 @@ first differences ≈ demeaning ≈ least-squares dummy variables).
 
 The whole workflow without writing code, in three apps — **Explore**, **Analyze** and
 **Learn** — that share a sidebar **sample pipeline** (subset filters, outlier treatment,
-user-defined variables) and differ only in which pages they expose. The
-[apps](https://cmg777.github.io/expdpy/streamlit.html) deploy to
+user-defined variables) and differ only in which pages they expose. The apps deploy to
 [Streamlit Community Cloud](https://streamlit.io/cloud) in one click.
 
 ### Reproducibility & safety
@@ -257,10 +256,9 @@ ExploreApp(load_kuznets(), df_def=load_kuznets_data_def(), config_list=get_confi
 
 Head to [Explore](https://cmg777.github.io/expdpy/explore.html),
 [Analyze](https://cmg777.github.io/expdpy/analyze.html) and
-[Learn](https://cmg777.github.io/expdpy/learn.html) to see every function in action, the
+[Learn](https://cmg777.github.io/expdpy/learn.html) to see every function in action, or the
 [kuznets dataset](https://cmg777.github.io/expdpy/explanation/kuznets-dataset.html) page for
-the data dictionary, or the [app guide](https://cmg777.github.io/expdpy/streamlit.html) to
-launch the interactive apps.
+the data dictionary.
 
 ## Documentation
 

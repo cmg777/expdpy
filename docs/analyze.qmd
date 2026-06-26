@@ -333,4 +333,3 @@ seen how a staggered DiD design would identify a policy effect.
 - [Explore panel data](explore.qmd) — the exploratory analysis that should precede every model.
 - [Learn panel data](learn.qmd) — the ideas behind fixed effects, demeaning, correlated random
   effects and convergence, with runnable sandboxes.
-- Prefer no code? Launch the [Analyze app](streamlit.qmd) and click through these same tools.

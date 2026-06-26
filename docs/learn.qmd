@@ -207,4 +207,3 @@ kw.fig
 - [Analyze panel data](analyze.qmd) — the estimators these ideas underpin, on the real Kuznets panel.
 - Browse every concept explainer in the [API reference](reference/index.qmd), or pass any
   `list_topics()` key to `ex.explain(...)`.
-- Prefer no code? Launch the [Learn app](streamlit.qmd) — the sandboxes and explainers, interactive.

@@ -85,5 +85,5 @@ from expdpy.data import load_kuznets, load_kuznets_data_def, get_config
 ExploreApp(load_kuznets(), df_def=load_kuznets_data_def(), config_list=get_config("kuznets"))
 ```
 
-When launched without data, the bundled [Streamlit apps](../streamlit.qmd)
+When launched without data, the bundled Streamlit apps
 default to this dataset in their picker.
