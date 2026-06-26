@@ -3,92 +3,111 @@
 
 ![expdpy — A Python library to explore panel data interactively](images/hero.webp){fig-align="center" fig-alt="expdpy — A Python library to explore panel data interactively"}
 
-**expdpy** is a Python library for interactive analysis of **panel and cross-sectional
-data**, organized around three modules — **Explore**, **Analyze** and **Learn**. It pairs
-composable functions that return interactive [Plotly](https://plotly.com/python/) figures and
-publication-quality [Great Tables](https://posit-dev.github.io/great-tables/) with
-**fixest-style econometrics**, a built-in **teaching layer** that explains and interprets every
-result, and **three no-code `ExPdPy` apps** (one per module). It is built for beginners and
-applied researchers alike.
+::: {.text-center}
+**Explore, analyze and learn panel data — interactively, in Python.**
+:::
+
+`expdpy` pairs composable functions that return interactive [Plotly](https://plotly.com/python/)
+figures and publication-quality [Great Tables](https://posit-dev.github.io/great-tables/) with
+**fixest-style econometrics**, a built-in **teaching layer** that interprets and explains every
+result, and **three no-code apps**. It is built for students, teachers and applied researchers alike.
+
+```{=html}
+<div class="hero-cta">
+  <a class="xpd-btn xpd-btn--app" href="explore.qmd">Get started &rarr;</a>
+  <a class="xpd-btn xpd-btn--ghost" href="#try-the-apps">Try the apps</a>
+  <a class="xpd-btn xpd-btn--ghost" href="https://github.com/cmg777/expdpy" target="_blank" rel="noopener">&#11088; Star on GitHub</a>
+</div>
+```
 
 ::: {.grid}
 
-::: {.g-col-12 .g-col-md-4}
+::: {.g-col-12 .g-col-md-4 .module-card}
 ### [🔍 Explore](explore.qmd)
-Describe and visualize your panel: descriptive and correlation tables, distributions,
-missing-value maps, time trends, group comparisons, scatter plots and outlier treatment.
+Describe and visualize your panel: tables, distributions, missing-value maps, time trends, group
+comparisons, scatter plots, **within/between variation** and **panel dynamics**.
 
 ```{=html}
-<a href="https://colab.research.google.com/github/cmg777/expdpy/blob/main/notebooks/explore.ipynb" target="_blank" rel="noopener"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open Explore in Colab"></a>
+<div class="module-card__links">
+  <a href="https://expdpy-explore.streamlit.app/" target="_blank" rel="noopener">🚀 Launch app</a>
+  <a href="https://colab.research.google.com/github/cmg777/expdpy/blob/main/notebooks/explore.ipynb" target="_blank" rel="noopener">▶ Open in Colab</a>
+</div>
 ```
 :::
 
-::: {.g-col-12 .g-col-md-4}
+::: {.g-col-12 .g-col-md-4 .module-card}
 ### [🧮 Analyze](analyze.qmd)
-Estimate models: fixed effects, random effects, correlated random effects (Mundlak), pooled /
-between, FWL, the Hausman test, robust inference and event-study / difference-in-differences.
+Estimate models: fixed / random / **correlated random effects**, FWL, the Hausman test, robust
+inference, **event-study / DiD**, **β/σ/club convergence** and the **Kuznets-waves** curve.
 
 ```{=html}
-<a href="https://colab.research.google.com/github/cmg777/expdpy/blob/main/notebooks/analyze.ipynb" target="_blank" rel="noopener"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open Analyze in Colab"></a>
+<div class="module-card__links">
+  <a href="https://expdpy-analyze.streamlit.app/" target="_blank" rel="noopener">🚀 Launch app</a>
+  <a href="https://colab.research.google.com/github/cmg777/expdpy/blob/main/notebooks/analyze.ipynb" target="_blank" rel="noopener">▶ Open in Colab</a>
+</div>
 ```
 :::
 
-::: {.g-col-12 .g-col-md-4}
+::: {.g-col-12 .g-col-md-4 .module-card}
 ### [📚 Learn](learn.qmd)
-See the ideas behind the methods: first differences, demeaning and dummy variables, with
-runnable concept sandboxes and a browsable index of concept explainers.
+See the ideas behind the methods: **9 runnable concept sandboxes** where you tune a known truth, a
+**27-topic** explainer index, and a plain-language reading on every result.
 
 ```{=html}
-<a href="https://colab.research.google.com/github/cmg777/expdpy/blob/main/notebooks/learn.ipynb" target="_blank" rel="noopener"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open Learn in Colab"></a>
+<div class="module-card__links">
+  <a href="https://expdpy-learn.streamlit.app/" target="_blank" rel="noopener">🚀 Launch app</a>
+  <a href="https://colab.research.google.com/github/cmg777/expdpy/blob/main/notebooks/learn.ipynb" target="_blank" rel="noopener">▶ Open in Colab</a>
+</div>
 ```
 :::
 
 :::
 
-It is built on the modern Python data and econometrics stack:
+## Try the apps in your browser {#try-the-apps}
 
-- **[Plotly](https://plotly.com/python/)** — interactive figures
-- **[pyfixest](https://github.com/py-econometrics/pyfixest)** — fixed-effects and difference-in-differences estimators
-- **[Great Tables](https://posit-dev.github.io/great-tables/)** — publication-quality tables
-- **[linearmodels](https://bashtage.github.io/linearmodels/)** — random effects, between, correlated random effects, and the Hausman test
-- **[Streamlit](https://streamlit.io/)** — the no-code `ExPdPy` apps
+No install, no code — the three `ExPdPy` apps run the whole workflow in your browser: a sample
+pipeline, point-and-click analysis, sortable tables, and reproducible notebook export. Each is the
+no-code companion to a docs case study.
+
+```{=html}
+<div class="app-row">
+  <a class="xpd-btn xpd-btn--app" href="https://expdpy-explore.streamlit.app/" target="_blank" rel="noopener">🔍 Explore app</a>
+  <a class="xpd-btn xpd-btn--app" href="https://expdpy-analyze.streamlit.app/" target="_blank" rel="noopener">🧮 Analyze app</a>
+  <a class="xpd-btn xpd-btn--app" href="https://expdpy-learn.streamlit.app/" target="_blank" rel="noopener">📚 Learn app</a>
+</div>
+```
 
 ## What's inside
 
-**Explore** ships descriptive / correlation / extreme-observation tables, histograms and bar
-charts, time and quantile trends, by-group bar / violin / trend views, a missing-value heatmap,
-scatter plots with an optional LOESS smoother, and `treat_outliers`.
+**Explore** — descriptive / correlation / extreme-observation tables, histograms and bar charts,
+time and quantile trends, by-group bar / violin / trend views, a missing-value heatmap, scatter
+plots with an optional LOESS smoother, the within/between (`xtsum`) decomposition, per-unit
+trajectories, panel-structure diagnostics, distribution & transition dynamics, and `treat_outliers`.
 
-**Analyze** provides OLS with **multi-way fixed effects** and **clustered standard errors** via
-[pyfixest](https://github.com/py-econometrics/pyfixest); a richer `analyze_estimation` with
-**stepwise / multiple-outcome** comparison and serial-correlation-robust standard errors
-(Newey–West, Driscoll–Kraay); **pooled / between / fixed / random effects** and the
-**correlated-random-effects (Mundlak)** estimator; the **Hausman test**; post-estimation tools
-(fixed-effect plots, predictions, Wald joint tests); **robust inference** (randomization
-inference, wild cluster bootstrap); **Frisch–Waugh–Lovell** and **coefficient** plots; and
-modern **event-study / staggered difference-in-differences** estimators (`did2s`, Sun–Abraham,
-local-projections DiD, dynamic TWFE).
+**Analyze** — OLS with **multi-way fixed effects** and **clustered standard errors** via
+[pyfixest](https://github.com/py-econometrics/pyfixest); a richer `analyze_estimation` (stepwise /
+multiple-outcome, Newey–West & Driscoll–Kraay SEs); **pooled / between / fixed / random effects** and
+the **correlated-random-effects (Mundlak)** estimator; the **Hausman test**; post-estimation
+(fixed-effect plots, predictions, Wald joint tests); **robust inference** (randomization inference,
+wild cluster bootstrap); **Frisch–Waugh–Lovell** and **coefficient** plots; modern **event-study /
+staggered difference-in-differences** (`did2s`, Sun–Abraham, LP-DiD, dynamic TWFE); **β-, σ- and club
+convergence**; and the **Kuznets-waves** curve under pooled / between / within estimators.
 
-**Learn** makes every result speak plain language — `.interpret()` gives an **associational**
-reading (never a causal claim unless the design supports it), and `.explain()` /
-`explain(topic)` / `list_topics()` provide concept explainers. **Concept sandboxes** simulate
-data so a learner can *see* and tune a concept (`learn_omitted_variable_bias`,
-`learn_pooled_vs_fixed_effects`, `learn_clustering_se`, `learn_first_differences`,
-`learn_within_vs_lsdv`).
+**Learn** — every result speaks plain language: `.interpret()` gives an **associational** reading
+(never a causal claim unless the design supports it) and `.explain()` / `explain(topic)` /
+`list_topics()` browse **27** concept explainers. **Nine concept sandboxes** simulate data so you can
+*see* and tune a known truth — the first-differences ≈ demeaning ≈ dummies identity, fixed effects,
+clustering, omitted-variable bias, β/σ/club convergence, and the Kuznets wave.
 
-**Three no-code apps.** Streamlit apps — one per module — bring the whole
-workflow to the browser with a sample pipeline, point-and-click analysis, native sortable
-tables, reproducible notebook export, and one-click deployment to
-[Streamlit Community Cloud](https://streamlit.io/cloud).
-
-**Bundled datasets.** `expdpy.data` ships ready-to-explore panels — **`kuznets`** (the flagship
-N-shaped Kuznets-curve demo), `gapminder`, and **`staggered_did`** (for the event-study / DiD
-tools). See the [kuznets dataset](explanation/kuznets-dataset.qmd) page for the data dictionary.
+**Bundled datasets** — `expdpy.data` ships ready-to-explore panels: **`kuznets`** (the flagship
+N-shaped Kuznets-curve demo), `gapminder`, **`staggered_did`** (event-study / DiD), **`productivity`**
+and **`bolivia112_gdppc`** (convergence). See the
+[kuznets dataset](explanation/kuznets-dataset.qmd) page for the data dictionary.
 
 ## Installation
 
-Install the latest release from PyPI (random effects, CRE and the Hausman test work out of the
-box; the apps need the `streamlit` extra):
+Install the latest release from PyPI (random effects, CRE and the Hausman test work out of the box;
+the apps need the `streamlit` extra):
 
 ```bash
 pip install expdpy
@@ -106,16 +125,15 @@ For the latest unreleased version, install straight from the `main` branch:
 
 ```bash
 pip install "git+https://github.com/cmg777/expdpy.git"
-pip install "expdpy[streamlit] @ git+https://github.com/cmg777/expdpy.git"
 ```
 
 Requires Python 3.10+.
 
 ## At a glance
 
-The lead example throughout these docs is the bundled `kuznets` panel (80 countries ×
-2015–2025): a synthetic dataset whose regional inequality traces an **N-shaped Kuznets curve**
-in income — it rises, falls, then rises again at very high income.
+The lead example throughout these docs is the bundled `kuznets` panel (80 countries × 2015–2025): a
+synthetic dataset whose regional inequality traces an **N-shaped Kuznets curve** in income — rising,
+falling, then rising again at very high income.
 
 ```python
 import expdpy as ex
@@ -128,8 +146,8 @@ ex.explore_scatter_plot(
 ).fig
 ```
 
-**Run a regression and let it explain itself.** Two-way fixed effects, clustered standard
-errors, a plain-language reading, and a coefficient plot:
+**Run a regression and let it explain itself** — two-way fixed effects, clustered standard errors, a
+plain-language reading, and a coefficient plot:
 
 ```python
 res = ex.analyze_regression_table(
@@ -143,57 +161,35 @@ print(res.interpret())            # plain-language, associational reading
 ex.analyze_coefficient_plot(res)  # themed coefficient plot with confidence intervals
 ```
 
-**Bring within estimates into a random-effects frame** with the correlated-random-effects
-(Mundlak) estimator — its slope equals the fixed-effects estimate, and a joint test on the
-unit-mean terms is the regression-form Hausman test:
-
-```python
-ex.analyze_cre_table(
-    df, dv="gini_regional", idvs=["log_gdp_pc"], entity="country", time="year"
-).etable
-```
-
-**Event study & staggered difference-in-differences** on the bundled treated panel:
-
-```python
-from expdpy.data import load_staggered_did
-
-did = load_staggered_did()
-ex.analyze_panel_view(did, unit="unit", time="year", cohort="cohort")   # treatment structure
-ex.analyze_event_study(                                                  # dynamic effects
-    did, outcome="outcome", unit="unit", time="year", cohort="cohort", estimator="did2s"
-).fig
-```
-
 **Learn as you go** — concept sandboxes and explainers:
 
 ```python
-ex.learn_first_differences()      # first differences ≈ demeaning ≈ dummy variables
-print(ex.explain("fixed_effects"))  # a concept explainer; ex.list_topics() lists them all
+ex.learn_first_differences()        # first differences ≈ demeaning ≈ dummy variables
+print(ex.explain("fixed_effects"))  # a concept explainer; ex.list_topics() lists all 27
 ```
 
-Launch the Explore app on this data, pre-configured to open on the curve:
+Head to [Explore](explore.qmd), [Analyze](analyze.qmd) and [Learn](learn.qmd) to see every function
+in action, or the [kuznets dataset](explanation/kuznets-dataset.qmd) page for the data dictionary.
 
-```python
-from expdpy.streamlit_app import ExploreApp
-from expdpy.data import load_kuznets, load_kuznets_data_def, get_config
+## Built on
 
-ExploreApp(load_kuznets(), df_def=load_kuznets_data_def(), config_list=get_config("kuznets"))
-```
+`expdpy` stands on the modern Python data and econometrics stack:
 
-Head to [Explore](explore.qmd), [Analyze](analyze.qmd) and [Learn](learn.qmd) to see every
-function in action, or the [kuznets dataset](explanation/kuznets-dataset.qmd) page for the data
-dictionary.
+- **[Plotly](https://plotly.com/python/)** — interactive figures
+- **[pyfixest](https://github.com/py-econometrics/pyfixest)** — fixed-effects and difference-in-differences estimators
+- **[Great Tables](https://posit-dev.github.io/great-tables/)** — publication-quality tables
+- **[linearmodels](https://bashtage.github.io/linearmodels/)** — random / between / correlated random effects and the Hausman test
+- **[Streamlit](https://streamlit.io/)** — the no-code `ExPdPy` apps
 
 ## Acknowledgement
 
 expdpy began as a Python port of the excellent
 [ExPanDaR](https://github.com/trr266/ExPanDaR) R package by **Joachim Gassen** and the
-**TRR 266 Accounting for Transparency** project, and its foundations remain deeply inspired by
-that work. Over time, expdpy has grown well beyond the original — fixest-style estimators,
-event-study / difference-in-differences tools, random-effects and correlated-random-effects
-panel models, and a built-in teaching layer that interprets and explains results — and it will
-keep evolving.
+**TRR 266 Accounting for Transparency** project, and its foundations remain deeply inspired by that
+work. Over time, expdpy has grown well beyond the original — fixest-style estimators, event-study /
+difference-in-differences tools, random- and correlated-random-effects panel models, convergence
+analysis, and a built-in teaching layer that interprets and explains results — and it will keep
+evolving.
 
 We are grateful to the ExPanDaR authors. Please cite the original work when using `expdpy` in
 research (see [`CITATION.cff`](https://github.com/cmg777/expdpy/blob/main/CITATION.cff)).

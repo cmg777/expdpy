@@ -4,12 +4,13 @@ jupyter: python3
 ---
 
 ```{=html}
-<p style="margin: 0.25rem 0 1.25rem;">
-  <strong>Run this page interactively in Google Colab — no install required:</strong><br>
-  <a href="https://colab.research.google.com/github/cmg777/expdpy/blob/main/notebooks/analyze.ipynb" target="_blank" rel="noopener">
-    <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab">
-  </a>
-</p>
+<div class="try-banner">
+  <p class="try-banner__title">✨ <strong>Try this page interactively</strong> — no install needed.</p>
+  <div class="try-banner__actions">
+    <a class="xpd-btn xpd-btn--app" href="https://expdpy-analyze.streamlit.app/" target="_blank" rel="noopener">🚀 Launch the Analyze app</a>
+    <a class="xpd-btn xpd-btn--colab" href="https://colab.research.google.com/github/cmg777/expdpy/blob/main/notebooks/analyze.ipynb" target="_blank" rel="noopener">▶ Open in Colab</a>
+  </div>
+</div>
 ```
 
 The **Analyze** module is where exploration becomes estimation. This page is a **case study**:
