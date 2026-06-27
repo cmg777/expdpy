@@ -33,6 +33,10 @@ website:
             file: analyze_convergence_clubs.qmd
           - text: "Kuznets waves (analyze_kuznets_waves)"
             file: analyze_kuznets_waves.qmd
+          - text: "Instrumental variables (analyze_iv_regression)"
+            file: analyze_iv_regression.qmd
+          - text: "Marginal effects (analyze_marginal_effects_plot)"
+            file: analyze_marginal_effects_plot.qmd
           - text: "The kuznets dataset"
             file: explanation/kuznets-dataset.qmd
           - text: "Data model"

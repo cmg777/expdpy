@@ -134,6 +134,58 @@ MODULES = [
             "(https://cmg777.github.io/expdpy/analyze_kuznets_waves.html) of the docs."
         ),
     },
+    {
+        "slug": "analyze_iv_regression",
+        "title": "analyze_iv_regression",
+        "title_md": (
+            "# analyze_iv_regression — instrumental variables (2SLS) for cross-section "
+            "and panel data\n"
+            "\n"
+            "_Notebook version: built {BUILD_STAMP} — re-open this notebook from GitHub if "
+            "yours is older, to get the latest version._\n"
+            "\n"
+            "An extended **user guide** *and* a **verification harness** for "
+            "`analyze_iv_regression` and `analyze_panel_iv_regression` from "
+            "[expdpy](https://github.com/cmg777/expdpy): the two-stage-least-squares logic, "
+            "the first-stage weak-instrument F, every argument, everything they return, and a "
+            "synthetic-data check that 2SLS recovers a known slope while OLS is biased. It runs "
+            "the famous Acemoglu-Johnson-Robinson (2001) settler-mortality example and an "
+            "African night-lights-and-conflict panel IV. Run the install cell below first, then "
+            "run the rest top to bottom.\n"
+            "\n"
+            "> The first cell installs everything and then **restarts the Colab runtime once** "
+            "so the upgraded NumPy loads cleanly. When it reconnects, run the cells again "
+            "(Runtime > Run all) — the install cell skips the restart the second time.\n"
+            "\n"
+            "This notebook mirrors the [analyze_iv_regression page]"
+            "(https://cmg777.github.io/expdpy/analyze_iv_regression.html) of the docs."
+        ),
+    },
+    {
+        "slug": "analyze_marginal_effects_plot",
+        "title": "analyze_marginal_effects_plot",
+        "title_md": (
+            "# analyze_marginal_effects_plot — marginal effects across an interaction\n"
+            "\n"
+            "_Notebook version: built {BUILD_STAMP} — re-open this notebook from GitHub if "
+            "yours is older, to get the latest version._\n"
+            "\n"
+            "An extended **user guide** *and* a **verification harness** for "
+            "`analyze_marginal_effects_plot` from [expdpy](https://github.com/cmg777/expdpy): "
+            "how the focal slope `b_focal + b_interaction * moderator` slides across the "
+            "moderator, the delta-method confidence band, the average marginal effect, every "
+            "argument, everything it returns, and a synthetic-data check that the function "
+            "traces a planted interaction exactly. Run the install cell below first, then run "
+            "the rest top to bottom.\n"
+            "\n"
+            "> The first cell installs everything and then **restarts the Colab runtime once** "
+            "so the upgraded NumPy loads cleanly. When it reconnects, run the cells again "
+            "(Runtime > Run all) — the install cell skips the restart the second time.\n"
+            "\n"
+            "This notebook mirrors the [analyze_marginal_effects_plot page]"
+            "(https://cmg777.github.io/expdpy/analyze_marginal_effects_plot.html) of the docs."
+        ),
+    },
 ]
 
 # linearmodels ships with the core install, so a plain ``expdpy`` install runs every cell.
