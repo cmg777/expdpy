@@ -15,7 +15,7 @@ from pandas.api import types as pdt
 
 from expdpy._labels import resolve_label
 from expdpy._panel import resolve_panel
-from expdpy._theme import SEQUENTIAL_SCALE, apply_default_layout, color_for
+from expdpy._theme import active_sequential_scale, apply_default_layout, color_for
 from expdpy._types import AnimatedScatterResult
 from expdpy._validation import ensure_dataframe
 
@@ -50,6 +50,7 @@ def explore_animated_scatter_plot(
     time: str | None = None,
     alpha: float = 0.8,
     title: str | None = None,
+    subtitle: str | None = None,
 ) -> AnimatedScatterResult:
     """Animated bubble scatter of ``y`` against ``x`` over time (a Gapminder-style view).
 
@@ -153,7 +154,7 @@ def explore_animated_scatter_plot(
         elif color and not discrete:
             m.update(
                 color=part[color].to_numpy(dtype=float),
-                colorscale=SEQUENTIAL_SCALE,
+                colorscale=active_sequential_scale(),
                 showscale=True,
                 cmin=cmin,
                 cmax=cmax,
@@ -241,11 +242,12 @@ def explore_animated_scatter_plot(
         fig,
         xaxis={"title": x_label, "range": x_range},
         yaxis={"title": y_label, "range": y_range},
+        title=title or f"{y_label} vs {x_label} over {time_label}",
+        subtitle=subtitle,
     )
     fig.update_layout(
         sliders=sliders,
         updatemenus=updatemenus,
-        title=title or f"{y_label} vs {x_label} over {time_label}",
         showlegend=discrete,
     )
     return AnimatedScatterResult(df=sub, fig=fig)

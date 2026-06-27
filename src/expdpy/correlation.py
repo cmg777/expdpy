@@ -10,7 +10,7 @@ import plotly.graph_objects as go
 
 from expdpy._corr import cor_mat
 from expdpy._labels import resolve_labels
-from expdpy._theme import DIVERGING_SCALE, apply_default_layout, diverging_color
+from expdpy._theme import active_diverging_scale, apply_default_layout, diverging_color
 from expdpy._types import CorrelationGraphResult
 from expdpy._validation import ensure_dataframe, numeric_logical_columns
 
@@ -34,6 +34,8 @@ def explore_correlation_plot(
     df: pd.DataFrame,
     *,
     style: Literal["heatmap", "ellipse"] = "heatmap",
+    title: str | None = None,
+    subtitle: str | None = None,
 ) -> CorrelationGraphResult:
     """Visualise a correlation matrix (Pearson above, Spearman below the diagonal).
 
@@ -116,7 +118,7 @@ def explore_correlation_plot(
                 zmid=0.0,
                 zmin=-1.0,
                 zmax=1.0,
-                colorscale=DIVERGING_SCALE,
+                colorscale=active_diverging_scale(),
                 colorbar={"title": "corr"},
                 xgap=1,
                 ygap=1,
@@ -163,7 +165,11 @@ def explore_correlation_plot(
             scaleratio=1,
         )
 
-    apply_default_layout(fig, title="Correlations")
+    apply_default_layout(
+        fig,
+        title=title if title is not None else "Correlations",
+        subtitle=subtitle,
+    )
     fig.add_annotation(
         text="Pearson above the diagonal · Spearman below",
         xref="paper",

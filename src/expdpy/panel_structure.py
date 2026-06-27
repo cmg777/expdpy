@@ -13,7 +13,11 @@ from pandas.api import types as pdt
 
 from expdpy._labels import resolve_label
 from expdpy._panel import resolve_panel
-from expdpy._theme import DIVERGING_SCALE, SEQUENTIAL_SCALE, apply_default_layout
+from expdpy._theme import (
+    active_diverging_scale,
+    active_sequential_scale,
+    apply_default_layout,
+)
 from expdpy._types import PanelStructureResult, ValueHeatmapResult
 from expdpy._validation import ensure_dataframe
 from expdpy.trends import _try_convert_ts_id
@@ -43,6 +47,8 @@ def explore_panel_structure(
     var: str | None = None,
     max_units: int | None = 200,
     caption: str = "Panel Structure",
+    title: str | None = None,
+    subtitle: str | None = None,
 ) -> PanelStructureResult:
     """Summarise the panel's balance and coverage, with a unit-by-period presence grid.
 
@@ -188,6 +194,8 @@ def explore_panel_structure(
         xaxis={"title": time_label, "tickangle": -40},
         yaxis={"title": entity_label},
     )
+    if title is not None or subtitle is not None:
+        apply_default_layout(fig, title=title, subtitle=subtitle)
     return PanelStructureResult(df_summary=summary, df_grid=grid, gt=gt, fig=fig)
 
 
@@ -201,6 +209,8 @@ def explore_value_heatmap(
     aggfunc: str = "mean",
     max_units: int | None = 200,
     sort_by: Literal["mean", "first_value", "label"] = "mean",
+    title: str | None = None,
+    subtitle: str | None = None,
 ) -> ValueHeatmapResult:
     """Heatmap of a variable over the unit-by-time grid (units by periods, colour = value).
 
@@ -298,7 +308,9 @@ def explore_value_heatmap(
             z=z,
             x=[str(c) for c in pivot.columns],
             y=[str(i) for i in pivot.index],
-            colorscale=DIVERGING_SCALE if diverging else SEQUENTIAL_SCALE,
+            colorscale=active_diverging_scale()
+            if diverging
+            else active_sequential_scale(),
             zmid=0 if diverging else None,
             xgap=1,
             ygap=1,
@@ -314,4 +326,6 @@ def explore_value_heatmap(
         xaxis={"title": time_label, "tickangle": -40},
         yaxis={"title": entity_label},
     )
+    if title is not None or subtitle is not None:
+        apply_default_layout(fig, title=title, subtitle=subtitle)
     return ValueHeatmapResult(df=pivot, fig=fig)

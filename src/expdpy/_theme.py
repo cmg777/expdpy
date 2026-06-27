@@ -19,7 +19,9 @@ import plotly.io as pio
 
 __all__ = [
     "COLOR_SEQUENCE",
+    "COLOR_SEQUENCE_COLORBLIND",
     "DIVERGING_SCALE",
+    "DIVERGING_SCALE_COLORBLIND",
     "FONT_FAMILY",
     "FONT_SIZE_AXIS_TITLE",
     "FONT_SIZE_BASE",
@@ -28,11 +30,17 @@ __all__ = [
     "FONT_SIZE_TITLE",
     "PLOTLY_CONFIG",
     "SEQUENTIAL_SCALE",
+    "SEQUENTIAL_SCALE_COLORBLIND",
     "TEMPLATE_NAME",
     "TEMPLATE_NAME_DARK",
+    "active_colorway",
+    "active_diverging_scale",
+    "active_sequential_scale",
     "apply_default_layout",
     "color_for",
     "diverging_color",
+    "get_palette",
+    "set_palette",
 ]
 
 # --- Qualitative palette -------------------------------------------------------------
@@ -72,6 +80,74 @@ SEQUENTIAL_SCALE: list[list[float | str]] = [
     [0.75, "#5C8FBC"],
     [1.0, "#2E5C8A"],
 ]
+
+# --- Colorblind-safe palette (opt-in via set_palette("colorblind")) -------------------
+# The Okabe-Ito qualitative set (8 colors): the canonical colorblind-safe categorical
+# palette (Okabe & Ito 2008). ``color_for`` wraps modulo its length, so 8 < 10 is fine.
+COLOR_SEQUENCE_COLORBLIND: list[str] = [
+    "#0072B2",  # blue
+    "#E69F00",  # orange
+    "#009E73",  # bluish green
+    "#D55E00",  # vermillion
+    "#56B4E9",  # sky blue
+    "#F0E442",  # yellow
+    "#CC79A7",  # reddish purple
+    "#999999",  # gray
+]
+
+# A colorblind-safe single-hue blue sequential ramp (monotonic in lightness).
+SEQUENTIAL_SCALE_COLORBLIND: list[list[float | str]] = [
+    [0.0, "#F7FBFF"],
+    [0.25, "#C6DBEF"],
+    [0.5, "#6BAED6"],
+    [0.75, "#2171B5"],
+    [1.0, "#08306B"],
+]
+
+# A colorblind-safe diverging scale (orange <-> neutral <-> blue), avoiding red/green so
+# protan/deutan viewers can read sign.
+DIVERGING_SCALE_COLORBLIND: list[list[float | str]] = [
+    [0.0, "#D55E00"],  # strong negative -> Okabe-Ito vermillion
+    [0.25, "#F0B488"],
+    [0.5, "#F5F5F5"],  # zero -> near-white
+    [0.75, "#80B1D3"],
+    [1.0, "#0072B2"],  # strong positive -> Okabe-Ito blue
+]
+
+# --- Active-palette state ------------------------------------------------------------
+# The public COLOR_SEQUENCE / SEQUENTIAL_SCALE / DIVERGING_SCALE constants are the frozen
+# "default" snapshot. The *active* palette is chosen at runtime by :func:`set_palette` and
+# read through the accessor functions below — so a toggle reaches modules that imported the
+# scale constants by value at import time (they must call the accessors, not the constants).
+_QUALITATIVE: dict[str, list[str]] = {
+    "default": COLOR_SEQUENCE,
+    "colorblind": COLOR_SEQUENCE_COLORBLIND,
+}
+_SEQUENTIAL: dict[str, list[list[float | str]]] = {
+    "default": SEQUENTIAL_SCALE,
+    "colorblind": SEQUENTIAL_SCALE_COLORBLIND,
+}
+_DIVERGING: dict[str, list[list[float | str]]] = {
+    "default": DIVERGING_SCALE,
+    "colorblind": DIVERGING_SCALE_COLORBLIND,
+}
+_ACTIVE_PALETTE: str = "default"
+
+
+def active_colorway() -> list[str]:
+    """Return the currently active qualitative palette (list of hex strings)."""
+    return _QUALITATIVE[_ACTIVE_PALETTE]
+
+
+def active_sequential_scale() -> list[list[float | str]]:
+    """Return the currently active sequential color scale."""
+    return _SEQUENTIAL[_ACTIVE_PALETTE]
+
+
+def active_diverging_scale() -> list[list[float | str]]:
+    """Return the currently active diverging color scale."""
+    return _DIVERGING[_ACTIVE_PALETTE]
+
 
 # --- Fonts -------------------------------------------------------------------------
 # A modern sans (Inter) with system + Arial/Helvetica fallbacks: browsers and notebooks pick
@@ -120,8 +196,11 @@ def _build_template(*, dark: bool = False) -> go.layout.Template:
     template.layout = go.Layout(
         font={"family": FONT_FAMILY, "size": FONT_SIZE_BASE, "color": font_color},
         title={"font": {"family": FONT_FAMILY, "size": FONT_SIZE_TITLE}, "x": 0.02},
-        colorway=COLOR_SEQUENCE,
-        colorscale={"sequential": SEQUENTIAL_SCALE, "diverging": DIVERGING_SCALE},
+        colorway=active_colorway(),
+        colorscale={
+            "sequential": active_sequential_scale(),
+            "diverging": active_diverging_scale(),
+        },
         margin={"l": 70, "r": 30, "t": 60, "b": 60},
         legend={
             "bgcolor": legend_bg,
@@ -161,8 +240,88 @@ _COMBINED_TEMPLATE = f"plotly_white+{TEMPLATE_NAME}"
 _COMBINED_TEMPLATE_DARK = f"plotly_dark+{TEMPLATE_NAME_DARK}"
 
 
+def set_palette(mode: str) -> None:
+    """Switch the global expdpy color palette.
+
+    The palette is **process-global**: it affects every subsequent expdpy figure — grouped
+    series colors (via :func:`color_for`), the heatmap / scatter color scales, and the
+    registered Plotly template's colorway. The default look is unchanged until you opt in,
+    so existing figures keep their colors unless you call this.
+
+    Parameters
+    ----------
+    mode
+        ``"default"`` (the Tableau 10 palette, today's look) or ``"colorblind"`` (the
+        Okabe-Ito colorblind-safe qualitative palette plus colorblind-safe sequential and
+        diverging scales).
+
+    Raises
+    ------
+    ValueError
+        If ``mode`` is not a known palette.
+
+    Examples
+    --------
+    Switch to the colorblind-safe palette, then restore the default:
+
+    ```python
+    import expdpy as ex
+
+    ex.set_palette("colorblind")  # every later figure uses the Okabe-Ito palette
+    print(ex.get_palette())
+    ex.set_palette("default")  # restore the Tableau 10 default
+    ```
+    """
+    global _ACTIVE_PALETTE
+    if mode not in _QUALITATIVE:
+        valid = ", ".join(sorted(_QUALITATIVE))
+        raise ValueError(f"unknown palette {mode!r}; choose from {valid}")
+    _ACTIVE_PALETTE = mode
+    # Rebuild and re-register the templates so their baked-in colorway/colorscale reflect the
+    # new palette; apply_default_layout applies these by name, so this makes the change take
+    # effect for every subsequent figure.
+    pio.templates[TEMPLATE_NAME] = _build_template()
+    pio.templates[TEMPLATE_NAME_DARK] = _build_template(dark=True)
+
+
+def get_palette() -> str:
+    """Return the name of the currently active palette (``"default"`` / ``"colorblind"``)."""
+    return _ACTIVE_PALETTE
+
+
+def _supports_native_subtitle() -> bool:
+    """Return ``True`` if the installed Plotly accepts ``title.subtitle`` (Plotly >= 5.22)."""
+    try:
+        go.layout.Title(subtitle={"text": "x"})
+    except (ValueError, TypeError):
+        return False
+    return True
+
+
+_NATIVE_SUBTITLE = _supports_native_subtitle()
+
+
+def _make_title(title: str | None, subtitle: str | None) -> dict:
+    """Build a Plotly ``title`` dict, using a native subtitle when supported else emulating it."""
+    text = title or ""
+    if subtitle is None:
+        return {"text": text}
+    if _NATIVE_SUBTITLE:
+        return {"text": text, "subtitle": {"text": subtitle}}
+    sub_size = int(FONT_SIZE_TITLE * 0.65)
+    return {
+        "text": f"{text}<br>"
+        f"<span style='font-size:{sub_size}px;color:#888'>{subtitle}</span>"
+    }
+
+
 def apply_default_layout(
-    fig: go.Figure, *, dark: bool = False, **layout_kwargs: object
+    fig: go.Figure,
+    *,
+    dark: bool = False,
+    title: str | None = None,
+    subtitle: str | None = None,
+    **layout_kwargs: object,
 ) -> go.Figure:
     """Apply expdpy's default layout (Tableau theme, presentation fonts) to ``fig``.
 
@@ -177,19 +336,28 @@ def apply_default_layout(
         The figure to style (modified in place and returned).
     dark
         Apply the dark template (``plotly_dark`` base) instead of the light one.
+    title
+        Optional main title for the figure. When both ``title`` and ``subtitle`` are
+        ``None`` no title is set (the chart relies on its labelled axes, as before).
+    subtitle
+        Optional subtitle, rendered under the title (native when the installed Plotly
+        supports ``title.subtitle``, otherwise emulated as a smaller second line).
     **layout_kwargs
         Extra keyword arguments forwarded to
         :meth:`plotly.graph_objects.Figure.update_layout`.
     """
     fig.update_layout(template=_COMBINED_TEMPLATE_DARK if dark else _COMBINED_TEMPLATE)
+    if title is not None or subtitle is not None:
+        fig.update_layout(title=_make_title(title, subtitle))
     if layout_kwargs:
         fig.update_layout(**layout_kwargs)
     return fig
 
 
 def color_for(index: int) -> str:
-    """Return the palette color for a 0-based series ``index`` (wraps around)."""
-    return COLOR_SEQUENCE[index % len(COLOR_SEQUENCE)]
+    """Return the active-palette color for a 0-based series ``index`` (wraps around)."""
+    cw = active_colorway()
+    return cw[index % len(cw)]
 
 
 def diverging_color(value: float) -> str:
@@ -201,7 +369,7 @@ def diverging_color(value: float) -> str:
     """
     v = max(-1.0, min(1.0, value))
     pos = (v + 1.0) / 2.0  # map [-1, 1] -> [0, 1]
-    stops = DIVERGING_SCALE
+    stops = active_diverging_scale()
     for i in range(len(stops) - 1):
         p0, c0 = float(stops[i][0]), str(stops[i][1])
         p1, c1 = float(stops[i + 1][0]), str(stops[i + 1][1])

@@ -20,11 +20,13 @@ import numpy as np
 from expdpy.pedagogy._format import (
     direction_word,
     fmt_num,
+    sign_word,
     significance_phrase,
 )
 
 __all__ = [
     "interpret_beta_convergence",
+    "interpret_coefficient_plot",
     "interpret_convergence_clubs",
     "interpret_correlation",
     "interpret_cre",
@@ -32,17 +34,25 @@ __all__ = [
     "interpret_distribution_over_time",
     "interpret_estimation",
     "interpret_event_study",
+    "interpret_fixef_plot",
     "interpret_fwl",
     "interpret_iv",
+    "interpret_joint_test",
     "interpret_kuznets_waves",
     "interpret_marginal_effects",
+    "interpret_missing_values",
     "interpret_panel_structure",
+    "interpret_panel_view",
+    "interpret_predictions",
     "interpret_regression",
+    "interpret_robust_inference",
+    "interpret_scatter_plot",
     "interpret_sandbox",
     "interpret_sigma_convergence",
     "interpret_spaghetti",
     "interpret_transition_matrix",
     "interpret_trend",
+    "interpret_value_heatmap",
     "interpret_within_between",
     "interpret_within_persistence",
     "interpret_xtsum",
@@ -974,4 +984,274 @@ def interpret_within_persistence(result: Any, *, lang: str = "en") -> str:
             "Near-zero persistence means the series behaves like noise within units."
         )
     lines += ["", _ASSOC_NOTE]
+    return "\n".join(lines)
+
+
+def interpret_coefficient_plot(result: Any, *, lang: str = "en") -> str:
+    """Interpret a coefficient plot: sign, magnitude and whether each CI excludes zero."""
+    df = result.df
+    first = df["model"].iloc[0]
+    sub = df[df["model"] == first]
+    n_models = int(df["model"].nunique())
+    parts = [
+        "This coefficient plot shows each term's estimate with its confidence interval."
+    ]
+    for _, row in sub.iterrows():
+        term = str(row["term"])
+        est = float(row["estimate"])
+        lo, hi = float(row["ci_lower"]), float(row["ci_upper"])
+        excl = (lo > 0) or (hi < 0)
+        parts.append(
+            f"- **{term}**: estimate {fmt_num(est)} ({sign_word(est)}); its confidence "
+            "interval "
+            + ("excludes" if excl else "includes")
+            + " zero, so it is "
+            + ("distinguishable from" if excl else "not distinguishable from")
+            + " zero."
+        )
+    if n_models > 1:
+        parts.append(f"(This reads the first of {n_models} models shown side by side.)")
+    parts += ["", _ASSOC_NOTE]
+    return "\n".join(parts)
+
+
+def interpret_fixef_plot(result: Any, *, lang: str = "en") -> str:
+    """Interpret a fixed-effects plot: the spread of the estimated group intercepts."""
+    df = result.df
+    dim = str(df["fixef"].iloc[0]) if len(df) else "the group"
+    vals = df["value"].to_numpy(dtype=float)
+    n = len(vals)
+    lo_i, hi_i = int(np.nanargmin(vals)), int(np.nanargmax(vals))
+    lo_lvl, hi_lvl = str(df["level"].iloc[lo_i]), str(df["level"].iloc[hi_i])
+    rng = float(vals[hi_i] - vals[lo_i])
+    sd = float(np.nanstd(vals))
+    lines = [
+        f"These are the estimated **{dim}** fixed effects — each group's intercept relative "
+        f"to the others. Across {n:,} level(s) shown they span {fmt_num(rng)}, from "
+        f"**{lo_lvl}** ({fmt_num(float(vals[lo_i]))}) to **{hi_lvl}** "
+        f"({fmt_num(float(vals[hi_i]))}); the spread (SD) is {fmt_num(sd)}.",
+        "A wide spread means the groups differ substantially in baseline level once the "
+        "regressors are held fixed.",
+        "",
+        _ASSOC_NOTE,
+    ]
+    return "\n".join(lines)
+
+
+def interpret_predictions(result: Any, *, lang: str = "en") -> str:
+    """Interpret predictions: in-sample fit (r, RMSE) or the range of new-data forecasts."""
+    df = result.df
+    n = len(df)
+    if n == 0:
+        return "No predictions were produced."
+    if "residual" not in df.columns:
+        pred = df["predicted"].to_numpy(dtype=float)
+        return (
+            f"These are {n:,} fitted predictions on new data, ranging from "
+            f"{fmt_num(float(np.nanmin(pred)))} to {fmt_num(float(np.nanmax(pred)))} "
+            f"(mean {fmt_num(float(np.nanmean(pred)))}). No actuals are available, so fit "
+            "cannot be assessed here."
+        )
+    actual = df["actual"].to_numpy(dtype=float)
+    pred = df["predicted"].to_numpy(dtype=float)
+    resid = df["residual"].to_numpy(dtype=float)
+    rmse = float(np.sqrt(np.nanmean(resid**2)))
+    sd_y = float(np.nanstd(actual))
+    with np.errstate(invalid="ignore"):
+        r = float(np.corrcoef(actual, pred)[0, 1]) if n > 1 else float("nan")
+    quality = (
+        "a tight fit"
+        if (sd_y > 0 and rmse < 0.5 * sd_y)
+        else "a loose fit"
+        if (sd_y > 0 and rmse > sd_y)
+        else "a moderate fit"
+    )
+    lines = [
+        f"On the {n:,} estimation-sample rows, fitted values track the actual outcome with "
+        f"correlation r = {fmt_num(r)} (r-squared = {fmt_num(r * r)}).",
+        f"Residuals have a root-mean-square of {fmt_num(rmse)} against an outcome SD of "
+        f"{fmt_num(sd_y)} — {quality}.",
+        "",
+        _ASSOC_NOTE,
+    ]
+    return "\n".join(lines)
+
+
+def interpret_joint_test(result: Any, *, lang: str = "en") -> str:
+    """Interpret a joint (Wald/F) significance test: the null, the statistic and the verdict."""
+    terms = ", ".join(result.hypotheses)
+    stat = float(result.statistic)
+    p = float(result.p_value)
+    dist = str(result.distribution)
+    reject = p < 0.05
+    verdict = (
+        "**reject** the joint null: at least one of these terms is statistically "
+        "distinguishable from zero (the set is jointly significant)"
+        if reject
+        else "**fail to reject** the joint null: the terms are jointly indistinguishable "
+        "from zero at the 5% level"
+    )
+    lines = [
+        f"Joint **{dist}-test** that all of [{terms}] equal zero: "
+        f"statistic = {fmt_num(stat)}, p = {fmt_num(p)} ({significance_phrase(p)}).",
+        f"At the 5% level we {verdict}.",
+        "Failing to reject reflects a lack of evidence against the null, not proof that the "
+        "terms are exactly zero.",
+    ]
+    return "\n".join(lines)
+
+
+_RI_METHOD = {
+    "ritest": "randomization inference (permuting the regressor across the sample)",
+    "wildboot": "the wild cluster bootstrap (resampling residuals within clusters)",
+}
+
+
+def interpret_robust_inference(result: Any, *, lang: str = "en") -> str:
+    """Interpret robust inference: the resampling method, the robust p-value and the CI."""
+    method = str(result.method)
+    name = _RI_METHOD.get(method, method)
+    param = str(result.param)
+    est = float(result.estimate)
+    p = float(result.p_value)
+    reps = int(result.reps)
+    lines = [
+        f"Robust inference on **{param}** via {name}, over {reps:,} resamples.",
+        f"The point estimate is {fmt_num(est)} and its robust p-value is {fmt_num(p)} "
+        f"({significance_phrase(p)}).",
+    ]
+    lo, hi = float(result.conf_int[0]), float(result.conf_int[1])
+    if math.isfinite(lo) and math.isfinite(hi):
+        excl = (lo > 0) or (hi < 0)
+        lines.append(
+            f"Its {fmt_num(lo)} to {fmt_num(hi)} interval "
+            + ("excludes" if excl else "includes")
+            + " zero."
+        )
+    lines.append(
+        "When clusters are few, this resampling p-value is more trustworthy than the naive "
+        "large-sample cluster-robust p-value, which tends to overstate precision."
+    )
+    return "\n".join(lines)
+
+
+def interpret_panel_view(result: Any, *, lang: str = "en") -> str:
+    """Interpret a panel view: treatment timing/balance, or outcome-trajectory coverage."""
+    df = result.df
+    cols = list(df.columns)
+    is_outcome = len(cols) == 3 and not set(df[cols[2]].dropna().unique()) <= {0, 1}
+    if is_outcome:
+        unit_col, time_col, out_col = cols
+        n_units = int(df[unit_col].nunique())
+        n_per = int(df[time_col].nunique())
+        y = df[out_col].to_numpy(dtype=float)
+        return (
+            f"Outcome trajectories for **{n_units:,} units** across **{n_per:,} periods**. "
+            f"The outcome **{out_col}** ranges from {fmt_num(float(np.nanmin(y)))} to "
+            f"{fmt_num(float(np.nanmax(y)))} (mean {fmt_num(float(np.nanmean(y)))}); each "
+            "faint line traces one unit over time."
+        )
+    n_units, n_per = int(df.shape[0]), int(df.shape[1])
+    ever = df.eq(1).any(axis=1)
+    n_treated = int(ever.sum())
+    n_never = n_units - n_treated
+    periods = list(df.columns)
+    first_periods = []
+    for _, row in df[ever].iterrows():
+        hits = [c for c in periods if row.get(c) == 1]
+        if hits:
+            first_periods.append(min(hits))
+    lines = [
+        f"This treatment quilt covers **{n_units:,} units** over **{n_per:,} periods**: "
+        f"{n_treated:,} are ever treated and {n_never:,} are never treated."
+    ]
+    if first_periods:
+        staggered = len(set(first_periods)) > 1
+        lines.append(
+            f"First treatment ranges from {min(first_periods)} to {max(first_periods)} — "
+            "adoption is "
+            + ("**staggered** across periods." if staggered else "**simultaneous**.")
+        )
+    return "\n".join(lines)
+
+
+def interpret_scatter_plot(result: Any, *, lang: str = "en") -> str:
+    """Interpret a scatter plot: the direction and strength of the bivariate association."""
+    df = result.df
+    xcol, ycol = df.columns[0], df.columns[1]
+    x = df[xcol].to_numpy(dtype=float)
+    y = df[ycol].to_numpy(dtype=float)
+    n = len(df)
+    try:
+        x_label = result.fig.layout.xaxis.title.text or str(xcol)
+        y_label = result.fig.layout.yaxis.title.text or str(ycol)
+    except AttributeError:  # pragma: no cover - defensive
+        x_label, y_label = str(xcol), str(ycol)
+    if n < 3 or np.nanstd(x) == 0 or np.nanstd(y) == 0:
+        return (
+            f"With {n:,} complete points, the bivariate association between **{x_label}** "
+            f"and **{y_label}** cannot be summarised reliably.\n\n" + _ASSOC_NOTE
+        )
+    r = float(np.corrcoef(x, y)[0, 1])
+    slope = float(np.polyfit(x, y, 1)[0])
+    mag = "strong" if abs(r) >= 0.7 else "moderate" if abs(r) >= 0.4 else "weak"
+    direc = "positive" if r > 0 else "negative" if r < 0 else "essentially no"
+    lines = [
+        f"Across {n:,} points, **{y_label}** and **{x_label}** show a **{mag}** **{direc}** "
+        f"linear association (Pearson r = {fmt_num(r)}).",
+        f"A simple line through the cloud has slope {fmt_num(slope)}: each one-unit increase "
+        f"in {x_label} goes with {y_label} that is {fmt_num(abs(slope))} "
+        f"{direction_word(slope)} on average.",
+        "",
+        _ASSOC_NOTE,
+    ]
+    return "\n".join(lines)
+
+
+def interpret_missing_values(result: Any, *, lang: str = "en") -> str:
+    """Interpret a missing-values map: overall completeness and the worst variable/level."""
+    df = result.df
+    n_rows, n_cols = df.shape
+    z = df.to_numpy(dtype=float)
+    overall = float(np.nanmean(z)) if z.size else float("nan")
+    if overall == 0:
+        return (
+            f"Across {n_cols:,} variables and {n_rows:,} levels there are no missing "
+            "values — the panel is fully complete on these variables."
+        )
+    col_miss = df.mean(axis=0)
+    row_miss = df.mean(axis=1)
+    worst_var = str(col_miss.idxmax())
+    worst_lvl = str(row_miss.idxmax())
+    lines = [
+        f"Across {n_cols:,} variables and {n_rows:,} levels, overall "
+        f"**{fmt_num(overall * 100)}%** of cells are missing "
+        f"(so the data are {fmt_num((1 - overall) * 100)}% complete).",
+        f"The variable with the most missingness is **{worst_var}** "
+        f"({fmt_num(float(col_miss.max()) * 100)}% missing); the level with the most "
+        f"missingness is **{worst_lvl}** ({fmt_num(float(row_miss.max()) * 100)}% missing).",
+    ]
+    return "\n".join(lines)
+
+
+def interpret_value_heatmap(result: Any, *, lang: str = "en") -> str:
+    """Interpret a value heatmap: grid dimensions, coverage and the value range."""
+    df = result.df
+    n_units, n_per = df.shape
+    z = df.to_numpy(dtype=float)
+    total = z.size
+    finite = z[np.isfinite(z)]
+    if finite.size == 0:
+        return (
+            f"This heatmap covers {n_units:,} units over {n_per:,} periods but has no "
+            "values to read."
+        )
+    coverage = finite.size / total if total else float("nan")
+    lines = [
+        f"This heatmap shows one variable over a grid of **{n_units:,} units** by "
+        f"**{n_per:,} periods**; {fmt_num(coverage * 100)}% of cells are observed.",
+        f"Values range from {fmt_num(float(np.min(finite)))} to "
+        f"{fmt_num(float(np.max(finite)))} (mean {fmt_num(float(np.mean(finite)))}). "
+        "Colour reveals which units and periods sit high or low.",
+    ]
     return "\n".join(lines)

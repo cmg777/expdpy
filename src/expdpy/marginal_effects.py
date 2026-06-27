@@ -21,7 +21,7 @@ from expdpy._estimation import ModelSpec, VCovSpec, as_list, fit_model
 from expdpy._labels import resolve_label
 from expdpy._theme import apply_default_layout, color_for
 from expdpy._types import MarginalEffectsResult
-from expdpy._validation import ensure_dataframe
+from expdpy._validation import drop_missing, ensure_dataframe
 
 __all__ = ["analyze_marginal_effects_plot"]
 
@@ -184,7 +184,7 @@ def analyze_marginal_effects_plot(
         )
 
     used = list(dict.fromkeys([dv, focal, moderator, *controls_l, *fe_l, *cl_l]))
-    data = df[used].dropna().copy()
+    data = drop_missing(df[used], used, func="analyze_marginal_effects_plot").copy()
     for fe in fe_l:
         data[fe] = data[fe].astype("category")
 

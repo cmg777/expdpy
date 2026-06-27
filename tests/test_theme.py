@@ -79,3 +79,18 @@ def test_diverging_color_endpoints_and_midpoint():
     assert diverging_color(-1.0) == "rgb(225,87,89)"  # Tableau red
     assert diverging_color(1.0) == "rgb(78,121,167)"  # Tableau blue
     assert diverging_color(0.0) == "rgb(245,245,245)"  # near-white midpoint
+
+
+def test_apply_default_layout_title_and_subtitle():
+    fig = apply_default_layout(go.Figure(), title="Main", subtitle="Sub")
+    assert fig.layout.title.text == "Main"
+    sub = getattr(fig.layout.title, "subtitle", None)
+    if sub is not None and sub.text:  # native subtitle (Plotly >= 5.22)
+        assert sub.text == "Sub"
+    else:  # emulated fallback on older Plotly
+        assert "Sub" in fig.layout.title.text
+
+
+def test_apply_default_layout_no_title_by_default():
+    fig = apply_default_layout(go.Figure())
+    assert fig.layout.title.text is None

@@ -14,9 +14,9 @@ from statsmodels.nonparametric.smoothers_lowess import lowess
 
 from expdpy._labels import resolve_label
 from expdpy._panel import resolve_panel
-from expdpy._theme import SEQUENTIAL_SCALE, apply_default_layout, color_for
+from expdpy._theme import active_sequential_scale, apply_default_layout, color_for
 from expdpy._types import ScatterPlotResult
-from expdpy._validation import ensure_dataframe
+from expdpy._validation import drop_missing, ensure_dataframe
 
 __all__ = ["explore_scatter_plot"]
 
@@ -62,6 +62,8 @@ def explore_scatter_plot(
     entity: str | None = None,
     time: str | None = None,
     connect: bool = False,
+    title: str | None = None,
+    subtitle: str | None = None,
 ) -> ScatterPlotResult:
     """Scatter plot of ``y`` against ``x`` with optional aesthetics and a LOESS smoother.
 
@@ -139,7 +141,7 @@ def explore_scatter_plot(
 
     extra = [entity, time] if connect else []
     cols = list(dict.fromkeys(c for c in (x, y, color, size, *extra) if c))
-    sub = df[cols].dropna()
+    sub = drop_missing(df[cols], cols, func="explore_scatter_plot")
     n = len(sub)
     if alpha is None:
         alpha = _default_alpha(n)
@@ -208,7 +210,7 @@ def explore_scatter_plot(
                 marker=_marker(
                     {
                         "color": sub[color].to_numpy(dtype=float),
-                        "colorscale": SEQUENTIAL_SCALE,
+                        "colorscale": active_sequential_scale(),
                         "showscale": True,
                         "colorbar": {"title": color_label},
                     }
@@ -235,4 +237,6 @@ def explore_scatter_plot(
         )
 
     apply_default_layout(fig, xaxis={"title": x_label}, yaxis={"title": y_label})
+    if title is not None or subtitle is not None:
+        apply_default_layout(fig, title=title, subtitle=subtitle)
     return ScatterPlotResult(df=sub, fig=fig)

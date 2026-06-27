@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -11,7 +13,7 @@ from scipy.stats import gaussian_kde, norm
 from expdpy._labels import resolve_label
 from expdpy._theme import apply_default_layout, color_for
 from expdpy._types import BarChartResult, HistogramResult
-from expdpy._validation import ensure_dataframe
+from expdpy._validation import ExpdpyWarning, ensure_dataframe
 
 __all__ = ["explore_bar_plot", "explore_histogram"]
 
@@ -33,6 +35,8 @@ def explore_histogram(
     bins: int = 30,
     kde: bool = False,
     normal: bool = False,
+    title: str | None = None,
+    subtitle: str | None = None,
 ) -> HistogramResult:
     """Histogram of a numeric variable, optionally with density overlays.
 
@@ -90,7 +94,16 @@ def explore_histogram(
         raise ValueError(f"var ({var!r}) needs to be numeric")
     var_label = resolve_label(df, var)
     values = df[var].to_numpy(dtype=float)
+    n_before = values.size
     values = values[np.isfinite(values)]
+    n_dropped = n_before - values.size
+    if n_dropped:
+        warnings.warn(
+            f"explore_histogram: dropped {n_dropped} of {n_before} row(s) "
+            f"({n_dropped / n_before:.0%}) with missing values in {[var]}",
+            ExpdpyWarning,
+            stacklevel=2,
+        )
     if values.size == 0:
         raise ValueError(f"var ({var!r}) has no finite observations to bin")
     counts, edges = np.histogram(values, bins=bins)
@@ -203,6 +216,8 @@ def explore_histogram(
             }
         ],
     )
+    if title is not None or subtitle is not None:
+        apply_default_layout(fig, title=title, subtitle=subtitle)
     return HistogramResult(df=out, fig=fig)
 
 
@@ -212,6 +227,8 @@ def explore_bar_plot(
     *,
     order_by_count: bool = False,
     color: str | None = None,
+    title: str | None = None,
+    subtitle: str | None = None,
 ) -> BarChartResult:
     """Bar chart of category counts for a (typically categorical) variable.
 
@@ -278,4 +295,6 @@ def explore_bar_plot(
     if len(out) > 8:
         xaxis["tickangle"] = -40
     apply_default_layout(fig, xaxis=xaxis, yaxis={"title": "Count"})
+    if title is not None or subtitle is not None:
+        apply_default_layout(fig, title=title, subtitle=subtitle)
     return BarChartResult(df=out, fig=fig)

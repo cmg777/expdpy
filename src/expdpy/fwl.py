@@ -22,7 +22,7 @@ from pandas.api import types as pdt
 from expdpy._labels import resolve_label
 from expdpy._theme import apply_default_layout, color_for
 from expdpy._types import FWLPlotResult
-from expdpy._validation import ensure_dataframe
+from expdpy._validation import drop_missing, ensure_dataframe
 from expdpy.regression import _SSC, _as_list
 
 __all__ = ["analyze_fwl_plot"]
@@ -143,7 +143,7 @@ def analyze_fwl_plot(
     var_label = resolve_label(df, var)
     dv_label = resolve_label(df, dv)
     used = list(dict.fromkeys(needed))
-    data = df[used].dropna().copy()
+    data = drop_missing(df[used], used, func="analyze_fwl_plot").copy()
     for f in fe:
         data[f] = data[f].astype("category")
     if len(data) < len(controls) + len(fe) + 3:

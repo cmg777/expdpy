@@ -29,7 +29,7 @@ from expdpy._estimation import (
 from expdpy._estimation._spec import Stepwise, VCovKind
 from expdpy._labels import label_map
 from expdpy._types import EstimationResult
-from expdpy._validation import ensure_dataframe
+from expdpy._validation import drop_missing, ensure_dataframe
 
 __all__ = ["analyze_estimation"]
 
@@ -199,7 +199,7 @@ def analyze_estimation(
     if missing:
         raise KeyError(f"columns not found in df: {missing}")
 
-    data = df[used].dropna().copy()
+    data = drop_missing(df[used], used, func="analyze_estimation").copy()
     for fe in fe_list:
         data[fe] = data[fe].astype("category")
 

@@ -168,3 +168,40 @@ def test_ext_obs_n_too_large():
     df = pd.DataFrame({"v": [1.0, 2, 3]})
     with pytest.raises(ValueError):
         explore_ext_obs_table(df, n=5)
+
+
+# --- unified title/subtitle API (item 13b) -------------------------------------------
+
+
+def test_descriptive_caption_default_preserved(sample_df):
+    html = explore_descriptive_table(sample_df[["x1", "x2"]]).gt.as_raw_html()
+    assert "Descriptive Statistics" in html  # historic default unchanged
+
+
+def test_descriptive_caption_alias_still_works(sample_df):
+    html = explore_descriptive_table(
+        sample_df[["x1", "x2"]], caption="My Cap"
+    ).gt.as_raw_html()
+    assert "My Cap" in html
+
+
+def test_descriptive_title_and_subtitle(sample_df):
+    html = explore_descriptive_table(
+        sample_df[["x1", "x2"]], title="My Title", subtitle="a sub"
+    ).gt.as_raw_html()
+    assert "My Title" in html
+    assert "a sub" in html
+
+
+def test_correlation_table_title(sample_df):
+    html = explore_correlation_table(
+        sample_df[["x1", "x2", "x3"]], title="Corr"
+    ).gt.as_raw_html()
+    assert "Corr" in html
+
+
+def test_ext_obs_table_title(sample_df):
+    html = explore_ext_obs_table(
+        sample_df, n=2, var="x1", title="Extremes"
+    ).gt.as_raw_html()
+    assert "Extremes" in html

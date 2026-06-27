@@ -197,3 +197,99 @@ def test_interpret_not_implemented_for_plain_results(kuznets):
 
     hist = ex.explore_histogram(kuznets, var="gini_regional")
     assert not isinstance(hist, Interpretable)
+
+
+# --- newly-interpretable result types (item 7) ---------------------------------------
+
+
+def test_coefficient_plot_interpret(kuznets):
+    reg = ex.analyze_regression_table(
+        kuznets, dvs="gini_regional", idvs=["log_gdp_pc", "log_gdp_pc_sq"]
+    )
+    text = ex.analyze_coefficient_plot(reg).interpret()
+    assert "log_gdp_pc" in text
+    assert "confidence interval" in text
+    assert _no_causal_language(text)
+    assert ex.analyze_coefficient_plot(reg).explain().topic == "ols"
+
+
+def test_fixef_plot_interpret(kuznets):
+    fe = ex.analyze_regression_table(
+        kuznets, dvs="gini_regional", idvs=["log_gdp_pc"], feffects=["country"]
+    )
+    res = ex.analyze_fixef_plot(fe)
+    text = res.interpret()
+    assert "fixed effect" in text.lower()
+    assert _no_causal_language(text)
+    assert res.explain().topic == "fixed_effects"
+
+
+def test_predictions_interpret(kuznets):
+    reg = ex.analyze_regression_table(kuznets, dvs="gini_regional", idvs=["log_gdp_pc"])
+    text = ex.analyze_predictions(reg).interpret()
+    assert "residual" in text.lower()
+    assert _no_causal_language(text)
+
+
+def test_joint_test_interpret(kuznets):
+    reg = ex.analyze_regression_table(
+        kuznets, dvs="gini_regional", idvs=["log_gdp_pc", "log_gdp_pc_sq"]
+    )
+    res = ex.analyze_joint_test(reg, ["log_gdp_pc", "log_gdp_pc_sq"])
+    text = res.interpret()
+    assert "joint" in text.lower()
+    assert "reject" in text.lower()
+    assert _no_causal_language(text)
+    assert isinstance(res.summary(), str)  # the pre-existing summary() still works
+
+
+def test_robust_inference_interpret(kuznets):
+    model = ex.analyze_regression_table(
+        kuznets,
+        dvs="gini_regional",
+        idvs=["log_gdp_pc"],
+        feffects=["country"],
+        clusters=["country"],
+    )
+    res = ex.analyze_robust_inference(model, "log_gdp_pc", reps=100, seed=1)
+    text = res.interpret()
+    assert "robust" in text.lower()
+    assert "p-value" in text.lower()
+    assert _no_causal_language(text)
+
+
+def test_panel_view_interpret():
+    from expdpy.data import load_staggered_did, load_staggered_did_data_def
+
+    df = ex.set_labels(
+        load_staggered_did(), load_staggered_did_data_def(), set_panel=True
+    )
+    res = ex.analyze_panel_view(df, cohort="cohort")
+    text = res.interpret()
+    assert "treated" in text.lower()
+    assert _no_causal_language(text)
+    assert res.explain().topic == "event_study"
+
+
+def test_scatter_plot_interpret(kuznets):
+    res = ex.explore_scatter_plot(kuznets, x="log_gdp_pc", y="gini_regional")
+    text = res.interpret()
+    assert "Pearson" in text
+    assert "association" in text
+    assert _no_causal_language(text)
+    assert res.explain().topic == "pearson"
+
+
+def test_missing_values_interpret(kuznets):
+    text = ex.explore_missing_values_plot(kuznets, time="year").interpret()
+    assert "missing" in text.lower()
+    assert _no_causal_language(text)
+
+
+def test_value_heatmap_interpret(kuznets):
+    res = ex.explore_value_heatmap(
+        kuznets, var="gini_regional", entity="country", time="year"
+    )
+    text = res.interpret()
+    assert "period" in text.lower()
+    assert _no_causal_language(text)
