@@ -116,8 +116,12 @@ from expdpy.sandbox import (
     learn_beta_convergence,
     learn_clustering_se,
     learn_convergence_clubs,
+    learn_correlated_random_effects,
     learn_first_differences,
+    learn_hausman_test,
     learn_kuznets_waves,
+    learn_measurement_error,
+    learn_nickell_bias,
     learn_omitted_variable_bias,
     learn_pooled_vs_fixed_effects,
     learn_sigma_convergence,
@@ -132,7 +136,7 @@ from expdpy.tables import (
 )
 from expdpy.trends import explore_quantile_trend_plot, explore_trend_plot
 
-__version__ = "0.4.21"
+__version__ = "0.4.22"
 
 __all__ = [
     # ===== EXPLORE =====
@@ -213,6 +217,10 @@ __all__ = [
     "learn_sigma_convergence",
     "learn_convergence_clubs",
     "learn_kuznets_waves",
+    "learn_hausman_test",
+    "learn_correlated_random_effects",
+    "learn_nickell_bias",
+    "learn_measurement_error",
     # concept-explainer registry type
     "Explainer",
     # ===== UTILITIES =====

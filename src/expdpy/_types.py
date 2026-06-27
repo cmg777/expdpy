@@ -985,13 +985,15 @@ class SandboxResult(Interpretable):
     """Result of an ``expdpy.learn_*`` teaching demonstration.
 
     ``df`` is the comparison table, ``fig`` the headline figure, ``summary`` the scalar facts
-    the demonstration turns on, and ``topic`` the concept it illustrates.
+    the demonstration turns on, ``topic`` the concept it illustrates, and ``data`` the raw
+    simulated frame the demonstration was built from (handy to download and re-analyse).
     """
 
     df: pd.DataFrame
     fig: go.Figure
     summary: dict[str, float]
     topic: str
+    data: pd.DataFrame
 
     def interpret(self, *, lang: str = "en") -> str:
         """Plain-language takeaway of the demonstration."""

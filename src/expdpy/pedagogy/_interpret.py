@@ -597,6 +597,46 @@ def interpret_sandbox(result: Any, *, lang: str = "en") -> str:
             f"{fmt_num(s['accuracy'] * 100)}% of the {int(s['n_units'])} units in their true "
             "club — the algorithm finds the structure without being told it."
         )
+    if topic == "hausman":
+        reject = s["hausman_p"] < 0.05
+        verdict = (
+            "**reject** their equality and prefer fixed effects"
+            if reject
+            else "do not reject their equality"
+        )
+        return (
+            f"With the regressor correlated with the unit effects, random effects estimates "
+            f"{fmt_num(s['re_coef'])} while fixed effects gives {fmt_num(s['fe_coef'])} "
+            f"(true {fmt_num(s['true_beta'])}). The Hausman statistic is "
+            f"{fmt_num(s['hausman_stat'])} (p = {fmt_num(s['hausman_p'])}), so we {verdict} — "
+            "random effects is the biased one here."
+        )
+    if topic == "correlated_random_effects":
+        return (
+            f"Adding each unit's time-mean of the regressor, the correlated-random-effects "
+            f"slope on the original regressor is {fmt_num(s['cre_within_coef'])} — the same as "
+            f"plain fixed effects ({fmt_num(s['fe_coef'])}) and close to the true "
+            f"{fmt_num(s['true_beta'])}. The Mundlak test on the added means is "
+            f"{fmt_num(s['mundlak_stat'])} (p = {fmt_num(s['mundlak_p'])}), the "
+            "random-effects-versus-fixed-effects comparison written as a regression."
+        )
+    if topic == "nickell_bias":
+        return (
+            f"At the shortest panel the within (fixed-effects) estimate of the autoregressive "
+            f"parameter is {fmt_num(s['fe_rho_short'])} — {fmt_num(abs(s['bias_short']))} below "
+            f"the true {fmt_num(s['true_rho'])}. As the panel lengthens the bias shrinks to "
+            f"{fmt_num(abs(s['bias_long']))} (estimate {fmt_num(s['fe_rho_long'])}). Demeaning "
+            "correlates the lagged outcome with the transformed error — the Nickell bias — and "
+            "it fades only as T grows."
+        )
+    if topic == "measurement_error":
+        return (
+            f"Regressing on the noisy measurement, the slope is {fmt_num(s['naive_coef'])} — "
+            f"attenuated toward zero from the true {fmt_num(s['true_beta'])}. The attenuation "
+            f"matches the reliability ratio {fmt_num(s['reliability'])} "
+            f"(observed {fmt_num(s['attenuation'])}): classical noise in a regressor pulls its "
+            "coefficient toward zero."
+        )
     return "Sandbox demonstration."  # pragma: no cover - defensive
 
 

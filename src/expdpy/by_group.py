@@ -8,6 +8,18 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
+from expdpy._common import (
+    se as _se,
+)
+from expdpy._common import (
+    sorted_levels as _sorted_levels,
+)
+from expdpy._common import (
+    try_convert_ts_id as _try_convert_ts_id,
+)
+from expdpy._common import (
+    xaxis as _xaxis,
+)
 from expdpy._labels import resolve_label
 from expdpy._panel import resolve_panel
 from expdpy._theme import apply_default_layout, color_for
@@ -17,25 +29,12 @@ from expdpy._types import (
     ByGroupViolinResult,
 )
 from expdpy._validation import drop_missing, ensure_dataframe, require_columns
-from expdpy.trends import _se, _try_convert_ts_id, _xaxis
 
 __all__ = [
     "explore_bar_plot_by_group",
     "explore_trend_plot_by_group",
     "explore_violin_plot_by_group",
 ]
-
-
-def _sorted_levels(values: pd.Series) -> list[str]:
-    """Return the distinct levels of ``values`` sorted numerically when possible.
-
-    Group labels like ``"2"`` and ``"10"`` must order as 2 < 10, not lexically.
-    """
-    levels = list(dict.fromkeys(values.astype(str)))
-    num = pd.to_numeric(pd.Series(levels), errors="coerce")
-    if not num.isna().any():
-        return [lvl for _, lvl in sorted(zip(num, levels, strict=True))]
-    return sorted(levels)
 
 
 def explore_bar_plot_by_group(

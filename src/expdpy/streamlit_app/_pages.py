@@ -601,9 +601,17 @@ def page_postestimation() -> None:
 
 
 def _show_sandbox(res: Any) -> None:
-    """Render a ``learn_*`` sandbox result: figure, inline reading, explainer expander."""
+    """Render a ``learn_*`` sandbox result: figure, inline reading, data download, explainer."""
     st.plotly_chart(res.fig, width="stretch", config=PLOTLY_CONFIG)
     st.markdown(res.interpret())
+    csv = res.data.to_csv(index=False).encode("utf-8")
+    st.download_button(
+        "⬇ Download simulated data (CSV)",
+        data=csv,
+        file_name=f"{res.topic}_simulated.csv",
+        mime="text/csv",
+        key=f"sandbox-dl-{abs(hash(csv)) % 10**9}",
+    )
     with st.expander("❓ What is this?"):
         st.markdown(res.explain().to_markdown())
 
@@ -614,8 +622,12 @@ def page_sandboxes() -> None:
         learn_beta_convergence,
         learn_clustering_se,
         learn_convergence_clubs,
+        learn_correlated_random_effects,
         learn_first_differences,
+        learn_hausman_test,
         learn_kuznets_waves,
+        learn_measurement_error,
+        learn_nickell_bias,
         learn_omitted_variable_bias,
         learn_pooled_vs_fixed_effects,
         learn_sigma_convergence,
@@ -624,31 +636,19 @@ def page_sandboxes() -> None:
 
     st.header("Concept sandboxes")
     st.caption(
-        "Simulated demonstrations — turn the knobs to see each concept in action. "
-        "These need no dataset."
+        "Simulated demonstrations — pick one and turn the knobs to see the concept in "
+        "action. These need no dataset; only the chosen sandbox runs."
     )
-    # Ordered as the Learn case study runs: the within-transformation identity, why fixed
-    # effects matter, two inference classics, convergence, then the Kuznets wave.
-    tabs = st.tabs(
-        [
-            "First differences",
-            "Within vs LSDV",
-            "Pooled vs fixed effects",
-            "Omitted-variable bias",
-            "Clustered standard errors",
-            "Beta convergence",
-            "Sigma convergence",
-            "Convergence clubs",
-            "Kuznets waves",
-        ]
-    )
-    with tabs[0]:
+
+    def _first_differences() -> None:
         periods = st.slider("Periods per unit", 2, 8, 2, 1, key="fd_periods")
         _show_sandbox(learn_first_differences(n_periods=int(periods)))
-    with tabs[1]:
+
+    def _within_vs_lsdv() -> None:
         periods = st.slider("Periods per unit", 2, 12, 6, 1, key="wl_periods")
         _show_sandbox(learn_within_vs_lsdv(n_periods=int(periods)))
-    with tabs[2]:
+
+    def _pooled_vs_fe() -> None:
         uc = st.slider(
             "Correlation between x and the unit effect",
             0.0,
@@ -658,7 +658,30 @@ def page_sandboxes() -> None:
             key="pfe_uc",
         )
         _show_sandbox(learn_pooled_vs_fixed_effects(unit_effect_corr=uc))
-    with tabs[3]:
+
+    def _hausman() -> None:
+        uc = st.slider(
+            "Correlation between x and the unit effect",
+            0.0,
+            0.95,
+            0.8,
+            0.05,
+            key="ha_uc",
+        )
+        _show_sandbox(learn_hausman_test(unit_effect_corr=uc))
+
+    def _cre() -> None:
+        uc = st.slider(
+            "Correlation between x and the unit effect",
+            0.0,
+            0.95,
+            0.8,
+            0.05,
+            key="cre_uc",
+        )
+        _show_sandbox(learn_correlated_random_effects(unit_effect_corr=uc))
+
+    def _ovb() -> None:
         corr = st.slider(
             "Correlation between x and the omitted z",
             0.0,
@@ -669,12 +692,24 @@ def page_sandboxes() -> None:
         )
         bz = st.slider("Effect of the omitted z", -2.0, 2.0, 1.0, 0.25, key="ovb_bz")
         _show_sandbox(learn_omitted_variable_bias(corr_xz=corr, beta_z=bz))
-    with tabs[4]:
+
+    def _measurement_error() -> None:
+        noise = st.slider(
+            "Measurement-noise SD on x", 0.0, 3.0, 1.0, 0.1, key="me_noise"
+        )
+        _show_sandbox(learn_measurement_error(noise_x=noise))
+
+    def _clustering() -> None:
         icc = st.slider(
             "Intra-cluster correlation (ICC)", 0.0, 0.9, 0.3, 0.05, key="cl_icc"
         )
         _show_sandbox(learn_clustering_se(icc=icc))
-    with tabs[5]:
+
+    def _nickell() -> None:
+        rho = st.slider("True AR(1) persistence rho", 0.1, 0.9, 0.6, 0.05, key="nk_rho")
+        _show_sandbox(learn_nickell_bias(rho=rho))
+
+    def _beta_convergence() -> None:
         rho = st.slider(
             "AR(1) persistence rho (higher = slower convergence)",
             0.5,
@@ -695,7 +730,8 @@ def page_sandboxes() -> None:
             "Loading on the determinant z", 0.0, 2.0, 0.6, 0.1, key="bc_g"
         )
         _show_sandbox(learn_beta_convergence(rho=rho, corr=corr, gamma=gamma))
-    with tabs[6]:
+
+    def _sigma_convergence() -> None:
         rho = st.slider(
             "Contraction rate rho (lower = faster convergence)",
             0.5,
@@ -705,18 +741,38 @@ def page_sandboxes() -> None:
             key="sc_rho",
         )
         _show_sandbox(learn_sigma_convergence(rho=rho))
-    with tabs[7]:
+
+    def _convergence_clubs() -> None:
         rho = st.slider(
             "Within-club AR(1) persistence rho", 0.5, 0.99, 0.9, 0.01, key="cc_rho"
         )
         spread = st.slider("Within-club spread", 0.1, 1.0, 0.4, 0.05, key="cc_spread")
         _show_sandbox(learn_convergence_clubs(rho=rho, spread=spread))
-    with tabs[8]:
+
+    def _kuznets() -> None:
         n_units = st.slider("Number of units", 30, 150, 80, 10, key="kw_units")
         within_sd = st.slider(
             "Within-unit spread of development", 0.3, 2.0, 0.9, 0.1, key="kw_within"
         )
         _show_sandbox(learn_kuznets_waves(n_units=int(n_units), within_sd=within_sd))
+
+    sandboxes: dict[str, Any] = {
+        "First differences": _first_differences,
+        "Within vs LSDV": _within_vs_lsdv,
+        "Pooled vs fixed effects": _pooled_vs_fe,
+        "Hausman test (FE vs RE)": _hausman,
+        "Correlated random effects (Mundlak)": _cre,
+        "Omitted-variable bias": _ovb,
+        "Measurement error (attenuation)": _measurement_error,
+        "Clustered standard errors": _clustering,
+        "Nickell bias (dynamic panels)": _nickell,
+        "Beta convergence": _beta_convergence,
+        "Sigma convergence": _sigma_convergence,
+        "Convergence clubs": _convergence_clubs,
+        "Kuznets waves": _kuznets,
+    }
+    choice = st.selectbox("Sandbox", list(sandboxes), key="sandbox_pick")
+    sandboxes[choice]()
 
 
 def _is_panel(active: Active) -> bool:
@@ -1036,7 +1092,7 @@ def page_kuznets_waves() -> None:
 
 
 def page_explainers() -> None:
-    """Browse the concept explainers — the Learn module's topic index."""
+    """Browse the concept explainers — the Learn module's searchable topic index."""
     from expdpy import explain, list_topics
 
     st.header("Concept explainers")
@@ -1045,6 +1101,25 @@ def page_explainers() -> None:
         "to use it, and the caveats. These need no dataset."
     )
     topics = list_topics()
+    query = (
+        st.text_input(
+            "Search topics",
+            key="explainer_search",
+            placeholder="e.g. fixed, cluster, IV",
+        )
+        .strip()
+        .lower()
+    )
+    if query:
+
+        def _matches(name: str) -> bool:
+            exp = explain(name)
+            return query in f"{name} {exp.title} {exp.what}".lower()
+
+        topics = [t for t in topics if _matches(t)]
+    if not topics:
+        st.info("No topics match your search.")
+        return
     topic = st.selectbox("Topic", topics, key="explainer_topic")
     if topic:
         st.markdown(explain(topic).to_markdown())

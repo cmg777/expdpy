@@ -12,6 +12,7 @@ to read back).
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 
 import numpy as np
 import pandas as pd
@@ -25,15 +26,21 @@ from expdpy.convergence import (
     analyze_convergence_clubs,
     analyze_sigma_convergence,
 )
+from expdpy.cre import analyze_cre_table
 from expdpy.kuznets import analyze_kuznets_waves
+from expdpy.panel_models import analyze_hausman_test
 from expdpy.regression import analyze_regression_table
 
 __all__ = [
     "learn_beta_convergence",
     "learn_clustering_se",
     "learn_convergence_clubs",
+    "learn_correlated_random_effects",
     "learn_first_differences",
+    "learn_hausman_test",
     "learn_kuznets_waves",
+    "learn_measurement_error",
+    "learn_nickell_bias",
     "learn_omitted_variable_bias",
     "learn_pooled_vs_fixed_effects",
     "learn_sigma_convergence",
@@ -127,7 +134,9 @@ def learn_omitted_variable_bias(
         fig, xaxis={"title": ""}, yaxis={"title": "Estimated coefficient on x"}
     )
     fig.update_layout(title="Omitted-variable bias")
-    return SandboxResult(df=df, fig=fig, summary=summary, topic="omitted_variable_bias")
+    return SandboxResult(
+        df=df, fig=fig, summary=summary, topic="omitted_variable_bias", data=data
+    )
 
 
 def learn_pooled_vs_fixed_effects(
@@ -247,7 +256,9 @@ def learn_pooled_vs_fixed_effects(
     )
     apply_default_layout(fig, xaxis={"title": "x"}, yaxis={"title": "y"})
     fig.update_layout(title="Pooled OLS vs fixed effects")
-    return SandboxResult(df=df, fig=fig, summary=summary, topic="fixed_effects")
+    return SandboxResult(
+        df=df, fig=fig, summary=summary, topic="fixed_effects", data=data
+    )
 
 
 def learn_clustering_se(
@@ -351,7 +362,9 @@ def learn_clustering_se(
         yaxis={"title": "", "type": "category"},
     )
     fig.update_layout(title="Clustering and standard errors")
-    return SandboxResult(df=df, fig=fig, summary=summary, topic="clustered_se")
+    return SandboxResult(
+        df=df, fig=fig, summary=summary, topic="clustered_se", data=data
+    )
 
 
 def _panel_with_unit_effects(
@@ -484,7 +497,9 @@ def learn_first_differences(
         fig, xaxis={"title": ""}, yaxis={"title": "Estimated slope on x"}
     )
     fig.update_layout(title="First differences vs the within estimator")
-    return SandboxResult(df=df, fig=fig, summary=summary, topic="first_differences")
+    return SandboxResult(
+        df=df, fig=fig, summary=summary, topic="first_differences", data=data
+    )
 
 
 def learn_within_vs_lsdv(
@@ -587,7 +602,9 @@ def learn_within_vs_lsdv(
         fig, xaxis={"title": ""}, yaxis={"title": "Estimated slope on x"}
     )
     fig.update_layout(title="Within transformation vs LSDV")
-    return SandboxResult(df=df, fig=fig, summary=summary, topic="within_transformation")
+    return SandboxResult(
+        df=df, fig=fig, summary=summary, topic="within_transformation", data=data
+    )
 
 
 def learn_beta_convergence(
@@ -708,7 +725,9 @@ def learn_beta_convergence(
         yaxis={"title": "Convergence slope β (growth on initial level)"},
     )
     fig.update_layout(title="Unconditional vs conditional β-convergence")
-    return SandboxResult(df=df, fig=fig, summary=summary, topic="beta_convergence")
+    return SandboxResult(
+        df=df, fig=fig, summary=summary, topic="beta_convergence", data=panel
+    )
 
 
 def learn_sigma_convergence(
@@ -809,7 +828,9 @@ def learn_sigma_convergence(
         yaxis={"title": "Log-dispersion trend per period"},
     )
     fig.update_layout(title="σ-convergence: recovered vs true dispersion trend")
-    return SandboxResult(df=df, fig=fig, summary=summary, topic="sigma_convergence")
+    return SandboxResult(
+        df=df, fig=fig, summary=summary, topic="sigma_convergence", data=panel
+    )
 
 
 def learn_kuznets_waves(
@@ -909,7 +930,7 @@ def learn_kuznets_waves(
         "n_years": float(n_years),
     }
     return SandboxResult(
-        df=df, fig=res.fig_within, summary=summary, topic="kuznets_waves"
+        df=df, fig=res.fig_within, summary=summary, topic="kuznets_waves", data=panel
     )
 
 
@@ -1009,4 +1030,384 @@ def learn_convergence_clubs(
         "accuracy": float(accuracy),
         "global_tstat": float(res.global_tstat),
     }
-    return SandboxResult(df=df, fig=res.fig, summary=summary, topic="convergence_clubs")
+    return SandboxResult(
+        df=df, fig=res.fig, summary=summary, topic="convergence_clubs", data=panel
+    )
+
+
+def learn_hausman_test(
+    *,
+    n_units: int = 60,
+    n_periods: int = 8,
+    beta: float = 1.0,
+    unit_effect_corr: float = 0.8,
+    seed: int = 0,
+) -> SandboxResult:
+    """Show why the Hausman test prefers fixed effects when unit effects are correlated.
+
+    Simulates a panel where the regressor ``x`` is correlated with each unit's effect. Random
+    effects assumes no such correlation (so it is biased here) while fixed effects is
+    consistent; the Hausman test compares the two and rejects their equality.
+
+    Parameters
+    ----------
+    n_units, n_periods
+        Panel dimensions.
+    beta
+        True within-unit slope.
+    unit_effect_corr
+        Correlation between ``x`` and the unit effect (drives the random-effects bias).
+    seed
+        Random seed.
+
+    Returns
+    -------
+    SandboxResult
+        ``df`` (FE vs RE vs true slope), ``fig``, ``summary`` and ``topic``.
+
+    Examples
+    --------
+    This sandbox simulates its own panel, so the call needs no DataFrame:
+
+    ```python
+    import expdpy as ex
+
+    res = ex.learn_hausman_test()
+    res.fig
+    ```
+    """
+    rng = np.random.default_rng(seed)
+    data = _panel_with_unit_effects(
+        rng,
+        n_units=n_units,
+        n_periods=n_periods,
+        beta=beta,
+        unit_effect_corr=unit_effect_corr,
+        noise_sd=0.5,
+    )
+    ht = analyze_hausman_test(data, "y", ["x"], entity="unit", time="period")
+    fe_b = float(ht.fe_coefs.set_index("term").loc["x", "estimate"])
+    re_b = float(ht.re_coefs.set_index("term").loc["x", "estimate"])
+
+    df = pd.DataFrame(
+        {
+            "estimator": ["fixed effects", "random effects", "true value"],
+            "slope": [fe_b, re_b, float(beta)],
+        }
+    )
+    summary = {
+        "true_beta": float(beta),
+        "fe_coef": fe_b,
+        "re_coef": re_b,
+        "hausman_stat": float(ht.statistic),
+        "hausman_p": float(ht.p_value),
+    }
+
+    fig = go.Figure(
+        go.Bar(
+            x=df["estimator"],
+            y=df["slope"],
+            marker={"color": [color_for(0), color_for(1), color_for(9)]},
+        )
+    )
+    fig.add_hline(
+        y=float(beta),
+        line_dash="dash",
+        line_color="rgba(0,0,0,0.5)",
+        annotation_text="true slope",
+    )
+    apply_default_layout(
+        fig, xaxis={"title": ""}, yaxis={"title": "Estimated slope on x"}
+    )
+    fig.update_layout(title="Hausman test: fixed vs random effects")
+    return SandboxResult(df=df, fig=fig, summary=summary, topic="hausman", data=data)
+
+
+def learn_correlated_random_effects(
+    *,
+    n_units: int = 60,
+    n_periods: int = 8,
+    beta: float = 1.0,
+    unit_effect_corr: float = 0.8,
+    seed: int = 0,
+) -> SandboxResult:
+    """Show the Mundlak (correlated random effects) device recovering the fixed-effects slope.
+
+    The CRE model adds each unit's time-mean of the regressor to a random-effects
+    specification. Its coefficient on the original ``x`` then equals the within (fixed-effects)
+    estimate, and a Wald test on the added means is the Mundlak (Hausman-equivalent) test.
+
+    Parameters
+    ----------
+    n_units, n_periods
+        Panel dimensions.
+    beta
+        True within-unit slope.
+    unit_effect_corr
+        Correlation between ``x`` and the unit effect.
+    seed
+        Random seed.
+
+    Returns
+    -------
+    SandboxResult
+        ``df`` (CRE-within vs plain FE vs true slope), ``fig``, ``summary`` and ``topic``.
+
+    Examples
+    --------
+    This sandbox simulates its own panel, so the call needs no DataFrame:
+
+    ```python
+    import expdpy as ex
+
+    res = ex.learn_correlated_random_effects()
+    res.fig
+    ```
+    """
+    rng = np.random.default_rng(seed)
+    data = _panel_with_unit_effects(
+        rng,
+        n_units=n_units,
+        n_periods=n_periods,
+        beta=beta,
+        unit_effect_corr=unit_effect_corr,
+        noise_sd=0.5,
+    )
+    cre = analyze_cre_table(data, "y", ["x"], entity="unit", time="period", format="df")
+    cre_model = cre.models[0]
+    within_b = float(cre_model.params["x"])
+    fe_b = float(
+        analyze_regression_table(data, dvs="y", idvs=["x"], feffects=["unit"])
+        .models[0]
+        .coef()["x"]
+    )
+
+    df = pd.DataFrame(
+        {
+            "estimator": ["CRE within (= FE)", "plain fixed effects", "true value"],
+            "slope": [within_b, fe_b, float(beta)],
+        }
+    )
+    summary = {
+        "true_beta": float(beta),
+        "cre_within_coef": within_b,
+        "fe_coef": fe_b,
+        "mundlak_stat": float(getattr(cre_model, "_cre_mundlak_stat", float("nan"))),
+        "mundlak_p": float(getattr(cre_model, "_cre_mundlak_p", float("nan"))),
+    }
+
+    fig = go.Figure(
+        go.Bar(
+            x=df["estimator"],
+            y=df["slope"],
+            marker={"color": [color_for(0), color_for(2), color_for(9)]},
+        )
+    )
+    fig.add_hline(
+        y=float(beta),
+        line_dash="dash",
+        line_color="rgba(0,0,0,0.5)",
+        annotation_text="true slope",
+    )
+    apply_default_layout(
+        fig, xaxis={"title": ""}, yaxis={"title": "Estimated slope on x"}
+    )
+    fig.update_layout(title="Correlated random effects (Mundlak)")
+    return SandboxResult(
+        df=df, fig=fig, summary=summary, topic="correlated_random_effects", data=data
+    )
+
+
+def learn_nickell_bias(
+    *,
+    n_units: int = 200,
+    rho: float = 0.6,
+    periods: Sequence[int] = (3, 4, 6, 10, 20, 40),
+    seed: int = 0,
+) -> SandboxResult:
+    """Show the Nickell bias in dynamic-panel fixed-effects estimates.
+
+    The within estimate of a lagged dependent variable is biased downward in short panels and
+    the bias shrinks as the panel lengthens. Simulates a dynamic panel
+    ``y_it = rho*y_{i,t-1} + alpha_i + e`` and estimates ``rho`` by within (fixed-effects)
+    regression at several panel lengths ``T``: for small ``T`` the estimate sits well below the
+    truth; as ``T`` grows it converges up to ``rho``.
+
+    Parameters
+    ----------
+    n_units
+        Number of units (kept large so the bias is the dominant signal).
+    rho
+        True autoregressive parameter.
+    periods
+        The panel lengths ``T`` to estimate at.
+    seed
+        Random seed.
+
+    Returns
+    -------
+    SandboxResult
+        ``df`` (``periods_T``, ``fe_rho``, ``bias``), ``fig``, ``summary`` and ``topic``.
+
+    Examples
+    --------
+    This sandbox simulates its own dynamic panels, so the call needs no DataFrame:
+
+    ```python
+    import expdpy as ex
+
+    res = ex.learn_nickell_bias()
+    res.fig
+    ```
+    """
+    rng = np.random.default_rng(seed)
+    burn = 30
+
+    def _fe_rho(n_t: int) -> tuple[float, pd.DataFrame]:
+        rows = []
+        for i in range(n_units):
+            a = rng.normal()  # unit effect
+            y = a / (1.0 - rho)  # stationary starting point
+            series = []
+            for t in range(burn + n_t):
+                y = rho * y + a + rng.normal(0.0, 1.0)
+                if t >= burn:
+                    series.append(y)
+            for t in range(1, len(series)):
+                rows.append((i, t, series[t], series[t - 1]))
+        frame = pd.DataFrame(rows, columns=["unit", "t", "y", "y_lag"])
+        model = analyze_regression_table(
+            frame, dvs="y", idvs=["y_lag"], feffects=["unit"]
+        ).models[0]
+        return float(model.coef()["y_lag"]), frame
+
+    ts = list(periods)
+    fe_rhos: list[float] = []
+    last_frame = pd.DataFrame()
+    for n_t in ts:
+        r, last_frame = _fe_rho(n_t)
+        fe_rhos.append(r)
+
+    df = pd.DataFrame({"periods_T": ts, "fe_rho": fe_rhos})
+    df["bias"] = df["fe_rho"] - float(rho)
+    summary = {
+        "true_rho": float(rho),
+        "fe_rho_short": float(fe_rhos[0]),
+        "fe_rho_long": float(fe_rhos[-1]),
+        "bias_short": float(fe_rhos[0] - rho),
+        "bias_long": float(fe_rhos[-1] - rho),
+    }
+
+    fig = go.Figure(
+        go.Scatter(
+            x=ts,
+            y=fe_rhos,
+            mode="lines+markers",
+            line={"color": color_for(0)},
+            name="FE estimate",
+        )
+    )
+    fig.add_hline(
+        y=float(rho),
+        line_dash="dash",
+        line_color="rgba(0,0,0,0.5)",
+        annotation_text="true rho",
+    )
+    apply_default_layout(
+        fig,
+        xaxis={"title": "Periods per unit (T)"},
+        yaxis={"title": "FE estimate of rho"},
+    )
+    fig.update_layout(title="Nickell bias shrinks as T grows")
+    return SandboxResult(
+        df=df, fig=fig, summary=summary, topic="nickell_bias", data=last_frame
+    )
+
+
+def learn_measurement_error(
+    *,
+    n: int = 4000,
+    beta: float = 1.0,
+    noise_x: float = 1.0,
+    seed: int = 0,
+) -> SandboxResult:
+    """Show classical measurement-error attenuation: noise in the regressor biases OLS to zero.
+
+    Simulates ``y = beta*x_true + e`` but regresses on a *noisy* observation
+    ``x_obs = x_true + u``. The OLS slope is attenuated toward zero by the reliability ratio
+    ``var(x_true) / (var(x_true) + var(u))``.
+
+    Parameters
+    ----------
+    n
+        Sample size.
+    beta
+        True slope on the (unobserved) ``x_true``.
+    noise_x
+        Standard deviation of the measurement noise added to ``x_true`` (drives the
+        attenuation).
+    seed
+        Random seed.
+
+    Returns
+    -------
+    SandboxResult
+        ``df`` (naive vs true slope), ``fig``, ``summary`` and ``topic``.
+
+    Examples
+    --------
+    This sandbox simulates its own data, so the call needs no DataFrame:
+
+    ```python
+    import expdpy as ex
+
+    res = ex.learn_measurement_error()
+    res.fig
+    ```
+    """
+    rng = np.random.default_rng(seed)
+    x_true = rng.normal(size=n)
+    y = beta * x_true + rng.normal(0.0, 0.5, size=n)
+    x_obs = x_true + rng.normal(0.0, noise_x, size=n)
+    data = pd.DataFrame({"x_true": x_true, "x_obs": x_obs, "y": y})
+
+    naive_b = float(
+        analyze_regression_table(data, dvs="y", idvs=["x_obs"])
+        .models[0]
+        .coef()["x_obs"]
+    )
+    var_true = float(np.var(x_true))
+    denom = var_true + noise_x**2
+    reliability = var_true / denom if denom else float("nan")
+
+    df = pd.DataFrame(
+        {
+            "model": ["naive (noisy x)", "true value"],
+            "slope": [naive_b, float(beta)],
+        }
+    )
+    summary = {
+        "true_beta": float(beta),
+        "naive_coef": naive_b,
+        "reliability": float(reliability),
+        "attenuation": naive_b / float(beta) if beta else float("nan"),
+    }
+
+    fig = go.Figure(
+        go.Bar(
+            x=df["model"],
+            y=df["slope"],
+            marker={"color": [color_for(0), color_for(9)]},
+        )
+    )
+    fig.add_hline(
+        y=float(beta),
+        line_dash="dash",
+        line_color="rgba(0,0,0,0.5)",
+        annotation_text="true slope",
+    )
+    apply_default_layout(fig, xaxis={"title": ""}, yaxis={"title": "Estimated slope"})
+    fig.update_layout(title="Measurement error attenuates the slope")
+    return SandboxResult(
+        df=df, fig=fig, summary=summary, topic="measurement_error", data=data
+    )

@@ -16,6 +16,7 @@ import plotly.graph_objects as go
 from great_tables import GT
 from pandas.api import types as pdt
 
+from expdpy._common import default_alpha as _default_alpha
 from expdpy._labels import resolve_label
 from expdpy._panel import resolve_panel
 from expdpy._panel_math import panel_decompose
@@ -27,7 +28,6 @@ from expdpy._validation import (
     numeric_logical_columns,
     require_columns,
 )
-from expdpy.scatter import _default_alpha
 
 __all__ = ["explore_scatter_plot_within_between", "explore_xtsum_table"]
 

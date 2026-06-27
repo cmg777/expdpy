@@ -232,11 +232,25 @@ def test_postestimation_page_renders():
     assert not at.exception
 
 
-def test_sandboxes_page_renders_all_tabs():
+def test_sandboxes_page_is_a_picker_with_all_sandboxes():
     at = _page("sandboxes")
     assert not at.exception
-    assert len(at.tabs) == 9  # first differences, within-vs-LSDV, pooled-vs-FE, OVB,
-    # clustering, beta / sigma / clubs convergence, Kuznets waves
+    pick = at.selectbox(key="sandbox_pick")
+    assert (
+        len(pick.options) == 13
+    )  # 9 original + hausman, CRE, measurement error, nickell
+    for label in (
+        "Hausman test (FE vs RE)",
+        "Correlated random effects (Mundlak)",
+        "Measurement error (attenuation)",
+        "Nickell bias (dynamic panels)",
+    ):
+        assert label in pick.options
+    # selecting a specific sandbox lazily renders it (chart + plain-language reading)
+    pick.set_value("Measurement error (attenuation)")
+    at.run()
+    assert not at.exception
+    assert any("attenuat" in md.value.lower() for md in at.markdown)
 
 
 def test_explainers_page_lists_topics():
@@ -245,6 +259,17 @@ def test_explainers_page_lists_topics():
     topic = at.selectbox(key="explainer_topic")
     assert "fixed_effects" in topic.options
     assert "correlated_random_effects" in topic.options
+
+
+def test_explainers_page_search_filters():
+    at = _page("explainers")
+    full = list(at.selectbox(key="explainer_topic").options)
+    at.text_input(key="explainer_search").set_value("hausman")
+    at.run()
+    assert not at.exception
+    filtered = list(at.selectbox(key="explainer_topic").options)
+    assert "hausman" in filtered
+    assert len(filtered) < len(full)
 
 
 # --- time-series component hiding --------------------------------------------

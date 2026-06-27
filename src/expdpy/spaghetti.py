@@ -12,13 +12,14 @@ import plotly.graph_objects as go
 from pandas.api import types as pdt
 from plotly.subplots import make_subplots
 
+from expdpy._common import default_alpha as _default_alpha
+from expdpy._common import try_convert_ts_id as _try_convert_ts_id
+from expdpy._common import xaxis as _xaxis
 from expdpy._labels import resolve_label
 from expdpy._panel import resolve_panel
 from expdpy._theme import apply_default_layout, color_for
 from expdpy._types import SpaghettiGraphResult
 from expdpy._validation import drop_missing, ensure_dataframe
-from expdpy.scatter import _default_alpha
-from expdpy.trends import _try_convert_ts_id, _xaxis
 
 __all__ = ["explore_spaghetti_plot"]
 

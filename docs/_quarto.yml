@@ -146,6 +146,10 @@ quartodoc:
         - learn_sigma_convergence
         - learn_convergence_clubs
         - learn_kuznets_waves
+        - learn_hausman_test
+        - learn_correlated_random_effects
+        - learn_nickell_bias
+        - learn_measurement_error
     - title: Utilities
       desc: >-
         Cross-cutting helpers shared across modules — panel declaration,

@@ -8,12 +8,13 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
+from expdpy._common import argsort_levels
+from expdpy._common import try_convert_ts_id as _try_convert_ts_id
 from expdpy._labels import resolve_label, resolve_labels
 from expdpy._panel import resolve_panel
 from expdpy._theme import active_sequential_scale, apply_default_layout
 from expdpy._types import MissingValuesResult
 from expdpy._validation import ensure_dataframe, numeric_logical_columns
-from expdpy.trends import _try_convert_ts_id
 
 __all__ = ["explore_missing_values_plot"]
 
@@ -23,9 +24,7 @@ def _ordered_levels(index: pd.Index, *, as_time: bool) -> np.ndarray:
     if as_time:
         conv, _ = _try_convert_ts_id(pd.Series(index))
         return np.argsort(conv.to_numpy(), kind="stable")
-    num = pd.to_numeric(pd.Series(index.astype(str)), errors="coerce")
-    keys = num.to_numpy() if not num.isna().any() else index.astype(str).to_numpy()
-    return np.argsort(keys, kind="stable")
+    return argsort_levels(index)
 
 
 def explore_missing_values_plot(

@@ -11,6 +11,8 @@ import plotly.graph_objects as go
 from great_tables import GT
 from pandas.api import types as pdt
 
+from expdpy._common import argsort_levels
+from expdpy._common import try_convert_ts_id as _try_convert_ts_id
 from expdpy._labels import resolve_label
 from expdpy._panel import resolve_panel
 from expdpy._theme import (
@@ -20,7 +22,6 @@ from expdpy._theme import (
 )
 from expdpy._types import PanelStructureResult, ValueHeatmapResult
 from expdpy._validation import ensure_dataframe
-from expdpy.trends import _try_convert_ts_id
 
 __all__ = ["explore_panel_structure", "explore_value_heatmap"]
 
@@ -277,10 +278,7 @@ def explore_value_heatmap(
             pivot.bfill(axis=1).iloc[:, 0].sort_values(ascending=False).index
         ]
     else:  # label, numeric-aware
-        idx = pivot.index.astype(str)
-        num = pd.to_numeric(pd.Series(idx), errors="coerce")
-        keys = num.to_numpy() if not num.isna().any() else idx.to_numpy()
-        pivot = pivot.iloc[np.argsort(keys, kind="stable")]
+        pivot = pivot.iloc[argsort_levels(pivot.index)]
 
     shown = _even_sample(list(pivot.index), max_units, what="value_heatmap")
     pivot = pivot.loc[shown]

@@ -18,7 +18,7 @@ Guidance for working in this repository. Keep it current when commands or conven
   every result.
 
 Three no-code **Streamlit** apps (one per module). `src/` layout, Python ≥ 3.10, managed with
-**pixi**. Current version: 0.4.21.
+**pixi**. Current version: 0.4.22.
 
 ## Commands
 
@@ -67,8 +67,10 @@ public API is curated in `src/expdpy/__init__.py` (`__all__` grouped by module).
   `_estimation/` (pyfixest wrapper: `_spec`, `_formula`, `_vcov`, `_fit`, `_tidy`, `_results`).
 - **Learn**: `sandbox.py` + `pedagogy/` (`_registry` `Explainer`/`explain`/`list_topics`,
   `_interpret`, `_mixin` `Interpretable`, `_format`, and `_text/*` topic registrations).
-- **Infra**: `_types.py` (frozen result dataclasses), `_theme.py` (shared Plotly theme),
-  `_validation.py`, `_corr.py`, `_labels.py` (`set_labels`), `_data_def.py` (`build_data_def` —
+- **Infra**: `_types.py` (frozen result dataclasses), `_theme.py` (shared Plotly theme +
+  `set_palette`), `_validation.py` (incl. `drop_missing` / `ExpdpyWarning`), `_common.py`
+  (cross-module helpers: numeric level sorting, default opacity, time-axis/SE builders),
+  `_corr.py`, `_labels.py` (`set_labels`), `_data_def.py` (`build_data_def` —
   infer a `df_def` from a raw frame); `data/` (bundled parquets + loaders); `streamlit_app/` (the
   three apps — subprocess bundle handoff in `_handoff`/`_launcher`/`_context`, the sample
   pipeline, the two-file data+dictionary upload / editable auto-dictionary in `_sidebar`, the
