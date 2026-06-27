@@ -56,11 +56,17 @@ def test_new_module_topics_and_aliases_resolve():
     assert explain("lsdv").topic == "dummy_variables"
 
 
-def test_removed_iv_glm_topics_are_gone():
-    topics = set(list_topics())
-    assert "iv" not in topics
-    assert "glm" not in topics
-    for alias in ("2sls", "poisson", "logit", "probit"):
+def test_iv_topic_resolves():
+    # Instrumental variables ships an explainer; its aliases resolve to the canonical key.
+    assert "instrumental_variables" in set(list_topics())
+    assert explain("iv").topic == "instrumental_variables"
+    assert explain("2sls").topic == "instrumental_variables"
+
+
+def test_removed_glm_topics_are_gone():
+    # GLM-family topics remain unsupported (expdpy is OLS/IV only), so they still raise.
+    assert "glm" not in set(list_topics())
+    for alias in ("poisson", "logit", "probit"):
         with pytest.raises(KeyError):
             explain(alias)
 

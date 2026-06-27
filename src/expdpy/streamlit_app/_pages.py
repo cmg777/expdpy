@@ -162,20 +162,30 @@ def page_describe() -> None:
     st.header("Describe variables")
     if _has(active, "descriptive_table"):
         st.subheader("Descriptive statistics")
-        render.render_descriptive(active.sample)
+        render.render_descriptive(
+            active.sample, code=render.code_for("descriptive_table", active.time)
+        )
     if _has(active, "histogram"):
         st.subheader("Histogram")
         var = w.selectbox("Variable", _numeric(active), key="hist_var")
         bins = w.slider("Bins", 5, 100, key="hist_nr_of_breaks", default=20)
-        render.render_plotly(lambda: comp.histogram(active.sample, var, int(bins)))
+        render.render_plotly(
+            lambda: comp.histogram(active.sample, var, int(bins)),
+            code=render.code_for("histogram", active.time),
+        )
     if _has(active, "bar_chart"):
         st.subheader("Bar chart")
         var = w.selectbox("Variable", _factors(active), key="bar_chart_var1")
-        render.render_plotly(lambda: comp.bar_chart(active.sample, var))
+        render.render_plotly(
+            lambda: comp.bar_chart(active.sample, var),
+            code=render.code_for("bar_chart", active.time),
+        )
     if _has(active, "ext_obs"):
         st.subheader("Extreme observations")
         var = w.selectbox("Variable", _numeric(active), key="ext_obs_var")
-        render.render_ext_obs(active.sample, var)
+        render.render_ext_obs(
+            active.sample, var, code=render.code_for("ext_obs", active.time)
+        )
 
 
 def page_within_between() -> None:
@@ -225,18 +235,25 @@ def page_by_group() -> None:
         st.subheader("Group means (bar)")
         byvar = w.selectbox("Group by", _factors(active), key="bgbg_byvar")
         var = w.selectbox("Variable", _numeric(active), key="bgbg_var")
-        render.render_plotly(lambda: comp.by_group_bar(active.sample, byvar, var))
+        render.render_plotly(
+            lambda: comp.by_group_bar(active.sample, byvar, var),
+            code=render.code_for("by_group_bar_graph", active.time),
+        )
     if _has(active, "by_group_violin_graph"):
         st.subheader("Distribution by group (violin)")
         byvar = w.selectbox("Group by", _factors(active), key="bgvg_byvar")
         var = w.selectbox("Variable", _numeric(active), key="bgvg_var")
-        render.render_plotly(lambda: comp.by_group_violin(active.sample, byvar, var))
+        render.render_plotly(
+            lambda: comp.by_group_violin(active.sample, byvar, var),
+            code=render.code_for("by_group_violin_graph", active.time),
+        )
     if _has(active, "by_group_trend_graph"):
         st.subheader("Group means over time")
         byvar = w.selectbox("Group by", _factors(active), key="bgtg_byvar")
         var = w.selectbox("Variable", _numeric(active), key="bgtg_var")
         render.render_plotly(
-            lambda: comp.by_group_trend(active.sample, active.time, byvar, var)
+            lambda: comp.by_group_trend(active.sample, active.time, byvar, var),
+            code=render.code_for("by_group_trend_graph", active.time),
         )
 
 
@@ -257,12 +274,16 @@ def page_trends() -> None:
             )
             for i in (1, 2, 3)
         ]
-        render.render_plotly(lambda: comp.trend(active.sample, active.time, variables))
+        render.render_plotly(
+            lambda: comp.trend(active.sample, active.time, variables),
+            code=render.code_for("trend_graph", active.time),
+        )
     if _has(active, "quantile_trend_graph"):
         st.subheader("Quantile trend graph")
         var = w.selectbox("Variable", _numeric(active), key="quantile_trend_graph_var")
         render.render_plotly(
-            lambda: comp.quantile_trend(active.sample, active.time, var)
+            lambda: comp.quantile_trend(active.sample, active.time, var),
+            code=render.code_for("quantile_trend_graph", active.time),
         )
     if _is_panel(active):
         st.subheader("Distribution over time")
@@ -287,7 +308,9 @@ def page_correlations() -> None:
     st.header("Relationships")
     if _has(active, "corrplot"):
         st.subheader("Correlations")
-        render.render_correlation(active.sample)
+        render.render_correlation(
+            active.sample, code=render.code_for("corrplot", active.time)
+        )
     if _has(active, "scatter_plot"):
         st.subheader("Scatter plot")
         nums = _numeric(active)
@@ -304,7 +327,8 @@ def page_correlations() -> None:
             size = w.selectbox("Size", nums, key="scatter_size", none=True)
         loess = w.checkbox("LOESS smoother", key="scatter_loess", default=True)
         render.render_plotly(
-            lambda: comp.scatter(active.sample, x, y, color, size, loess)
+            lambda: comp.scatter(active.sample, x, y, color, size, loess),
+            code=render.code_for("scatter_plot", active.time),
         )
     if _is_panel(active):
         assert active.time is not None  # narrowed by _is_panel
@@ -324,6 +348,84 @@ def page_correlations() -> None:
                 active.sample, wb_x, wb_y, entity=entity, time=time
             )
         )
+
+
+def _render_spec_comparison(
+    active: Active,
+    y: str | None,
+    xs: list[str],
+    fes: list[str],
+    clusters: list[str],
+) -> None:
+    """Save the current regression spec and compare all saved specs side by side (item 5)."""
+
+    def _ok(v: str | None) -> bool:
+        return v not in (None, "", "None")
+
+    valid_xs = [x for x in xs if _ok(x)]
+    specs: list[dict] = st.session_state.setdefault("_saved_specs", [])
+
+    c1, c2, _ = st.columns([1, 1, 2])
+    if c1.button(
+        "💾 Save spec for comparison",
+        disabled=not (_ok(y) and valid_xs),
+        help="Stash the current dependent/independent variables, fixed effects and clusters.",
+    ):
+        specs.append(
+            {
+                "label": f"({len(specs) + 1})",
+                "y": y,
+                "xs": valid_xs,
+                "fes": [f for f in fes if _ok(f)],
+                "clusters": list(clusters),
+            }
+        )
+    if specs and c2.button("🗑 Clear saved"):
+        st.session_state["_saved_specs"] = []
+        return
+    if not specs:
+        return
+
+    # Only specs whose columns still exist in the current sample are comparable.
+    usable = [
+        s
+        for s in specs
+        if s["y"] in active.sample.columns
+        and all(x in active.sample.columns for x in s["xs"])
+    ]
+    st.divider()
+    st.subheader(f"Saved specifications ({len(usable)})")
+    if not usable:
+        st.info(
+            "Saved specs reference columns not in the current sample. Clear and re-save."
+        )
+        return
+
+    from expdpy import analyze_coefficient_plot, analyze_regression_table
+
+    try:
+        res = analyze_regression_table(
+            active.sample,
+            dvs=[s["y"] for s in usable],
+            idvs=[s["xs"] for s in usable],
+            feffects=[s["fes"] for s in usable],
+            clusters=[s["clusters"] for s in usable],
+        )
+    except Exception as exc:
+        st.info(str(exc))
+        return
+    if hasattr(res.etable, "as_raw_html"):
+        st.html(res.etable.as_raw_html())
+    labels = [
+        f"{s['label']} {s['y']} ~ {' + '.join(s['xs'])}"
+        + (f" | {', '.join(s['fes'])}" if s["fes"] else "")
+        for s in usable
+    ]
+    try:
+        cp = analyze_coefficient_plot(res, model_labels=labels)
+        st.plotly_chart(cp.fig, width="stretch", config=PLOTLY_CONFIG)
+    except Exception as exc:
+        st.info(str(exc))
 
 
 def page_regression() -> None:
@@ -355,7 +457,16 @@ def page_regression() -> None:
         format_func=lambda k: {"1": "None", "2": "FE 1", "3": "FE 1 + FE 2"}[k],
     )
     clusters = w.cluster_vars(choice, fe1, fe2)
-    render.render_regression(active.sample, y, list(xs), [fe1, fe2], clusters)
+    render.render_regression(
+        active.sample,
+        y,
+        list(xs),
+        [fe1, fe2],
+        clusters,
+        code=render.code_for("regression", active.time),
+    )
+
+    _render_spec_comparison(active, y, list(xs), [fe1, fe2], clusters)
 
     valid_xs = [x for x in xs if x not in (None, "", "None")]
     if valid_xs:
@@ -375,7 +486,8 @@ def page_regression() -> None:
         render.render_plotly(
             lambda: comp.fwl_plot(
                 active.sample, y, valid_xs, focal, [fe1, fe2], clusters
-            )
+            ),
+            code=render.code_for("fwl_plot", active.time),
         )
 
         st.divider()

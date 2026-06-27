@@ -33,7 +33,9 @@ __all__ = [
     "interpret_estimation",
     "interpret_event_study",
     "interpret_fwl",
+    "interpret_iv",
     "interpret_kuznets_waves",
+    "interpret_marginal_effects",
     "interpret_panel_structure",
     "interpret_regression",
     "interpret_sandbox",
@@ -316,6 +318,100 @@ def interpret_estimation(result: Any, *, lang: str = "en") -> str:
 
     parts = [" ".join(head), "", *bullets, "", _ASSOC_NOTE]
     return "\n".join(parts)
+
+
+def interpret_iv(result: Any, *, lang: str = "en") -> str:
+    """Interpret an IV (2SLS) regression: instrumented slope plus the weak-instrument F."""
+    df = result.df
+    model = result.model
+    dv = str(getattr(model, "_depvar", "the outcome"))
+    endog = tuple(getattr(result, "endog", ()) or ())
+    instruments = tuple(getattr(result, "instruments", ()) or ())
+    f = float(getattr(result, "first_stage_f", math.nan))
+
+    endog_set = set(endog)
+    lines = [
+        f"This IV (2SLS) regression instruments **{', '.join(endog)}** with "
+        f"*{', '.join(instruments)}*, relating it to **{dv}**. Two-stage least squares "
+        "isolates the part of the endogenous regressor that moves with the instruments, "
+        "purging the endogeneity that biases ordinary least squares.",
+        "",
+    ]
+    first_id = df["model"].iloc[0]
+    sub = df[df["model"] == first_id]
+    for _, row in sub.iterrows():
+        term = str(row["term"])
+        if term.lower() == "intercept" or term not in endog_set:
+            continue
+        est = float(row["Estimate"])
+        lines.append(
+            f"- **{term}** (instrumented): a one-unit increase is associated with {dv} "
+            f"that is {fmt_num(abs(est))} {direction_word(est)} "
+            f"({significance_phrase(float(row['Pr(>|t|)']))})."
+        )
+
+    if not math.isnan(f):
+        weak = f < 10.0
+        lines += [
+            "",
+            f"The first-stage F is {fmt_num(f)} — "
+            + (
+                "**below** the conventional weak-instrument threshold of 10, so the "
+                "instruments are weak and the 2SLS estimates should be read with caution."
+                if weak
+                else "**above** the conventional weak-instrument threshold of 10, so the "
+                "instruments are reasonably strong."
+            ),
+        ]
+    lines.append(
+        "IV is trustworthy only when the instruments are both **relevant** (a strong first "
+        f"stage) and **excludable** — related to {dv} solely through the instrumented "
+        "regressor."
+    )
+    lines += ["", _ASSOC_NOTE]
+    return "\n".join(lines)
+
+
+def interpret_marginal_effects(result: Any, *, lang: str = "en") -> str:
+    """Interpret a marginal-effects plot: how the focal slope varies with the moderator."""
+    foc = str(getattr(result, "focal", "the regressor"))
+    mod = str(getattr(result, "moderator", "the moderator"))
+    df = result.df
+    grid = df[mod].to_numpy(dtype=float)
+    me = df["me"].to_numpy(dtype=float)
+    lo_x, hi_x = float(grid[0]), float(grid[-1])
+    me_lo, me_hi = float(me[0]), float(me[-1])
+    ame = float(getattr(result, "ame", math.nan))
+    se = float(getattr(result, "ame_se", math.nan))
+
+    lines = [
+        f"The marginal association of **{foc}** with the outcome is not constant — it depends "
+        f"on **{mod}** (their interaction).",
+        f"Across the observed range it moves from {fmt_num(me_lo)} at {mod} = {fmt_num(lo_x)} "
+        f"to {fmt_num(me_hi)} at {mod} = {fmt_num(hi_x)}.",
+    ]
+
+    # Sign change inside the moderator range (a linear marginal effect crosses zero at most once).
+    sign = np.sign(me)
+    flips = np.where(np.diff(sign) != 0)[0]
+    if len(flips):
+        k = int(flips[0])
+        x0, x1, y0, y1 = grid[k], grid[k + 1], me[k], me[k + 1]
+        cross = x0 if y1 == y0 else x0 - y0 * (x1 - x0) / (y1 - y0)
+        lines.append(
+            f"The association switches sign near {mod} = {fmt_num(float(cross))}: "
+            f"{foc} relates to the outcome in opposite directions below and above that point."
+        )
+
+    if not (math.isnan(ame) or math.isnan(se)) and se > 0:
+        z = abs(ame / se)
+        p = math.erfc(z / math.sqrt(2.0))  # two-sided normal p-value
+        lines.append(
+            f"Averaged over the sample, the marginal association is {fmt_num(ame)} "
+            f"({significance_phrase(p)})."
+        )
+    lines += ["", _ASSOC_NOTE]
+    return "\n".join(lines)
 
 
 def interpret_cre(result: Any, *, lang: str = "en") -> str:

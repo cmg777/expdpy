@@ -87,6 +87,7 @@ quartodoc:
         - explore_violin_plot_by_group
         - explore_missing_values_plot
         - explore_scatter_plot
+        - explore_animated_scatter_plot
         - explore_xtsum_table
         - explore_scatter_plot_within_between
         - explore_spaghetti_plot
@@ -98,7 +99,8 @@ quartodoc:
     - title: Analyze
       desc: >-
         Panel estimators — OLS with fixed effects and clustered SEs, stepwise / Newey–West /
-        Driscoll–Kraay estimation, the Frisch–Waugh–Lovell and coefficient plots, pooled /
+        Driscoll–Kraay estimation, instrumental variables / 2SLS (cross-section and panel, with
+        a first-stage weak-instrument F), the Frisch–Waugh–Lovell and coefficient plots, pooled /
         between / fixed / random effects, correlated random effects (Mundlak), the Hausman
         test, post-estimation, robust inference, event-study / difference-in-differences,
         β-convergence (unconditional / conditional with speed, half-life and a rolling view),
@@ -107,8 +109,11 @@ quartodoc:
       contents:
         - analyze_regression_table
         - analyze_estimation
+        - analyze_iv_regression
+        - analyze_panel_iv_regression
         - analyze_fwl_plot
         - analyze_coefficient_plot
+        - analyze_marginal_effects_plot
         - analyze_panel_table
         - analyze_cre_table
         - analyze_hausman_test
@@ -167,4 +172,8 @@ quartodoc:
         - load_productivity_data_def
         - load_bolivia112_gdppc
         - load_bolivia112_gdppc_data_def
+        - load_colonial_origins
+        - load_colonial_origins_data_def
+        - load_regional_conflict
+        - load_regional_conflict_data_def
         - get_config
