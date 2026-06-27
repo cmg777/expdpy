@@ -19,7 +19,7 @@ from scipy import stats
 from expdpy._estimation import as_list
 from expdpy._panel import resolve_panel
 from expdpy._types import HausmanTestResult, RegressionTableResult
-from expdpy._validation import ensure_dataframe
+from expdpy._validation import drop_missing, ensure_dataframe
 
 __all__ = ["analyze_hausman_test", "analyze_panel_table"]
 
@@ -51,7 +51,9 @@ def _panel_frame(
     missing = [c for c in cols if c not in df.columns]
     if missing:
         raise KeyError(f"columns not found in df: {missing}")
-    panel = df[cols].dropna().set_index([entity, time])
+    panel = drop_missing(
+        df[cols], cols, func="panel estimation", stacklevel=4
+    ).set_index([entity, time])
     return panel[dv], panel[idvs]
 
 

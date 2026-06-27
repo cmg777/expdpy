@@ -21,7 +21,12 @@ from expdpy._panel import resolve_panel
 from expdpy._panel_math import panel_decompose
 from expdpy._theme import apply_default_layout, color_for
 from expdpy._types import WithinBetweenScatterResult, XtsumTableResult
-from expdpy._validation import ensure_dataframe, numeric_logical_columns
+from expdpy._validation import (
+    drop_missing,
+    ensure_dataframe,
+    numeric_logical_columns,
+    require_columns,
+)
 from expdpy.scatter import _default_alpha
 
 __all__ = ["explore_scatter_plot_within_between", "explore_xtsum_table"]
@@ -85,11 +90,12 @@ def explore_xtsum_table(
         var = [c for c in numeric_logical_columns(df) if c not in (entity, time)]
     else:
         var = list(var)
-        missing = [v for v in var if v not in df.columns]
-        if missing:
-            raise ValueError("var names need to be in df")
+        require_columns(df, var, where="xtsum")
     if not var:
-        raise ValueError("no numeric variables to summarise")
+        raise ValueError(
+            "xtsum: no numeric variables to summarise (pass var= explicitly or check "
+            "column dtypes)"
+        )
 
     rows: list[dict] = []
     for v in var:
@@ -124,7 +130,10 @@ def explore_xtsum_table(
                 }
             )
     if not rows:
-        raise ValueError("no variables with observations to summarise")
+        raise ValueError(
+            f"xtsum: none of the requested variables {var!r} have any non-missing "
+            "observations"
+        )
     out = pd.DataFrame(rows)
 
     disp = out.rename(
@@ -185,6 +194,8 @@ def explore_scatter_plot_within_between(
     time: str | None = None,
     show: Literal["overlay", "pooled", "between", "within"] = "overlay",
     alpha: float | None = None,
+    title: str | None = None,
+    subtitle: str | None = None,
 ) -> WithinBetweenScatterResult:
     """Scatter that decomposes the ``x``-``y`` relationship into between and within parts.
 
@@ -236,7 +247,9 @@ def explore_scatter_plot_within_between(
     x_label = resolve_label(df, x)
     y_label = resolve_label(df, y)
     cols = list(dict.fromkeys([entity, x, y, *([time] if time else [])]))
-    sub = df[cols].dropna(subset=[entity, x, y])
+    sub = drop_missing(
+        df[cols], [entity, x, y], func="explore_scatter_plot_within_between"
+    )
     if sub[entity].nunique() < 2:
         raise ValueError("within/between scatter needs at least two entities")
     n = len(sub)
@@ -369,6 +382,8 @@ def explore_scatter_plot_within_between(
         showarrow=False,
         font={"size": 13},
     )
+    if title is not None or subtitle is not None:
+        apply_default_layout(fig, title=title, subtitle=subtitle)
     return WithinBetweenScatterResult(
         df=long, fig=fig, slope_pooled=bp, slope_between=bb, slope_within=bw
     )

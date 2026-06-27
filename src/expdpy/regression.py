@@ -20,7 +20,7 @@ from expdpy._estimation import (
 )
 from expdpy._labels import label_map
 from expdpy._types import RegressionTableResult
-from expdpy._validation import ensure_dataframe
+from expdpy._validation import drop_missing, ensure_dataframe
 
 __all__ = ["analyze_regression_table"]
 
@@ -148,7 +148,7 @@ def analyze_regression_table(
         fe = _as_list(feffects)
         cl = _as_list(clusters)
         used = list(dict.fromkeys([byvar, dv, *idv, *fe, *cl]))
-        sub = df[used].dropna().copy()
+        sub = drop_missing(df[used], used, func="analyze_regression_table").copy()
         if not (
             isinstance(sub[byvar].dtype, pd.CategoricalDtype)
             or pdt.is_object_dtype(sub[byvar])

@@ -16,7 +16,7 @@ from expdpy._types import (
     ByGroupTrendGraphResult,
     ByGroupViolinResult,
 )
-from expdpy._validation import ensure_dataframe
+from expdpy._validation import drop_missing, ensure_dataframe, require_columns
 from expdpy.trends import _se, _try_convert_ts_id, _xaxis
 
 __all__ = [
@@ -46,6 +46,8 @@ def explore_bar_plot_by_group(
     *,
     order_by_stat: bool = False,
     color: str | None = None,
+    title: str | None = None,
+    subtitle: str | None = None,
 ) -> ByGroupBarGraphResult:
     """Bar chart of a statistic of ``var`` computed within each ``by_var`` group.
 
@@ -147,6 +149,8 @@ def explore_bar_plot_by_group(
             "categoryarray": display_order[::-1],
         },
     )
+    if title is not None or subtitle is not None:
+        apply_default_layout(fig, title=title, subtitle=subtitle)
     return ByGroupBarGraphResult(df=grouped, fig=fig)
 
 
@@ -158,6 +162,8 @@ def explore_trend_plot_by_group(
     time: str | None = None,
     points: bool = True,
     error_bars: bool = False,
+    title: str | None = None,
+    subtitle: str | None = None,
 ) -> ByGroupTrendGraphResult:
     """Line-plot the mean of ``var`` over time, one line per ``group_var`` level.
 
@@ -212,15 +218,17 @@ def explore_trend_plot_by_group(
     df = ensure_dataframe(df)
     _entity, time = resolve_panel(df, None, time, require_time=True)
     assert time is not None  # require_time=True guarantees this
-    for col in (time, group_var, var):
-        if col not in df.columns:
-            raise ValueError(f"{col} needs to be in df")
+    require_columns(df, [time, group_var, var], where="explore_trend_plot_by_group")
 
     time_label = resolve_label(df, time)
     group_label = resolve_label(df, group_var)
     var_label = resolve_label(df, var)
 
-    sub = df[[time, group_var, var]].dropna()
+    sub = drop_missing(
+        df[[time, group_var, var]],
+        [time, group_var, var],
+        func="explore_trend_plot_by_group",
+    )
     ts_conv, ordered = _try_convert_ts_id(sub[time])
     sub = sub.assign(**{time: ts_conv})
     sub[group_var] = sub[group_var].astype(str)
@@ -260,6 +268,8 @@ def explore_trend_plot_by_group(
         legend_title_text=group_label,
         hovermode="x unified",
     )
+    if title is not None or subtitle is not None:
+        apply_default_layout(fig, title=title, subtitle=subtitle)
     return ByGroupTrendGraphResult(df=gf, fig=fig)
 
 
@@ -270,6 +280,8 @@ def explore_violin_plot_by_group(
     *,
     order_by_mean: bool = False,
     group_on_y: bool = True,
+    title: str | None = None,
+    subtitle: str | None = None,
 ) -> ByGroupViolinResult:
     """Violin plots of ``var`` distribution across ``by_var`` groups.
 
@@ -316,12 +328,12 @@ def explore_violin_plot_by_group(
     ```
     """
     df = ensure_dataframe(df)
-    for col in (by_var, var):
-        if col not in df.columns:
-            raise ValueError(f"{col} needs to be in df")
+    require_columns(df, [by_var, var], where="explore_violin_plot_by_group")
     by_label = resolve_label(df, by_var)
     var_label = resolve_label(df, var)
-    sub = df[[by_var, var]].dropna()
+    sub = drop_missing(
+        df[[by_var, var]], [by_var, var], func="explore_violin_plot_by_group"
+    )
     if sub.empty:
         raise ValueError("no complete observations of by_var and var")
     sub[by_var] = sub[by_var].astype(str)
@@ -365,4 +377,6 @@ def explore_violin_plot_by_group(
             },
             yaxis={"title": var_label},
         )
+    if title is not None or subtitle is not None:
+        apply_default_layout(fig, title=title, subtitle=subtitle)
     return ByGroupViolinResult(df=sub, fig=fig)

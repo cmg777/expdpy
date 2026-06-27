@@ -100,7 +100,9 @@ def explore_descriptive_table(
     periods: Sequence[object] | None = None,
     entity: str | None = None,
     time: str | None = None,
-    caption: str = "Descriptive Statistics",
+    caption: str | None = None,
+    title: str | None = None,
+    subtitle: str | None = None,
 ) -> DescriptiveTableResult:
     """Report descriptive statistics for the numeric/logical variables of ``df``.
 
@@ -176,6 +178,9 @@ def explore_descriptive_table(
     ```
     """
     df = ensure_dataframe(df)
+    # ``caption`` is a backward-compatible alias for ``title`` (historic default preserved).
+    if title is None:
+        title = caption if caption is not None else "Descriptive Statistics"
     # Validate an explicitly-named id strictly (the named column must exist), then fill any
     # unset id from the declared panel — but tolerate a *declared* id whose column was
     # dropped by a column subset (a descriptive table run on a subset should still
@@ -228,7 +233,7 @@ def explore_descriptive_table(
         disp = pd.DataFrame({"Variable": resolve_labels(df, var_cols)})
         for s in stats:
             disp[s] = pooled[s].to_numpy()
-        gt = GT(disp, rowname_col="Variable").tab_header(title=caption)
+        gt = GT(disp, rowname_col="Variable").tab_header(title=title, subtitle=subtitle)
         for s in stats:
             gt = gt.fmt_number(
                 columns=s, decimals=_digits_for(s, digits), use_seps=True
@@ -269,7 +274,7 @@ def explore_descriptive_table(
             keys.append(key)
         spanner_cols[s] = keys
 
-    gt = GT(disp, rowname_col="Variable").tab_header(title=caption)
+    gt = GT(disp, rowname_col="Variable").tab_header(title=title, subtitle=subtitle)
     for s in stats:
         gt = gt.tab_spanner(label=s, columns=spanner_cols[s])
         gt = gt.fmt_number(
@@ -306,6 +311,8 @@ def explore_correlation_table(
     bold: float = 0.05,
     *,
     caption: str | None = None,
+    title: str | None = None,
+    subtitle: str | None = None,
 ) -> CorrelationTableResult:
     """Correlation table with Pearson above and Spearman below the diagonal.
 
@@ -441,8 +448,10 @@ def explore_correlation_table(
         .fmt_markdown(columns=labels)
         .tab_source_note(note)
     )
-    if caption is not None:
-        gt = gt.tab_header(title=caption)
+    if title is None:  # ``caption`` is a backward-compatible alias for ``title``
+        title = caption
+    if title is not None or subtitle is not None:
+        gt = gt.tab_header(title=title or "", subtitle=subtitle)
 
     return CorrelationTableResult(df_corr=corr_r, df_prob=corr_p, df_n=corr_n, gt=gt)
 
@@ -455,6 +464,8 @@ def explore_ext_obs_table(
     entity: Sequence[str] | str | None = None,
     time: str | None = None,
     digits: int = 3,
+    title: str | None = None,
+    subtitle: str | None = None,
 ) -> ExtObsTableResult:
     """Display the top and bottom ``n`` observations sorted by ``var``.
 
@@ -557,4 +568,6 @@ def explore_ext_obs_table(
         )
         .sub_missing(missing_text="...")
     )
+    if title is not None or subtitle is not None:
+        gt = gt.tab_header(title=title or "", subtitle=subtitle)
     return ExtObsTableResult(df=out, gt=gt)

@@ -182,3 +182,31 @@ def test_try_convert_ts_id_branches(values, expect_ordered):
     s = pd.Series(values * 3)
     _conv, ordered = _try_convert_ts_id(s)
     assert ordered is expect_ordered
+
+
+# --- unified title/subtitle API (item 13b) -------------------------------------------
+
+
+def test_plot_title_subtitle_thread_through(kuznets):
+    fig = explore_trend_plot(
+        kuznets, var=["gini_regional"], time="year", title="Trend", subtitle="by year"
+    ).fig
+    assert fig.layout.title.text == "Trend"
+    # axis titles are unaffected by adding a main title
+    assert fig.layout.yaxis.title.text == "gini_regional"
+
+
+def test_plot_no_title_by_default(kuznets):
+    fig = explore_scatter_plot(kuznets, x="log_gdp_pc", y="gini_regional").fig
+    assert fig.layout.title.text is None
+
+
+def test_correlation_plot_default_title_preserved(kuznets):
+    cols = ["gini_regional", "log_gdp_pc", "log_gdp_pc_sq"]
+    assert (
+        explore_correlation_plot(kuznets[cols]).fig.layout.title.text == "Correlations"
+    )
+    assert (
+        explore_correlation_plot(kuznets[cols], title="Custom").fig.layout.title.text
+        == "Custom"
+    )

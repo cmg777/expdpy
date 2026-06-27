@@ -26,6 +26,7 @@ from __future__ import annotations
 from expdpy._data_def import build_data_def
 from expdpy._labels import resolve_label, set_labels
 from expdpy._panel import resolve_panel, set_panel
+from expdpy._theme import get_palette, set_palette
 from expdpy._types import (
     AnimatedScatterResult,
     BarChartResult,
@@ -131,7 +132,7 @@ from expdpy.tables import (
 )
 from expdpy.trends import explore_quantile_trend_plot, explore_trend_plot
 
-__version__ = "0.4.20"
+__version__ = "0.4.21"
 
 __all__ = [
     # ===== EXPLORE =====
@@ -225,6 +226,9 @@ __all__ = [
     "build_data_def",
     # outlier treatment
     "treat_outliers",
+    # color palette (opt-in colorblind-safe theme)
+    "set_palette",
+    "get_palette",
     # concept explainers (registry entry points)
     "explain",
     "list_topics",

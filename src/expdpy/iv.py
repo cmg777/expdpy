@@ -32,7 +32,7 @@ from expdpy._estimation import (
 from expdpy._labels import label_map
 from expdpy._panel import resolve_panel
 from expdpy._types import IVRegressionResult
-from expdpy._validation import ensure_dataframe
+from expdpy._validation import drop_missing, ensure_dataframe
 
 __all__ = ["analyze_iv_regression", "analyze_panel_iv_regression"]
 
@@ -111,7 +111,7 @@ def _iv_result(
         )
 
     used = list(dict.fromkeys([dv, *exog, *endog, *instruments, *feffects, *clusters]))
-    data = df[used].dropna().copy()
+    data = drop_missing(df[used], used, func="IV regression", stacklevel=4).copy()
     for fe in feffects:
         data[fe] = data[fe].astype("category")
 

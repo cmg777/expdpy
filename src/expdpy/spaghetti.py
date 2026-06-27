@@ -16,7 +16,7 @@ from expdpy._labels import resolve_label
 from expdpy._panel import resolve_panel
 from expdpy._theme import apply_default_layout, color_for
 from expdpy._types import SpaghettiGraphResult
-from expdpy._validation import ensure_dataframe
+from expdpy._validation import drop_missing, ensure_dataframe
 from expdpy.scatter import _default_alpha
 from expdpy.trends import _try_convert_ts_id, _xaxis
 
@@ -99,6 +99,8 @@ def explore_spaghetti_plot(
     max_units: int | None = 150,
     facet: str | None = None,
     sample_seed: int = 0,
+    title: str | None = None,
+    subtitle: str | None = None,
 ) -> SpaghettiGraphResult:
     """Plot every unit's trajectory of ``var`` over time, with a central-tendency overlay.
 
@@ -161,9 +163,12 @@ def explore_spaghetti_plot(
     facet_label = resolve_label(df, facet) if facet else None
 
     cols = list(dict.fromkeys([entity, time, var, *([facet] if facet else [])]))
-    sub = df[cols].dropna(subset=[entity, time, var])
+    sub = drop_missing(df[cols], [entity, time, var], func="explore_spaghetti_plot")
     if sub.empty:
-        raise ValueError(f"var ({var!r}) has no complete observations")
+        raise ValueError(
+            f"explore_spaghetti_plot: no rows where {entity!r}, {time!r} and {var!r} "
+            "are all present (check for missing ids or a fully-missing variable)"
+        )
     ts_conv, ordered = _try_convert_ts_id(sub[time])
     sub = sub.assign(**{time: ts_conv})
 
@@ -248,6 +253,8 @@ def explore_spaghetti_plot(
             )
         apply_default_layout(fig, yaxis={"title": var_label}, showlegend=False)
 
+    if title is not None or subtitle is not None:
+        apply_default_layout(fig, title=title, subtitle=subtitle)
     return SpaghettiGraphResult(
         df=sub[[entity, time, var]].reset_index(drop=True),
         fig=fig,

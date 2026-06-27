@@ -15,7 +15,7 @@ from expdpy._labels import resolve_label, resolve_labels
 from expdpy._panel import resolve_panel
 from expdpy._theme import apply_default_layout, color_for
 from expdpy._types import QuantileTrendGraphResult, TrendGraphResult
-from expdpy._validation import ensure_dataframe
+from expdpy._validation import drop_missing, ensure_dataframe
 
 __all__ = [
     "explore_quantile_trend_plot",
@@ -100,6 +100,8 @@ def explore_trend_plot(
     time: str | None = None,
     entity: str | None = None,
     spaghetti: bool = False,
+    title: str | None = None,
+    subtitle: str | None = None,
 ) -> TrendGraphResult:
     """Line-plot the mean (with standard-error bars) of variables over time.
 
@@ -230,6 +232,8 @@ def explore_trend_plot(
     xaxis = _xaxis(time, ordered, ts_conv, title=time_label)
     yaxis_title = var_labels[0] if len(var) == 1 else "Value"
     apply_default_layout(fig, xaxis=xaxis, yaxis={"title": yaxis_title})
+    if title is not None or subtitle is not None:
+        apply_default_layout(fig, title=title, subtitle=subtitle)
     return TrendGraphResult(df=gf, fig=fig)
 
 
@@ -240,6 +244,8 @@ def explore_quantile_trend_plot(
     *,
     time: str | None = None,
     points: bool = True,
+    title: str | None = None,
+    subtitle: str | None = None,
 ) -> QuantileTrendGraphResult:
     """Line-plot quantiles of a single variable over time.
 
@@ -306,13 +312,15 @@ def explore_quantile_trend_plot(
     time_label = resolve_label(df, time)
     var_label = resolve_label(df, var)
 
-    sub = df[[time, var]].dropna()
+    sub = drop_missing(df[[time, var]], [time, var], func="explore_quantile_trend_plot")
     ts_conv, ordered = _try_convert_ts_id(sub[time])
     sub = sub.assign(**{time: ts_conv})
 
     labels = [f"q{round(q * 100):02d}" for q in quantiles]
-    wide = sub.groupby(time, observed=True)[var].quantile(list(quantiles)).unstack()
-    wide.columns = labels
+    wide = (
+        sub.groupby(time, observed=True)[var].quantile(np.asarray(quantiles)).unstack()
+    )
+    wide.columns = pd.Index(labels)
     wide = wide.reset_index()
     gf = wide.melt(
         id_vars=[time], value_vars=labels, var_name="quantile", value_name=var
@@ -348,4 +356,6 @@ def explore_quantile_trend_plot(
         )
     xaxis = _xaxis(time, ordered, ts_conv, title=time_label)
     apply_default_layout(fig, xaxis=xaxis, yaxis={"title": var_label})
+    if title is not None or subtitle is not None:
+        apply_default_layout(fig, title=title, subtitle=subtitle)
     return QuantileTrendGraphResult(df=gf, fig=fig)

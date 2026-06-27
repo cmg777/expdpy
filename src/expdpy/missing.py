@@ -10,7 +10,7 @@ import plotly.graph_objects as go
 
 from expdpy._labels import resolve_label, resolve_labels
 from expdpy._panel import resolve_panel
-from expdpy._theme import SEQUENTIAL_SCALE, apply_default_layout
+from expdpy._theme import active_sequential_scale, apply_default_layout
 from expdpy._types import MissingValuesResult
 from expdpy._validation import ensure_dataframe, numeric_logical_columns
 from expdpy.trends import _try_convert_ts_id
@@ -36,6 +36,8 @@ def explore_missing_values_plot(
     by: Literal["time", "entity"] = "time",
     no_factors: bool = False,
     binary: bool = False,
+    title: str | None = None,
+    subtitle: str | None = None,
 ) -> MissingValuesResult:
     """Heatmap of missing-value frequency by variable and panel dimension.
 
@@ -141,7 +143,7 @@ def explore_missing_values_plot(
             z=z,
             x=col_labels,
             y=y,
-            colorscale=SEQUENTIAL_SCALE,
+            colorscale=active_sequential_scale(),
             zmin=0,
             zmax=1,
             colorbar={"title": "% missing", "tickformat": ".0%"},
@@ -153,4 +155,6 @@ def explore_missing_values_plot(
         )
     fig = go.Figure(heatmap)
     apply_default_layout(fig, xaxis={"tickangle": -40}, yaxis={"title": axis_label})
+    if title is not None or subtitle is not None:
+        apply_default_layout(fig, title=title, subtitle=subtitle)
     return MissingValuesResult(df=mat, fig=fig)

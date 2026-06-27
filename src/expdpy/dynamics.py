@@ -16,7 +16,7 @@ from scipy.stats import gaussian_kde
 from expdpy._labels import resolve_label
 from expdpy._panel import resolve_panel
 from expdpy._theme import (
-    SEQUENTIAL_SCALE,
+    active_sequential_scale,
     apply_default_layout,
     color_for,
 )
@@ -25,7 +25,7 @@ from expdpy._types import (
     TransitionMatrixResult,
     WithinPersistenceResult,
 )
-from expdpy._validation import ensure_dataframe
+from expdpy._validation import drop_missing, ensure_dataframe
 from expdpy.scatter import _default_alpha
 from expdpy.trends import _try_convert_ts_id
 
@@ -83,6 +83,8 @@ def explore_distribution_over_time(
     bins: int = 30,
     bandwidth: float | None = None,
     max_periods: int | None = 24,
+    title: str | None = None,
+    subtitle: str | None = None,
 ) -> DistributionOverTimeResult:
     """Show how the distribution of ``var`` shifts across periods.
 
@@ -133,9 +135,14 @@ def explore_distribution_over_time(
     var_label = resolve_label(df, var)
     time_label = resolve_label(df, time)
 
-    sub = df[[time, var]].dropna()
+    sub = drop_missing(
+        df[[time, var]], [time, var], func="explore_distribution_over_time"
+    )
     if sub.empty:
-        raise ValueError(f"var ({var!r}) has no complete observations")
+        raise ValueError(
+            f"explore_distribution_over_time: var ({var!r}) is entirely missing in df "
+            "— no rows to plot"
+        )
     sub = sub.assign(**{time: _try_convert_ts_id(sub[time])[0]})
     periods = _even_periods(sorted(sub[time].unique()), max_periods)
     sub = sub[sub[time].isin(periods)]
@@ -154,6 +161,8 @@ def explore_distribution_over_time(
         fig = _animated(
             sub, time, var, periods, lo, hi, bins, style, var_label, time_label
         )
+    if title is not None or subtitle is not None:
+        apply_default_layout(fig, title=title, subtitle=subtitle)
     return DistributionOverTimeResult(df=sub.reset_index(drop=True), fig=fig)
 
 
@@ -336,6 +345,8 @@ def explore_transition_matrix(
     lag: int = 1,
     normalize: Literal["row", "none"] = "row",
     caption: str = "Transition Matrix",
+    title: str | None = None,
+    subtitle: str | None = None,
 ) -> TransitionMatrixResult:
     """Period-to-period transition matrix of a discrete (or binned) state within units.
 
@@ -386,7 +397,9 @@ def explore_transition_matrix(
     if var not in df.columns:
         raise ValueError("var needs to be in df")
 
-    sub = df[[entity, time, var]].dropna().copy()
+    sub = drop_missing(
+        df[[entity, time, var]], [entity, time, var], func="explore_transition_matrix"
+    ).copy()
     sub[time] = _try_convert_ts_id(sub[time])[0]
     if sub[time].nunique() < 2:
         raise ValueError("transition matrix needs at least two periods")
@@ -438,7 +451,7 @@ def explore_transition_matrix(
             z=matrix.to_numpy(dtype=float),
             x=list(states),
             y=list(states),
-            colorscale=SEQUENTIAL_SCALE,
+            colorscale=active_sequential_scale(),
             zmin=0,
             zmax=zmax,
             xgap=1,
@@ -462,6 +475,8 @@ def explore_transition_matrix(
     else:
         gt = gt.fmt_integer(columns=list(states))
 
+    if title is not None or subtitle is not None:
+        apply_default_layout(fig, title=title, subtitle=subtitle)
     return TransitionMatrixResult(
         df=matrix, counts=counts, fig=fig, gt=gt, states=tuple(states)
     )
@@ -476,6 +491,8 @@ def explore_within_persistence(
     lag: int = 1,
     demean: bool = True,
     alpha: float | None = None,
+    title: str | None = None,
+    subtitle: str | None = None,
 ) -> WithinPersistenceResult:
     """Within-unit serial correlation: this period's value against the previous one.
 
@@ -524,7 +541,9 @@ def explore_within_persistence(
 
     var_label = resolve_label(df, var)
 
-    sub = df[[entity, time, var]].dropna().copy()
+    sub = drop_missing(
+        df[[entity, time, var]], [entity, time, var], func="explore_within_persistence"
+    ).copy()
     sub[time] = _try_convert_ts_id(sub[time])[0]
     if sub[time].nunique() < 2:
         raise ValueError("within persistence needs at least two periods")
@@ -600,6 +619,8 @@ def explore_within_persistence(
     out = pairs[[entity, time]].copy()
     out["lag_value"] = lag_v
     out["value"] = v
+    if title is not None or subtitle is not None:
+        apply_default_layout(fig, title=title, subtitle=subtitle)
     return WithinPersistenceResult(
         df=out.reset_index(drop=True),
         fig=fig,

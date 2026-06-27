@@ -20,6 +20,7 @@ from expdpy.pedagogy import Interpretable
 from expdpy.pedagogy import explain as _explain
 from expdpy.pedagogy._interpret import (
     interpret_beta_convergence,
+    interpret_coefficient_plot,
     interpret_convergence_clubs,
     interpret_correlation,
     interpret_cre,
@@ -27,17 +28,25 @@ from expdpy.pedagogy._interpret import (
     interpret_distribution_over_time,
     interpret_estimation,
     interpret_event_study,
+    interpret_fixef_plot,
     interpret_fwl,
     interpret_iv,
+    interpret_joint_test,
     interpret_kuznets_waves,
     interpret_marginal_effects,
+    interpret_missing_values,
     interpret_panel_structure,
+    interpret_panel_view,
+    interpret_predictions,
     interpret_regression,
+    interpret_robust_inference,
     interpret_sandbox,
+    interpret_scatter_plot,
     interpret_sigma_convergence,
     interpret_spaghetti,
     interpret_transition_matrix,
     interpret_trend,
+    interpret_value_heatmap,
     interpret_within_between,
     interpret_within_persistence,
     interpret_xtsum,
@@ -225,7 +234,7 @@ class HistogramResult:
 
 
 @dataclass(frozen=True)
-class MissingValuesResult:
+class MissingValuesResult(Interpretable):
     """Result of :func:`expdpy.explore_missing_values_plot`.
 
     ``df`` is the missingness frame (rows = time periods or units, columns = variables, cells
@@ -235,9 +244,13 @@ class MissingValuesResult:
     df: pd.DataFrame
     fig: go.Figure
 
+    def interpret(self, *, lang: str = "en") -> str:
+        """Plain-language reading of overall completeness and the worst gaps."""
+        return interpret_missing_values(self, lang=lang)
+
 
 @dataclass(frozen=True)
-class ScatterPlotResult:
+class ScatterPlotResult(Interpretable):
     """Result of :func:`expdpy.explore_scatter_plot`.
 
     ``df`` is the complete-case frame actually plotted; ``fig`` is the Plotly scatter.
@@ -245,6 +258,14 @@ class ScatterPlotResult:
 
     df: pd.DataFrame
     fig: go.Figure
+
+    def interpret(self, *, lang: str = "en") -> str:
+        """Plain-language reading of the bivariate association's direction and strength."""
+        return interpret_scatter_plot(self, lang=lang)
+
+    def explain(self, *, lang: str = "en") -> Explainer:
+        """Concept explainer for bivariate (Pearson) correlation."""
+        return _explain("pearson", lang=lang)
 
 
 @dataclass(frozen=True)
@@ -268,7 +289,7 @@ class BarChartResult:
 
 
 @dataclass(frozen=True)
-class CoefficientPlotResult:
+class CoefficientPlotResult(Interpretable):
     """Result of :func:`expdpy.analyze_coefficient_plot`.
 
     ``df`` is a tidy long frame with columns ``model``, ``term``, ``estimate``, ``se``,
@@ -277,6 +298,14 @@ class CoefficientPlotResult:
 
     df: pd.DataFrame
     fig: go.Figure
+
+    def interpret(self, *, lang: str = "en") -> str:
+        """Plain-language reading of each term's estimate and whether its CI excludes zero."""
+        return interpret_coefficient_plot(self, lang=lang)
+
+    def explain(self, *, lang: str = "en") -> Explainer:
+        """Concept explainer for ordinary least squares."""
+        return _explain("ols", lang=lang)
 
 
 @dataclass(frozen=True)
@@ -805,7 +834,7 @@ class EstimationResult(Interpretable):
 
 
 @dataclass(frozen=True)
-class FixefPlotResult:
+class FixefPlotResult(Interpretable):
     """Result of :func:`expdpy.analyze_fixef_plot`.
 
     ``df`` has columns ``fixef`` (the fixed-effect dimension), ``level`` and ``value`` (the
@@ -815,9 +844,17 @@ class FixefPlotResult:
     df: pd.DataFrame
     fig: go.Figure
 
+    def interpret(self, *, lang: str = "en") -> str:
+        """Plain-language reading of how much the estimated group intercepts vary."""
+        return interpret_fixef_plot(self, lang=lang)
+
+    def explain(self, *, lang: str = "en") -> Explainer:
+        """Concept explainer for fixed effects."""
+        return _explain("fixed_effects", lang=lang)
+
 
 @dataclass(frozen=True)
-class PredictionResult:
+class PredictionResult(Interpretable):
     """Result of :func:`expdpy.analyze_predictions`.
 
     ``df`` holds the fitted ``predicted`` values, plus ``actual`` and ``residual`` columns
@@ -826,15 +863,23 @@ class PredictionResult:
 
     df: pd.DataFrame
 
+    def interpret(self, *, lang: str = "en") -> str:
+        """Plain-language reading of in-sample fit or the range of new-data forecasts."""
+        return interpret_predictions(self, lang=lang)
+
 
 @dataclass(frozen=True)
-class JointTestResult:
+class JointTestResult(Interpretable):
     """Result of :func:`expdpy.analyze_joint_test` (a Wald joint-significance test)."""
 
     statistic: float
     p_value: float
     hypotheses: tuple[str, ...]
     distribution: str
+
+    def interpret(self, *, lang: str = "en") -> str:
+        """Plain-language reading of the joint null, the statistic and the verdict."""
+        return interpret_joint_test(self, lang=lang)
 
     def summary(self) -> str:
         """Return a one-line plain-language verdict for the joint test."""
@@ -879,7 +924,7 @@ class EventStudyResult(Interpretable):
 
 
 @dataclass(frozen=True)
-class PanelViewResult:
+class PanelViewResult(Interpretable):
     """Result of :func:`expdpy.analyze_panel_view`.
 
     ``df`` is the treatment quilt (units by periods, 0/1) or, when an ``outcome`` is given,
@@ -888,6 +933,14 @@ class PanelViewResult:
 
     df: pd.DataFrame
     fig: go.Figure
+
+    def interpret(self, *, lang: str = "en") -> str:
+        """Plain-language reading of treatment timing/balance or outcome coverage."""
+        return interpret_panel_view(self, lang=lang)
+
+    def explain(self, *, lang: str = "en") -> Explainer:
+        """Concept explainer for event studies / staggered difference-in-differences."""
+        return _explain("event_study", lang=lang)
 
 
 @dataclass(frozen=True)
@@ -950,7 +1003,7 @@ class SandboxResult(Interpretable):
 
 
 @dataclass(frozen=True)
-class RobustInferenceResult:
+class RobustInferenceResult(Interpretable):
     """Result of :func:`expdpy.analyze_robust_inference`.
 
     ``method`` is ``"ritest"`` (randomization inference) or ``"wildboot"`` (wild cluster
@@ -965,6 +1018,10 @@ class RobustInferenceResult:
     conf_int: tuple[float, float]
     reps: int
     raw: Any
+
+    def interpret(self, *, lang: str = "en") -> str:
+        """Plain-language reading of the resampling method and the robust p-value."""
+        return interpret_robust_inference(self, lang=lang)
 
 
 # ===================================================================== panel exploration ===
@@ -1068,7 +1125,7 @@ class PanelStructureResult(Interpretable):
 
 
 @dataclass(frozen=True)
-class ValueHeatmapResult:
+class ValueHeatmapResult(Interpretable):
     """Result of :func:`expdpy.explore_value_heatmap`.
 
     ``df`` is the unit-by-time pivot of the variable; ``fig`` is the Plotly heatmap.
@@ -1076,6 +1133,10 @@ class ValueHeatmapResult:
 
     df: pd.DataFrame
     fig: go.Figure
+
+    def interpret(self, *, lang: str = "en") -> str:
+        """Plain-language reading of the grid dimensions, coverage and value range."""
+        return interpret_value_heatmap(self, lang=lang)
 
 
 @dataclass(frozen=True)

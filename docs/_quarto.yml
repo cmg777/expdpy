@@ -156,6 +156,8 @@ quartodoc:
         - resolve_panel
         - build_data_def
         - treat_outliers
+        - set_palette
+        - get_palette
         - explain
         - list_topics
     - title: Interactive apps

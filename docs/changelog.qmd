@@ -2,6 +2,38 @@
 title: "Changelog"
 ---
 
+## 0.4.21 (2026-06-27)
+
+A low-risk **polish** release: a broader teaching layer, consistent missing-data reporting,
+and opt-in accessible theming. All additive and backward-compatible.
+
+### Learn — `.interpret()` on nine more result types
+
+- Plain-language `.interpret()` now ships on the result types that lacked it:
+  **`analyze_coefficient_plot`**, **`analyze_fixef_plot`**, **`analyze_predictions`**,
+  **`analyze_joint_test`**, **`analyze_robust_inference`** and **`analyze_panel_view`** (Analyze),
+  plus **`explore_scatter_plot`**, **`explore_missing_values_plot`** and
+  **`explore_value_heatmap`** (Explore). Each reads the result in associational, non-causal
+  language (the existing `analyze_joint_test().summary()` is unchanged).
+
+### Explore — consistent missing-data reporting + clearer errors
+
+- Functions that drop rows with missing values now emit a single advisory
+  **`ExpdpyWarning`** ("dropped N of M rows … with missing values in […]") instead of dropping
+  silently, across the Explore and Analyze surfaces. Silence one category-wide with
+  `warnings.filterwarnings("ignore", category=expdpy.ExpdpyWarning)`.
+- Several vague panel/validation errors now name the offending column(s) and disambiguate
+  "entirely missing" from "no overlapping observations".
+
+### Theming — colorblind-safe palette + unified title API
+
+- **`set_palette("colorblind")`** / **`get_palette()`** — an opt-in, process-global toggle to the
+  **Okabe-Ito** colorblind-safe qualitative palette plus colorblind-safe sequential and
+  diverging scales. The default look is unchanged until you opt in.
+- Every Explore plotting function and table now accepts **`title=`** / **`subtitle=`**; tables
+  keep **`caption=`** working as a backward-compatible alias. *Known limitation:* a few
+  decorative fixed-color lines do not follow the palette toggle.
+
 ## 0.4.20 (2026-06-27)
 
 ### Analyze — instrumental variables, panel IV, and marginal effects
