@@ -1,0 +1,283 @@
+---
+title: "analyze_iv_regression"
+jupyter: python3
+---
+
+```{=html}
+<p style="margin: 0.25rem 0 1.25rem;">
+  <strong>Run this page interactively in Google Colab — no install required:</strong><br>
+  <a href="https://colab.research.google.com/github/cmg777/expdpy/blob/main/notebooks/analyze_iv_regression.ipynb" target="_blank" rel="noopener">
+    <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab">
+  </a>
+</p>
+```
+
+This page is two things at once: an **extended user guide** for the two
+instrumental-variables entry points — `analyze_iv_regression` (any cross-section or
+custom-fixed-effects design) and `analyze_panel_iv_regression` (the panel `xtivreg2 … fe`
+analogue) — and a **testing environment** that builds synthetic data with a *known* slope and
+checks that two-stage least squares recovers it while ordinary least squares does not. If a
+cell's `assert` ever fails, the function is broken.
+
+IV is the one method in expdpy where the *prose below* legitimately talks about **causal
+identification** — that is the entire point of an instrument. The library's own `.interpret()`,
+by deliberate design, still reports **associations**; the causal claim is the argument *you*
+make when you defend the instrument's relevance and exclusion.
+
+## What is instrumental-variables estimation?
+
+A regressor is **endogenous** when it is correlated with the error term — through reverse
+causation, an omitted confounder, or measurement error — and then the ordinary-least-squares
+slope is biased. An **instrument** $z$ rescues identification when it is
+
+- **relevant** — it genuinely moves the endogenous regressor $x$, and
+- **excludable** — it affects the outcome $y$ *only* through $x$, never directly.
+
+Two-stage least squares (2SLS) uses only the part of $x$ predicted by the instruments:
+
+$$
+\text{first stage:}\quad x = \pi\, z + \text{controls} + v,
+\qquad
+\text{second stage:}\quad y = \beta\, \hat{x} + \text{controls} + e .
+$$
+
+The slope $\beta$ is read off the *fitted* $\hat{x}$, so it is identified from instrument-driven
+variation that is free of the confounding in $x$. The price is precision and a relevance
+requirement: if the first stage is weak, 2SLS is badly biased and its standard errors are
+unreliable. The conventional screen is the **first-stage F statistic** — below about **10**
+(the Staiger–Stock rule of thumb) is the warning sign. `analyze_iv_regression` reports it for
+you. For panel data, `analyze_panel_iv_regression` is the same 2SLS core wrapped to absorb
+**entity** (and, by default, **time**) fixed effects and to cluster by entity.
+
+```{python}
+import numpy as np
+import pandas as pd
+
+import expdpy as ex
+```
+
+## 1. The method in one cell
+
+The canonical Acemoglu–Johnson–Robinson (2001) example: does the quality of economic
+**institutions** raise income? Institutions are endogenous, so we instrument average protection
+against expropriation risk (a proxy for institutional quality) with **log settler mortality** —
+early-colonial mortality shaped the institutions Europeans built, but plausibly affects today's
+income only through them. We use the 64-country base sample.
+
+```{python}
+from expdpy.data import load_colonial_origins, load_colonial_origins_data_def
+
+# A pure cross-section (no time dimension): label it, but do NOT set a panel.
+df = ex.set_labels(load_colonial_origins(), load_colonial_origins_data_def())
+base = df[df["base_sample"] == 1]
+
+res = ex.analyze_iv_regression(
+    base,
+    dv="log_gdp_pc_1995",
+    endog="expropriation_risk",
+    instruments="log_settler_mortality",
+)
+res.etable
+```
+
+The instrumented slope on `expropriation_risk` is the famous **≈ 0.94**. The weak-instrument
+screen comes straight off the result:
+
+```{python}
+print(f"first-stage F = {res.first_stage_f:.2f}   (rule of thumb: > 10 is OK)")
+```
+
+≈ 23, comfortably above 10 — log settler mortality is a strong instrument here.
+
+## 2. How the function works
+
+### Arguments
+
+| argument | what it does | when to change it |
+|---|---|---|
+| `dv` | the dependent (outcome) variable | always set it |
+| `endog` | endogenous regressor name(s) to be instrumented | the variable you cannot treat as exogenous |
+| `instruments` | excluded instrument name(s); the **order condition** needs at least as many instruments as endogenous regressors | add more to over-identify (and enable an overid check) |
+| `exog` | included exogenous controls that enter directly | to hold confounders fixed (e.g. latitude in AJR) |
+| `feffects` | fixed effects absorbed by pyfixest | for arbitrary FE designs; for panels prefer `analyze_panel_iv_regression` |
+| `clusters` | cluster variable(s) for cluster-robust standard errors | when errors are correlated within groups |
+| `format` | `"gt"` (default), `"tex"`, `"md"`, `"df"`, `"html"` for the rendered `etable` | `"df"` to pull numbers; `"tex"` for a paper |
+
+### What it returns
+
+`glance()` is the one-row summary — outcome, N, the design counts, the first-stage F, and
+whether fixed effects were absorbed:
+
+```{python}
+print("first-stage F :", round(res.first_stage_f, 2),
+      "  p :", round(res.first_stage_p, 6))
+print("design        : endog =", res.endog,
+      "| instruments =", res.instruments, "| exog =", res.exog)
+res.glance()
+```
+
+`tidy()` is the coefficient frame behind the table (`Estimate`, `Std. Error`, `t value`,
+`Pr(>|t|)` and the confidence bounds):
+
+```{python}
+res.tidy()
+```
+
+`.interpret()` reads it in plain language — note it states the *association* and the
+weak-instrument verdict, and ends by reminding you that relevance and exclusion are *your*
+argument to make:
+
+```{python}
+print(res.interpret())
+```
+
+`.explain()` returns the concept explainer (the same as `ex.explain("instrumental_variables")`):
+
+```{python}
+res.explain()
+```
+
+### The panel analogue
+
+`analyze_panel_iv_regression` shares the 2SLS core but manages the panel fixed effects for you
+— it is Stata's `xtivreg2 … fe`:
+
+| argument | what it does | default |
+|---|---|---|
+| `entity`, `time` | panel ids (resolved from `set_panel` when omitted) | required `entity`; `time` needed for two-way |
+| `twoway` | absorb both entity **and** time fixed effects | `True` (set `False` for entity-only) |
+| `cluster_entity` | cluster the standard errors by entity | `True` |
+
+## 3. Does it recover the truth?
+
+The cleanest test plants a **known** slope. Let an unobserved confounder $u$ enter both $x$ and
+$y$, so OLS of $y$ on $x$ is biased; a valid instrument $z$ (excluded from the $y$ equation)
+lets 2SLS recover the truth:
+
+$$
+z, u \sim N(0,1)\ \text{independent},\quad
+x = \pi z + \delta u + \nu,\quad
+y = \alpha + \beta_{\text{true}}\, x + \gamma u + \varepsilon .
+$$
+
+Because $\operatorname{cov}(x,u) > 0$ and $\gamma > 0$, the omitted $u$ biases OLS **upward**;
+$z$ is correlated with $x$ (relevant) but absent from the $y$ equation (excluded).
+
+```{python}
+def iv_dgp(*, n=4000, pi=1.0, delta=1.0, gamma=2.0, beta_true=0.8,
+           alpha=1.0, seed=0):
+    """Cross-section where a hidden confounder u biases OLS but z is a valid instrument.
+
+    z, u ~ N(0,1) independent;  x = pi*z + delta*u + noise;
+    y = alpha + beta_true*x + gamma*u + noise.
+    z is excluded from y (exclusion) and u is omitted (so OLS of y on x is biased upward).
+    """
+    rng = np.random.default_rng(seed)
+    z = rng.normal(size=n)
+    u = rng.normal(size=n)
+    x = pi * z + delta * u + rng.normal(0.0, 0.5, n)
+    y = alpha + beta_true * x + gamma * u + rng.normal(0.0, 0.5, n)
+    return pd.DataFrame({"y": y, "x": x, "z": z})
+
+
+BETA_TRUE = 0.8
+syn = iv_dgp(beta_true=BETA_TRUE, seed=0)
+
+iv = ex.analyze_iv_regression(syn, dv="y", endog="x", instruments="z", format="df")
+ols = ex.analyze_estimation(syn, "y", "x", format="df")
+
+iv_b = float(iv.df.set_index("term").loc["x", "Estimate"])
+ols_b = float(ols.df.set_index("term").loc["x", "Estimate"])
+
+check = pd.DataFrame({
+    "estimator": ["true beta", "OLS (biased)", "2SLS (z)"],
+    "slope": [BETA_TRUE, ols_b, iv_b],
+})
+check["abs_error_vs_true"] = (check["slope"] - BETA_TRUE).abs()
+check.round(4)
+```
+
+OLS lands far above the truth; 2SLS sits right on it. The asserts make that precise — and check
+the instrument is strong:
+
+```{python}
+# 2SLS recovers the planted slope; OLS is biased away from it; the instrument is strong.
+assert abs(iv_b - BETA_TRUE) < 0.05            # 2SLS ~ truth
+assert ols_b > BETA_TRUE + 0.10                # OLS biased UP (cov(x,u)>0, gamma>0)
+assert abs(ols_b - BETA_TRUE) > abs(iv_b - BETA_TRUE)  # OLS strictly worse
+assert iv.first_stage_f > 50                   # strong instrument (pi=1, n=4000)
+print("✅ 2SLS recovered the planted slope; OLS is biased; instrument is strong")
+```
+
+## 4. Real data examples
+
+### Cross-section: institutions and income (AJR 2001)
+
+The OLS-versus-IV contrast is the whole point. Estimate the naive OLS slope, then the
+instrumented one:
+
+```{python}
+ols_ajr = ex.analyze_estimation(
+    base, "log_gdp_pc_1995", "expropriation_risk", format="df"
+)
+ols_slope = float(ols_ajr.df.set_index("term").loc["expropriation_risk", "Estimate"])
+iv_slope = float(res.df.set_index("term").loc["expropriation_risk", "Estimate"])
+
+print(f"naive OLS slope : {ols_slope:.3f}")
+print(f"2SLS slope      : {iv_slope:.3f}")
+print(f"first-stage F   : {res.first_stage_f:.2f}")
+```
+
+Instrumenting **raises** the slope from ≈ 0.52 to ≈ 0.94: the classic AJR result that OLS, blurred
+by measurement error in institutional quality, *understates* the association once we isolate the
+settler-mortality-driven variation.
+
+```{python}
+print(res.interpret())
+```
+
+### Panel: night-lights and conflict (xtivreg2 fe)
+
+A panel IV. Night-time lights proxy local economic activity but are themselves endogenous to
+conflict; instrument them with **lagged rainfall and drought** (weather shocks that move local
+activity but are plausibly excludable from conflict given region and year effects). We absorb
+region and year fixed effects and cluster by region — a panel `xtivreg2 fe`.
+
+```{python}
+from expdpy.data import load_regional_conflict, load_regional_conflict_data_def
+
+panel = ex.set_labels(
+    load_regional_conflict(), load_regional_conflict_data_def(), set_panel=True
+)
+
+pres = ex.analyze_panel_iv_regression(
+    panel,
+    dv="conflict",
+    endog="log_lights_lag1",
+    instruments=["rain_lag2", "drought_lag2"],
+)
+pres.etable
+```
+
+```{python}
+lights = float(pres.df.set_index("term").loc["log_lights_lag1", "Estimate"])
+print(f"lights coefficient : {lights:.3f}")
+print(f"first-stage F      : {pres.first_stage_f:.2f}   (two instruments)")
+print(pres.interpret())
+```
+
+The slope is **negative** (≈ -0.30): more instrument-driven economic activity goes with **less**
+conflict, with the two weather instruments jointly strong (F ≈ 25, well above 10), region and
+year effects absorbed, and standard errors clustered by region.
+
+## See also
+
+- The `analyze_iv_regression` and `analyze_panel_iv_regression` reference pages — the full
+  argument and return documentation.
+- `ex.explain("instrumental_variables")` — the concept explainer (also `res.explain()`).
+- The bundled datasets: `load_colonial_origins` (the AJR cross-section) and
+  `load_regional_conflict` (the African conflict panel), each with a `*_data_def` dictionary.
+
+```{python}
+ex.explain("instrumental_variables")
+```
