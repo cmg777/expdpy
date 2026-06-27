@@ -13,6 +13,8 @@ from great_tables import GT
 from pandas.api import types as pdt
 from scipy.stats import gaussian_kde
 
+from expdpy._common import default_alpha as _default_alpha
+from expdpy._common import try_convert_ts_id as _try_convert_ts_id
 from expdpy._labels import resolve_label
 from expdpy._panel import resolve_panel
 from expdpy._theme import (
@@ -26,8 +28,6 @@ from expdpy._types import (
     WithinPersistenceResult,
 )
 from expdpy._validation import drop_missing, ensure_dataframe
-from expdpy.scatter import _default_alpha
-from expdpy.trends import _try_convert_ts_id
 
 __all__ = [
     "explore_distribution_over_time",

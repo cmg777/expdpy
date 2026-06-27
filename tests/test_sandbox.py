@@ -141,3 +141,64 @@ def test_convergence_clubs_recovers_planted_structure():
     assert res.topic == "convergence_clubs"
     assert "club" in res.interpret().lower()
     assert res.explain().topic == "convergence_clubs"
+
+
+# --- new sandboxes (item 8) ----------------------------------------------------------
+
+
+def test_hausman_rejects_and_prefers_fe():
+    res = ex.learn_hausman_test(seed=0)
+    assert isinstance(res.fig, go.Figure)
+    s = res.summary
+    # x correlated with the unit effect -> RE biased, FE consistent, Hausman rejects
+    assert abs(s["fe_coef"] - s["true_beta"]) < 0.15
+    assert abs(s["re_coef"] - s["true_beta"]) > abs(s["fe_coef"] - s["true_beta"])
+    assert s["hausman_p"] < 0.05
+    assert res.topic == "hausman"
+    assert "hausman" in res.interpret().lower()
+    assert res.explain().topic == "hausman"
+    assert not res.data.empty
+
+
+def test_cre_within_equals_fe():
+    res = ex.learn_correlated_random_effects(seed=0)
+    s = res.summary
+    assert abs(s["cre_within_coef"] - s["fe_coef"]) < 1e-6  # CRE within == FE
+    assert abs(s["cre_within_coef"] - s["true_beta"]) < 0.15
+    assert s["mundlak_p"] < 0.05  # the means matter -> Mundlak rejects
+    assert res.topic == "correlated_random_effects"
+    assert res.explain().topic == "correlated_random_effects"
+
+
+def test_nickell_bias_is_downward_and_shrinks_with_T():
+    res = ex.learn_nickell_bias(seed=0)
+    s = res.summary
+    assert s["fe_rho_short"] < s["true_rho"]  # biased downward at short T
+    assert s["bias_short"] < 0
+    assert abs(s["bias_long"]) < abs(s["bias_short"])  # shrinks as T grows
+    assert res.topic == "nickell_bias"
+    assert "nickell" in res.interpret().lower()
+    assert res.explain().topic == "nickell_bias"
+
+
+def test_measurement_error_attenuates():
+    res = ex.learn_measurement_error(noise_x=1.0, seed=0)
+    s = res.summary
+    assert s["naive_coef"] < s["true_beta"]  # attenuated toward zero
+    assert 0.4 < s["reliability"] < 0.6  # var_true/(var_true+var_u) ~ 0.5
+    assert res.topic == "measurement_error"
+    assert "attenuat" in res.interpret().lower()
+    assert res.explain().topic == "measurement_error"
+
+
+def test_all_sandboxes_expose_simulated_data():
+    import pandas as pd
+
+    for fn in (
+        ex.learn_omitted_variable_bias,
+        ex.learn_pooled_vs_fixed_effects,
+        ex.learn_hausman_test,
+        ex.learn_measurement_error,
+    ):
+        res = fn(seed=0)
+        assert isinstance(res.data, pd.DataFrame) and not res.data.empty

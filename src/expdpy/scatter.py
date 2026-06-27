@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import warnings
-from math import log
 from typing import Literal
 
 import numpy as np
@@ -12,6 +11,7 @@ import plotly.graph_objects as go
 from pandas.api import types as pdt
 from statsmodels.nonparametric.smoothers_lowess import lowess
 
+from expdpy._common import default_alpha as _default_alpha
 from expdpy._labels import resolve_label
 from expdpy._panel import resolve_panel
 from expdpy._theme import active_sequential_scale, apply_default_layout, color_for
@@ -19,13 +19,6 @@ from expdpy._types import ScatterPlotResult
 from expdpy._validation import drop_missing, ensure_dataframe
 
 __all__ = ["explore_scatter_plot"]
-
-
-def _default_alpha(n: int) -> float:
-    """Sample-size-based default opacity (ExPanDaR's formula)."""
-    if n <= 0:
-        return 1.0
-    return min(1.0, 1.0 / (1.0 + max(0.0, log(n) - log(100))))
 
 
 def _lowess_curve(

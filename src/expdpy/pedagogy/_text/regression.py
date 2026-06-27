@@ -261,3 +261,60 @@ register_topic(
         references=("Hausman (1978); Wooldridge, Introductory Econometrics, ch. 14",),
     )
 )
+
+register_topic(
+    Explainer(
+        topic="nickell_bias",
+        title="Nickell bias (dynamic panels)",
+        what=(
+            "In a dynamic panel — one whose regressors include the lagged dependent variable "
+            "— the within (fixed-effects) estimator is biased in short panels. Demeaning each "
+            "unit subtracts the unit's mean of the lagged outcome, which is mechanically "
+            "correlated with the demeaned error, so the estimated persistence is pulled "
+            "**downward**. The bias is of order 1/T and so shrinks as the number of periods "
+            "grows."
+        ),
+        when_to_use=(
+            "A warning, not a method: whenever a fixed-effects model includes a lagged "
+            "dependent variable on a short panel, expect the persistence coefficient to be "
+            "understated. Long panels (large T) make the bias negligible; short ones call for "
+            "a dynamic-panel GMM estimator (Arellano-Bond / Blundell-Bond) instead."
+        ),
+        caveats=(
+            "The bias is largest for short panels and high persistence; it does not vanish by "
+            "adding more units (it is a small-T, not small-N, problem).",
+            "First-differencing has its own version of the problem; instrumenting the lagged "
+            "difference (GMM) is the standard fix.",
+        ),
+        see_also=("fixed_effects", "first_differences"),
+        references=("Nickell (1981); Arellano & Bond (1991)",),
+    )
+)
+
+register_topic(
+    Explainer(
+        topic="measurement_error",
+        title="Measurement error (attenuation)",
+        what=(
+            "When a regressor is observed with classical (mean-zero, independent) noise, "
+            "ordinary least squares is biased toward zero. The slope is multiplied by the "
+            "**reliability ratio** — the share of the observed regressor's variance that is "
+            "signal rather than noise — so a noisier regressor yields a flatter estimated "
+            "slope. This pull toward zero is called attenuation bias."
+        ),
+        when_to_use=(
+            "A diagnostic mindset whenever a key regressor is a proxy or a survey-reported, "
+            "rounded, or otherwise mismeasured quantity: the estimated coefficient is likely "
+            "an understatement of the true one."
+        ),
+        caveats=(
+            "Attenuation toward zero is the classical case (noise independent of the true "
+            "value); non-classical error (e.g. correlated with the truth) can bias in either "
+            "direction.",
+            "With a second independent measurement, or an instrument for the mismeasured "
+            "regressor, the reliability ratio can be estimated and the slope corrected.",
+        ),
+        see_also=("ols", "instrumental_variables"),
+        references=("Wooldridge, Introductory Econometrics, ch. 9",),
+    )
+)

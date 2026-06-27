@@ -2,6 +2,39 @@
 title: "Changelog"
 ---
 
+## 0.4.22 (2026-06-27)
+
+A teaching + internals release: four new concept sandboxes, an internal helper refactor, and
+Learn-app polish. Additive and backward-compatible.
+
+### Learn — four new concept sandboxes
+
+- **`learn_hausman_test`** — a panel whose regressor is correlated with the unit effects, so
+  random effects is biased and the Hausman test rejects it in favour of fixed effects.
+- **`learn_correlated_random_effects`** — the Mundlak device, whose slope on the original
+  regressor equals the fixed-effects estimate, with the Mundlak (regression-form Hausman) test.
+- **`learn_nickell_bias`** — the within estimate of a lagged dependent variable is biased
+  downward in short panels and the bias shrinks as `T` grows.
+- **`learn_measurement_error`** — classical attenuation: noise in a regressor pulls its OLS
+  coefficient toward zero by the reliability ratio.
+
+Each ships an explainer (`nickell_bias` and `measurement_error` are new), a `.interpret()`
+reading, and now a **`.data`** field — the raw simulated frame (every sandbox carries it).
+
+### Internals — shared helpers in `_common.py`
+
+- The genuinely cross-module private helpers (numeric-then-lexical level sorting, the
+  sample-size default opacity, and the time-axis / standard-error / x-axis builders) moved from
+  the feature modules (`scatter.py`, `trends.py`) into a new `expdpy._common`. No public API
+  change.
+
+### Learn app
+
+- The concept sandboxes are now a **lazy picker** (one selectbox) instead of nine eager tabs —
+  only the chosen sandbox simulates and renders.
+- The explainer index is **searchable** (filter by name, title or description).
+- Each sandbox offers a **CSV download of its simulated dataset**.
+
 ## 0.4.21 (2026-06-27)
 
 A low-risk **polish** release: a broader teaching layer, consistent missing-data reporting,

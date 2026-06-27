@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 import warnings
 from collections.abc import Sequence
 
@@ -11,6 +10,9 @@ import pandas as pd
 import plotly.graph_objects as go
 from pandas.api import types as pdt
 
+from expdpy._common import se as _se
+from expdpy._common import try_convert_ts_id as _try_convert_ts_id
+from expdpy._common import xaxis as _xaxis
 from expdpy._labels import resolve_label, resolve_labels
 from expdpy._panel import resolve_panel
 from expdpy._theme import apply_default_layout, color_for
@@ -22,63 +24,7 @@ __all__ = [
     "explore_trend_plot",
 ]
 
-_FULL_DATE = re.compile(r"^\d{4}[-/]\d{1,2}[-/]\d{1,2}")
 _SPAGHETTI_LINE = {"color": "rgba(78,121,167,0.18)", "width": 1}
-
-
-def _try_convert_ts_id(s: pd.Series) -> tuple[pd.Series, bool]:
-    """Coerce a time identifier to a nicer type for axis ticks.
-
-    Cascade (mirrors ExPanDaR's ``try_convert_ts_id``): keep existing datetime/numeric
-    types, else try full-date parsing, else numeric, else an ordered categorical.
-
-    Returns
-    -------
-    tuple of (pandas.Series, bool)
-        The converted series and whether it is an ordered categorical (discrete axis).
-    """
-    if pdt.is_datetime64_any_dtype(s):
-        return s, False
-    if pdt.is_numeric_dtype(s) and not pdt.is_bool_dtype(s):
-        return s, False
-
-    # For factor/categorical/object indices, try the same cascade R applies to the
-    # character values: full-date -> numeric -> ordered categorical.
-    str_vals = s.astype(str)
-    # Full date strings only — bare-year strings like "2013" must fall through to numeric
-    # (R's as.Date("2013") fails), so we require a YYYY-MM-DD / YYYY/MM/DD pattern.
-    if str_vals.str.match(_FULL_DATE).all():
-        try:
-            return pd.to_datetime(str_vals), False
-        except (ValueError, TypeError):
-            pass
-    num = pd.to_numeric(str_vals, errors="coerce")
-    if not num.isna().any():
-        return pd.Series(num.to_numpy(), index=s.index), False
-    cats = sorted(s.dropna().astype(str).unique(), key=str)
-    return s.astype(str).astype(pd.CategoricalDtype(cats, ordered=True)), True
-
-
-def _se(s: pd.Series) -> float:
-    """Return the standard error of the mean: sd / sqrt(n_non_missing)."""
-    cnt = int(s.notna().sum())
-    if cnt == 0:
-        return np.nan
-    return float(s.std(ddof=1) / np.sqrt(cnt))
-
-
-def _xaxis(
-    time: str, ordered: bool, ts_values: pd.Series, title: str | None = None
-) -> dict:
-    """Build x-axis layout kwargs, fixing category order when discrete.
-
-    ``title`` overrides the axis title (default: the bare ``time`` name).
-    """
-    axis: dict = {"title": title if title is not None else time}
-    if ordered:
-        cats = [str(c) for c in ts_values.cat.categories]
-        axis.update(type="category", categoryorder="array", categoryarray=cats)
-    return axis
 
 
 def _numeric_vars(df: pd.DataFrame, *exclude: str | None) -> list[str]:
