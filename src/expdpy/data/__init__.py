@@ -18,6 +18,8 @@ __all__ = [
     "get_config",
     "load_bolivia112_gdppc",
     "load_bolivia112_gdppc_data_def",
+    "load_colonial_origins",
+    "load_colonial_origins_data_def",
     "load_firms",
     "load_firms_data_def",
     "load_gapminder",
@@ -26,6 +28,8 @@ __all__ = [
     "load_kuznets_data_def",
     "load_productivity",
     "load_productivity_data_def",
+    "load_regional_conflict",
+    "load_regional_conflict_data_def",
     "load_staggered_did",
     "load_staggered_did_data_def",
 ]
@@ -65,6 +69,25 @@ def load_bolivia112_gdppc() -> pd.DataFrame:
 def load_bolivia112_gdppc_data_def() -> pd.DataFrame:
     """Return variable definitions for :func:`load_bolivia112_gdppc`."""
     return _normalize_def(_read_parquet("bolivia112_gdppc_data_def"))
+
+
+def load_colonial_origins() -> pd.DataFrame:
+    """Load the Colonial Origins cross-section (Acemoglu, Johnson & Robinson 2001).
+
+    A country-level **cross-section** (163 countries, no time dimension) carrying the variables
+    of the famous settler-mortality IV example: log GDP per capita in 1995, average protection
+    against expropriation risk (the endogenous regressor), and log settler mortality (the
+    instrument), plus geography, colonizer and religion covariates and a ``base_sample`` flag
+    for the 64-country base sample. The canonical teaching dataset for
+    :func:`expdpy.analyze_iv_regression`. Source: Acemoglu, Johnson & Robinson (2001), "The
+    Colonial Origins of Comparative Development", *American Economic Review* 91(5).
+    """
+    return _read_parquet("colonial_origins")
+
+
+def load_colonial_origins_data_def() -> pd.DataFrame:
+    """Return variable definitions for :func:`load_colonial_origins`."""
+    return _normalize_def(_read_parquet("colonial_origins_data_def"))
 
 
 def load_firms() -> pd.DataFrame:
@@ -117,6 +140,25 @@ def load_productivity() -> pd.DataFrame:
 def load_productivity_data_def() -> pd.DataFrame:
     """Return variable definitions for :func:`load_productivity`."""
     return _normalize_def(_read_parquet("productivity_data_def"))
+
+
+def load_regional_conflict() -> pd.DataFrame:
+    """Load the African regional-conflict panel (a focused teaching subset).
+
+    An unbalanced region-year panel (5,689 African regions across 43 countries, 1994-2010)
+    with conflict indicators, night-time lights (a proxy for local economic activity) and
+    lagged rainfall and drought instruments — all region-detrended (``*_dt``). The canonical
+    teaching dataset for :func:`expdpy.analyze_panel_iv_regression`: it instruments night-lights
+    with lagged weather while absorbing region and year fixed effects (a panel ``xtivreg2 fe``).
+    Source: the regional-conflict / economic-shocks replication data (night-lights, rainfall and
+    UCDP conflict events).
+    """
+    return _read_parquet("regional_conflict")
+
+
+def load_regional_conflict_data_def() -> pd.DataFrame:
+    """Return variable definitions for :func:`load_regional_conflict`."""
+    return _normalize_def(_read_parquet("regional_conflict_data_def"))
 
 
 def load_staggered_did() -> pd.DataFrame:

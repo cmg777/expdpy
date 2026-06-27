@@ -8,7 +8,13 @@ from collections.abc import Sequence
 
 import pandas as pd
 
-__all__ = ["build_blocks", "build_script", "build_notebook", "build_export_zip"]
+__all__ = [
+    "build_blocks",
+    "build_script",
+    "build_notebook",
+    "build_export_zip",
+    "component_code",
+]
 
 # Control-only components have no standalone output cell.
 _SKIP = {"sample_selection", "subset_factor", "grouping", "udvars", "html_block"}
@@ -163,6 +169,20 @@ _EMITTERS = {
     "regression": lambda c, t: _emit_regression(c),
     "fwl_plot": lambda c, t: _emit_fwl_plot(c),
 }
+
+
+def component_code(component: str, config: dict, time: str | None) -> str | None:
+    """Return the reproducible expdpy one-liner for ``component``, or ``None`` if unknown/empty.
+
+    Reuses the same per-component emitters that build the exported notebook, so the inline
+    "copy code" snippet shown beside a chart matches the notebook export exactly.
+    """
+    emit = _EMITTERS.get(component)
+    if emit is None:
+        return None
+    body = emit(config, time)
+    return body or None
+
 
 _HEADINGS = {
     "descriptive_table": "Descriptive statistics",

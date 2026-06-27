@@ -27,6 +27,7 @@ from expdpy._data_def import build_data_def
 from expdpy._labels import resolve_label, set_labels
 from expdpy._panel import resolve_panel, set_panel
 from expdpy._types import (
+    AnimatedScatterResult,
     BarChartResult,
     BetaConvergenceResult,
     ByGroupBarGraphResult,
@@ -46,8 +47,10 @@ from expdpy._types import (
     FWLPlotResult,
     HausmanTestResult,
     HistogramResult,
+    IVRegressionResult,
     JointTestResult,
     KuznetsWavesResult,
+    MarginalEffectsResult,
     MissingValuesResult,
     PanelStructureResult,
     PanelViewResult,
@@ -66,6 +69,7 @@ from expdpy._types import (
     WithinPersistenceResult,
     XtsumTableResult,
 )
+from expdpy.animated_scatter import explore_animated_scatter_plot
 from expdpy.by_group import (
     explore_bar_plot_by_group,
     explore_trend_plot_by_group,
@@ -89,7 +93,9 @@ from expdpy.dynamics import (
 from expdpy.estimation import analyze_estimation
 from expdpy.fwl import analyze_fwl_plot
 from expdpy.inference import analyze_robust_inference
+from expdpy.iv import analyze_iv_regression, analyze_panel_iv_regression
 from expdpy.kuznets import analyze_kuznets_waves
+from expdpy.marginal_effects import analyze_marginal_effects_plot
 from expdpy.missing import explore_missing_values_plot
 from expdpy.outliers import treat_outliers
 from expdpy.panel_models import analyze_hausman_test, analyze_panel_table
@@ -125,7 +131,7 @@ from expdpy.tables import (
 )
 from expdpy.trends import explore_quantile_trend_plot, explore_trend_plot
 
-__version__ = "0.4.19"
+__version__ = "0.4.20"
 
 __all__ = [
     # ===== EXPLORE =====
@@ -149,6 +155,7 @@ __all__ = [
     "explore_missing_values_plot",
     # scatter
     "explore_scatter_plot",
+    "explore_animated_scatter_plot",
     # within/between variation
     "explore_xtsum_table",
     "explore_scatter_plot_within_between",
@@ -166,9 +173,13 @@ __all__ = [
     "analyze_regression_table",
     # estimation (OLS + stepwise + Newey-West / Driscoll-Kraay + weights)
     "analyze_estimation",
+    # instrumental variables / 2SLS (cross-section + panel) + weak-instrument F
+    "analyze_iv_regression",
+    "analyze_panel_iv_regression",
     # diagnostic plots
     "analyze_fwl_plot",
     "analyze_coefficient_plot",
+    "analyze_marginal_effects_plot",
     # panel models (pooled / between / fixed / random effects, CRE) + Hausman
     "analyze_panel_table",
     "analyze_cre_table",
@@ -226,6 +237,7 @@ __all__ = [
     "BarChartResult",
     "CorrelationGraphResult",
     "ScatterPlotResult",
+    "AnimatedScatterResult",
     "MissingValuesResult",
     "TrendGraphResult",
     "QuantileTrendGraphResult",
@@ -243,8 +255,10 @@ __all__ = [
     # analyze
     "RegressionTableResult",
     "EstimationResult",
+    "IVRegressionResult",
     "FWLPlotResult",
     "CoefficientPlotResult",
+    "MarginalEffectsResult",
     "CRETableResult",
     "HausmanTestResult",
     "FixefPlotResult",

@@ -20,6 +20,8 @@ from expdpy import (
     explore_ext_obs_table,
 )
 from expdpy._theme import PLOTLY_CONFIG
+from expdpy.streamlit_app._export_nb import component_code
+from expdpy.streamlit_app._state import DEFAULT_CONFIG
 
 __all__ = [
     "render_plotly",
@@ -27,6 +29,7 @@ __all__ = [
     "render_ext_obs",
     "render_correlation",
     "render_regression",
+    "code_for",
 ]
 
 _SELECT_HINT = (
@@ -34,12 +37,68 @@ _SELECT_HINT = (
 )
 
 
-def render_plotly(thunk, *, hint: str = _SELECT_HINT) -> None:
+def code_for(component: str, time: str | None) -> str | None:
+    """Build the reproducible expdpy snippet for ``component`` from the current widget state.
+
+    Reads the live widget values (which share their keys with the config) and reuses the
+    notebook-export emitters, so the inline snippet matches what the notebook would contain.
+    """
+    cfg = dict(DEFAULT_CONFIG)
+    for key in DEFAULT_CONFIG:
+        if key in st.session_state:
+            cfg[key] = st.session_state[key]
+    body = component_code(component, cfg, time)
+    if not body:
+        return None
+    return (
+        "import expdpy as ex\n\n# `df` is the analysis sample shown in the app\n" + body
+    )
+
+
+def _export_block(
+    *, name: str, fig=None, df: pd.DataFrame | None = None, code: str | None = None
+) -> None:
+    """Render an unobtrusive expander to download the view and copy its reproducing code."""
+    if fig is None and df is None and not code:
+        return
+    with st.expander("⬇ Export & reproduce"):
+        if fig is not None:
+            html = fig.to_html(include_plotlyjs="cdn", full_html=True)
+            st.download_button(
+                "Download interactive chart (HTML)",
+                data=html,
+                file_name=f"{name}.html",
+                mime="text/html",
+                key=f"htmldl-{abs(hash(html)) % 10**9}",
+            )
+        if df is not None:
+            csv = df.to_csv(index=False).encode("utf-8")
+            st.download_button(
+                "Download table (CSV)",
+                data=csv,
+                file_name=f"{name}.csv",
+                mime="text/csv",
+                key=f"csvdl-{abs(hash(csv)) % 10**9}",
+            )
+        if code:
+            st.caption("Reproduce this view in Python:")
+            st.code(code, language="python")
+
+
+def render_plotly(
+    thunk,
+    *,
+    hint: str = _SELECT_HINT,
+    code: str | None = None,
+    name: str = "expdpy_chart",
+) -> None:
     """Render a Plotly figure produced by ``thunk`` (a figure or a no-arg callable).
 
     ``thunk`` is usually a ``lambda`` deferring the compute so that any error in building
     the figure surfaces as a friendly message instead of crashing the page. A ``None`` result
-    means the selection is incomplete.
+    means the selection is incomplete. When the figure renders, an "Export & reproduce"
+    expander offers an interactive-HTML download and (when ``code`` is given) a copy-code
+    snippet.
     """
     try:
         fig = thunk() if callable(thunk) else thunk
@@ -50,6 +109,7 @@ def render_plotly(thunk, *, hint: str = _SELECT_HINT) -> None:
         st.info(hint)
     else:
         st.plotly_chart(fig, width="stretch", config=PLOTLY_CONFIG)
+        _export_block(name=name, fig=fig, code=code)
 
 
 def _number_config(df: pd.DataFrame, decimals: int = 3) -> dict:
@@ -63,7 +123,7 @@ def _number_config(df: pd.DataFrame, decimals: int = 3) -> dict:
     return cfg
 
 
-def render_descriptive(sample: pd.DataFrame) -> None:
+def render_descriptive(sample: pd.DataFrame, *, code: str | None = None) -> None:
     """Descriptive statistics for the numeric/logical columns (native table)."""
     num = sample.select_dtypes("number")
     if num.shape[1] < 1 or len(sample) < 2:
@@ -81,9 +141,12 @@ def render_descriptive(sample: pd.DataFrame) -> None:
     )
     with st.expander("Publication-quality table (Great Tables)"):
         st.html(res.gt.as_raw_html())
+    _export_block(name="descriptive", df=res.df.reset_index(), code=code)
 
 
-def render_ext_obs(sample: pd.DataFrame, var: str | None) -> None:
+def render_ext_obs(
+    sample: pd.DataFrame, var: str | None, *, code: str | None = None
+) -> None:
     """Top/bottom extreme observations sorted by ``var`` (native table)."""
     if not var or var in ("None", "") or var not in sample.columns:
         st.info("Choose a variable to list its extreme observations.")
@@ -104,9 +167,10 @@ def render_ext_obs(sample: pd.DataFrame, var: str | None) -> None:
         column_config=_number_config(res.df),
     )
     st.caption(f"Top and bottom {n} observations, sorted by **{var}**.")
+    _export_block(name="extreme_obs", df=res.df, code=code)
 
 
-def render_correlation(sample: pd.DataFrame) -> None:
+def render_correlation(sample: pd.DataFrame, *, code: str | None = None) -> None:
     """Correlation table (Pearson above / Spearman below) plus the Plotly heatmap."""
     num = sample.select_dtypes("number")
     if num.shape[1] < 2 or len(num) < 5:
@@ -131,6 +195,9 @@ def render_correlation(sample: pd.DataFrame) -> None:
         "(self-correlations on the diagonal)."
     )
     st.plotly_chart(graph.fig, width="stretch", config=PLOTLY_CONFIG)
+    _export_block(
+        name="correlation", fig=graph.fig, df=res.df_corr.reset_index(), code=code
+    )
 
 
 def _stars(p: float) -> str:
@@ -152,6 +219,8 @@ def render_regression(
     xs: list[str],
     fes: list[str],
     clusters: list[str],
+    *,
+    code: str | None = None,
 ) -> None:
     """OLS regression with fixed effects + clustered SEs (native coefficient table)."""
 
@@ -184,6 +253,7 @@ def render_regression(
         hide_index=True,
         column_config=_number_config(display, decimals=4),
     )
+    _export_block(name="regression", df=display, code=code)
 
     model = res.models[0]
     cols = st.columns(3)

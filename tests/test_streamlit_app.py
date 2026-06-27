@@ -199,6 +199,34 @@ def test_regression_renders_table():
     assert len(at.dataframe) >= 1  # coefficient table
 
 
+def test_chart_offers_export_and_copy_code():
+    # Item 2: every chart gets an "Export & reproduce" expander with a runnable snippet.
+    at = _page("describe")
+    var = at.selectbox(key="hist_var")
+    var.set_value(var.options[0])
+    at.run()
+    assert not at.exception
+    assert any("Export & reproduce" in e.label for e in at.expander)
+    assert any("explore_histogram" in c.value for c in at.code)
+
+
+def test_regression_save_and_compare_specs():
+    # Item 5: saving a spec stashes it and renders the side-by-side comparison.
+    at = _page("regression")
+    y = at.selectbox(key="reg_y")
+    y.set_value(y.options[0])
+    rx = at.multiselect(key="reg_x")
+    x = rx.options[1] if len(rx.options) > 1 else rx.options[0]
+    rx.set_value([x])
+    at.run()
+    save = next(b for b in at.button if "Save spec" in b.label)
+    save.click()
+    at.run()
+    assert not at.exception
+    assert len(at.session_state["_saved_specs"]) == 1
+    assert any("Saved specifications" in s.value for s in at.subheader)
+
+
 def test_postestimation_page_renders():
     at = _page("postestimation")  # predictions / fixef / joint test / robust inference
     assert not at.exception

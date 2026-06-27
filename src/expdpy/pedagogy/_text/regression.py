@@ -147,6 +147,71 @@ register_topic(
 
 register_topic(
     Explainer(
+        topic="instrumental_variables",
+        title="Instrumental variables (2SLS)",
+        what=(
+            "An instrumental variable is a source of variation in an endogenous regressor that "
+            "is unrelated to the outcome's error term. Two-stage least squares (2SLS) uses only "
+            "the part of the regressor predicted by the instruments, isolating variation that "
+            "is free of the confounding that biases ordinary least squares. The first stage "
+            "regresses the endogenous regressor on the instruments; the second regresses the "
+            "outcome on its fitted values."
+        ),
+        when_to_use=(
+            "When a regressor is endogenous — correlated with the error through reverse "
+            "causation, omitted variables or measurement error — and you have instruments that "
+            "shift the regressor but are otherwise unrelated to the outcome (e.g. settler "
+            "mortality for institutions, lagged weather for local economic activity)."
+        ),
+        caveats=(
+            "Instruments must be relevant: a weak first stage (rule of thumb, first-stage F "
+            "below about 10) makes 2SLS badly biased and its standard errors unreliable.",
+            "Instruments must satisfy the exclusion restriction — they may influence the "
+            "outcome only through the instrumented regressor — which the data cannot verify.",
+            "Under heterogeneous responses, 2SLS recovers a local estimand for the units the "
+            "instruments move (the compliers), not a population-wide average.",
+        ),
+        see_also=("ols", "fixed_effects", "correlation_vs_causation"),
+        references=(
+            "Wooldridge, Introductory Econometrics, ch. 15; Angrist & Pischke (2009), ch. 4",
+        ),
+    ),
+    aliases=("iv", "2sls"),
+)
+
+register_topic(
+    Explainer(
+        topic="marginal_effects",
+        title="Marginal effects & interactions",
+        what=(
+            "In a model with an interaction term (``focal * moderator``), the slope of the "
+            "focal regressor is not one number: it is ``b_focal + b_interaction * moderator``, "
+            "a line traced across the moderator's range. The marginal effect is that partial "
+            "derivative, and its confidence band (via the delta method) widens away from the "
+            "centre of the data."
+        ),
+        when_to_use=(
+            "Whenever a model includes an interaction and you want to read how the focal "
+            "regressor's association with the outcome changes as the moderator varies — and "
+            "where, if anywhere, that association is distinguishable from zero."
+        ),
+        caveats=(
+            "The marginal effect is only meaningful over the moderator's observed range; "
+            "extrapolating beyond it is unsupported.",
+            "Significance varies along the moderator — a marginal effect can be significant at "
+            "some values and not others, so read the whole band, not one point.",
+            "Interactions describe associations; a causal reading still needs a research design.",
+        ),
+        see_also=("ols", "fwl", "correlation_vs_causation"),
+        references=(
+            "Brambor, Clark & Golder (2006); Wooldridge, Introductory Econometrics, ch. 6",
+        ),
+    ),
+    aliases=("interaction", "interactions", "marginal_effect"),
+)
+
+register_topic(
+    Explainer(
         topic="random_effects",
         title="Random effects",
         what=(

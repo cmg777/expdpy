@@ -110,6 +110,56 @@ def test_load_bolivia112_gdppc_data_def():
     assert not df[list(ids)].isna().any().any()
 
 
+def test_load_colonial_origins():
+    df = data.load_colonial_origins()
+    assert df.shape == (163, 14)
+    # Country-level cross-section (no time dimension); the country code is the entity id.
+    assert df["country"].is_unique
+    assert {"log_gdp_pc_1995", "expropriation_risk", "log_settler_mortality"}.issubset(
+        df.columns
+    )
+    # The AJR 64-country base sample is flagged.
+    assert int(df["base_sample"].sum()) == 64
+
+
+def test_load_colonial_origins_data_def():
+    dd = data.load_colonial_origins_data_def()
+    df = data.load_colonial_origins()
+    # Every column is documented in the dictionary.
+    assert list(dd["var_name"]) == list(df.columns)
+    assert set(dd["type"]).issubset({"entity", "time", "factor", "logical", "numeric"})
+    assert dd["can_be_na"].dtype == bool
+    # A cross-section: an entity id but no time id.
+    ids = dd.loc[dd["type"].isin(["entity", "time"]), "var_name"]
+    assert set(ids) == {"country"}
+
+
+def test_load_regional_conflict_is_panel():
+    df = data.load_regional_conflict()
+    assert {
+        "region_id",
+        "year",
+        "conflict",
+        "log_lights_lag1",
+        "rain_lag2",
+        "drought_lag2",
+    }.issubset(df.columns)
+    assert df["region_id"].nunique() == 5689
+    assert df["year"].between(1994, 2010).all()
+    # Unbalanced region-year panel.
+    obs = df.groupby("region_id")["year"].nunique()
+    assert obs.min() < obs.max()
+
+
+def test_load_regional_conflict_data_def():
+    dd = data.load_regional_conflict_data_def()
+    df = data.load_regional_conflict()
+    assert list(dd["var_name"]) == list(df.columns)
+    assert set(dd["type"]).issubset({"entity", "time", "factor", "logical", "numeric"})
+    ids = dd.loc[dd["type"].isin(["entity", "time"]), "var_name"]
+    assert set(ids) == {"region_id", "year"}
+
+
 def test_data_defs_have_can_be_na_bool():
     dd = data.load_gapminder_data_def()
     assert dd["can_be_na"].dtype == bool

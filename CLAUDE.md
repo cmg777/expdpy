@@ -18,7 +18,7 @@ Guidance for working in this repository. Keep it current when commands or conven
   every result.
 
 Three no-code **Streamlit** apps (one per module). `src/` layout, Python ≥ 3.10, managed with
-**pixi**. Current version: 0.4.19.
+**pixi**. Current version: 0.4.20.
 
 ## Commands
 
@@ -45,11 +45,16 @@ Each module is a set of **flat modules** under `src/expdpy/` (no per-module subp
 public API is curated in `src/expdpy/__init__.py` (`__all__` grouped by module).
 
 - **Explore**: `tables.py`, `distributions.py`, `correlation.py`, `trends.py`, `by_group.py`,
-  `missing.py`, `scatter.py`, `outliers.py`; panel-aware `panel_summary.py` (xtsum +
+  `missing.py`, `scatter.py`, `animated_scatter.py` (Gapminder-style time-slider bubble
+  scatter), `outliers.py`; panel-aware `panel_summary.py` (xtsum +
   within/between scatter), `spaghetti.py`, `panel_structure.py`, `dynamics.py`. Helpers:
   `_panel.py` (`set_panel`/`resolve_panel`), `_panel_math.py` (the xtsum within/between
   decomposition).
-- **Analyze**: `regression.py`, `estimation.py`, `fwl.py`, `coefplot.py`, `panel_models.py`,
+- **Analyze**: `regression.py`, `estimation.py`, `iv.py` (**instrumental variables / 2SLS**:
+  `analyze_iv_regression` for cross-section IV and `analyze_panel_iv_regression` for panel IV
+  — pyfixest's native IV formula, FE-absorbing, with the first-stage weak-instrument F),
+  `marginal_effects.py` (delta-method marginal-effects/interaction plot),
+  `fwl.py`, `coefplot.py`, `panel_models.py`,
   `cre.py`, `postestimation.py`, `inference.py`, `did.py`, `convergence.py` (β-convergence:
   unconditional/conditional via FWL + speed/half-life + rolling; σ-convergence: per-period
   dispersion std/Gini/CV + log-dispersion trend + dual-axis figure; **club convergence**:
@@ -118,7 +123,12 @@ public API is curated in `src/expdpy/__init__.py` (`__all__` grouped by module).
   structure/transition/persistence views), `productivity` (a balanced 108-country × 25-year
   PWT log-GDPpc/log-LP panel for **club convergence**), `bolivia112_gdppc` (a real-world
   balanced 112-province × 35-year (1990-2024) Bolivian log-GDPpc panel for **convergence** and
-  subnational exploration). Each has a `load_*()` + `load_*_data_def()`.
+  subnational exploration), `colonial_origins` (the **Acemoglu-Johnson-Robinson 2001**
+  163-country **cross-section** — the canonical settler-mortality IV example for
+  `analyze_iv_regression`; the 64-country `base_sample` reproduces the famous 0.94), and
+  `regional_conflict` (a focused subset of the African region-year **conflict panel** —
+  night-lights instrumented by lagged rain/drought, the `analyze_panel_iv_regression` example).
+  Each has a `load_*()` + `load_*_data_def()`.
 - `df_def.type ∈ {entity, time, factor, logical, numeric}`. Build scripts live in `tools/`.
 - Launch apps in-process with `ExploreApp(df, entity=, time=, df_def=...)` /
   `AnalyzeApp` / `LearnApp` (kwargs are `entity`/`time`, renamed from `cs_id`/`ts_id` in 0.4.1).

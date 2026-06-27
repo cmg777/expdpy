@@ -28,7 +28,9 @@ from expdpy.pedagogy._interpret import (
     interpret_estimation,
     interpret_event_study,
     interpret_fwl,
+    interpret_iv,
     interpret_kuznets_waves,
+    interpret_marginal_effects,
     interpret_panel_structure,
     interpret_regression,
     interpret_sandbox,
@@ -49,6 +51,7 @@ if TYPE_CHECKING:
     from expdpy.pedagogy import Explainer
 
 __all__ = [
+    "AnimatedScatterResult",
     "BarChartResult",
     "BetaConvergenceResult",
     "ByGroupBarGraphResult",
@@ -68,8 +71,10 @@ __all__ = [
     "FixefPlotResult",
     "HausmanTestResult",
     "HistogramResult",
+    "IVRegressionResult",
     "JointTestResult",
     "KuznetsWavesResult",
+    "MarginalEffectsResult",
     "MissingValuesResult",
     "PanelStructureResult",
     "PanelViewResult",
@@ -243,6 +248,18 @@ class ScatterPlotResult:
 
 
 @dataclass(frozen=True)
+class AnimatedScatterResult:
+    """Result of :func:`expdpy.explore_animated_scatter_plot`.
+
+    ``df`` is the complete-case frame plotted; ``fig`` is the animated Plotly bubble scatter
+    (one frame per period, with a play button and a time slider).
+    """
+
+    df: pd.DataFrame
+    fig: go.Figure
+
+
+@dataclass(frozen=True)
 class BarChartResult:
     """Result of :func:`expdpy.explore_bar_plot`."""
 
@@ -331,6 +348,81 @@ class CRETableResult(RegressionTableResult):
     def explain(self, *, lang: str = "en") -> Explainer:
         """Concept explainer for correlated random effects (the Mundlak device)."""
         return _explain("correlated_random_effects", lang=lang)
+
+
+@dataclass(frozen=True)
+class IVRegressionResult(Interpretable):
+    """Result of :func:`expdpy.analyze_iv_regression` / :func:`expdpy.analyze_panel_iv_regression`.
+
+    ``model`` is the fitted pyfixest IV model, ``etable`` the rendered table, and ``df`` a tidy
+    coefficient frame. ``endog`` / ``instruments`` / ``exog`` record the design, and
+    ``first_stage_f`` / ``first_stage_p`` are the first-stage weak-instrument F and its p-value.
+    """
+
+    model: Any
+    etable: Any
+    df: pd.DataFrame
+    endog: tuple[str, ...]
+    instruments: tuple[str, ...]
+    exog: tuple[str, ...]
+    first_stage_f: float
+    first_stage_p: float
+
+    def interpret(self, *, lang: str = "en") -> str:
+        """Plain-language reading of the instrumented slope and the weak-instrument F."""
+        return interpret_iv(self, lang=lang)
+
+    def explain(self, *, lang: str = "en") -> Explainer:
+        """Concept explainer for instrumental variables / 2SLS."""
+        return _explain("instrumental_variables", lang=lang)
+
+    def tidy(self) -> pd.DataFrame:
+        """Return the tidy coefficient frame (broom-style ``tidy``)."""
+        return self.df
+
+    def glance(self) -> pd.DataFrame:
+        """One-row summary: N, the first-stage F, and the design counts."""
+        import pandas as pd
+
+        return pd.DataFrame(
+            [
+                {
+                    "depvar": getattr(self.model, "_depvar", None),
+                    "N": int(getattr(self.model, "_N", 0)),
+                    "n_endog": len(self.endog),
+                    "n_instruments": len(self.instruments),
+                    "first_stage_f": float(self.first_stage_f),
+                    "has_fe": bool(getattr(self.model, "_has_fixef", False)),
+                }
+            ]
+        )
+
+
+@dataclass(frozen=True)
+class MarginalEffectsResult(Interpretable):
+    """Result of :func:`expdpy.analyze_marginal_effects_plot`.
+
+    ``df`` is the grid frame (the moderator column, ``me``, ``se``, ``ci_lower``,
+    ``ci_upper``); ``fig`` is the Plotly marginal-effect curve. ``focal`` / ``moderator`` name
+    the interacted regressors, and ``ame`` / ``ame_se`` are the average marginal effect (at the
+    sample-mean moderator) and its standard error. ``model`` is the fitted pyfixest model.
+    """
+
+    df: pd.DataFrame
+    fig: go.Figure
+    focal: str
+    moderator: str
+    ame: float
+    ame_se: float
+    model: Any
+
+    def interpret(self, *, lang: str = "en") -> str:
+        """Plain-language reading of how the focal slope varies with the moderator."""
+        return interpret_marginal_effects(self, lang=lang)
+
+    def explain(self, *, lang: str = "en") -> Explainer:
+        """Concept explainer for marginal effects and interactions."""
+        return _explain("marginal_effects", lang=lang)
 
 
 @dataclass(frozen=True)
