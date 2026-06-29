@@ -3,6 +3,7 @@ project:
   output-dir: _site
   resources:
     - data/kuznets.csv
+    - robots.txt
 
 website:
   title: "expdpy"
@@ -23,6 +24,8 @@ website:
         file: analyze.qmd
       - text: "Learn"
         file: learn.qmd
+      - text: "For AI / LLMs"
+        file: use-with-llms.qmd
       - text: "Articles"
         menu:
           - text: "Beta convergence (analyze_beta_convergence)"
@@ -59,6 +62,10 @@ format:
     toc: true
     code-copy: true
     code-overflow: wrap
+    include-in-header:
+      text: |
+        <link rel="alternate" type="text/markdown" href="/expdpy/llms.txt" title="llms.txt for LLMs">
+        <link rel="alternate" type="text/plain" href="/expdpy/llms-full.txt" title="llms-full.txt for LLMs">
 
 metadata-files:
   - reference/_sidebar.yml

@@ -52,6 +52,27 @@ jobs:
             -I '_Notebook version: built [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2} UTC' \
             -- notebooks/
 
+  artifacts-fresh:
+    name: LLM artifacts in sync with the library
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: prefix-dev/setup-pixi@v0.9.6
+        with:
+          environments: docs
+      - name: Regenerate the committed LLM artifacts from their sources
+        run: |
+          pixi run -e docs python tools/build_tool_schemas.py
+          pixi run -e docs python tools/build_use_skill.py
+          pixi run -e docs python tools/build_llms_txt.py --canonical-only
+      - name: Fail if any committed LLM artifact drifts from its source
+        run: |
+          git diff --exit-code -- \
+            schemas/ \
+            .claude/skills/use-expdpy/references/function-catalog.md \
+            docs/use-with-llms.qmd \
+            docs/llms.txt
+
   deploy:
     name: Deploy to GitHub Pages
     needs: build

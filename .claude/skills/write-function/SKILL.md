@@ -21,7 +21,8 @@ standard as the worked exemplar `analyze_beta_convergence`
 (`src/expdpy/convergence.py` + `tests/test_convergence.py`). The value of this skill is
 **rigor and consistency**: every function ships mathematically transparent, defensively
 validated, fully tested, and correctly wired into the public API — without re-deriving the
-repo's conventions each time.
+repo's conventions each time. (To *use* existing expdpy functions for analysis rather than
+build a new one, use the **use-expdpy** skill instead — it is the consumer counterpart.)
 
 Errors in scientific software cascade. Favor explicitness over cleverness, validate inputs
 before computing, never black-box the math, and prove correctness against a known baseline.

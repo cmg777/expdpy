@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# Machine-readable maps of this library for LLMs and AI agents:
+# https://cmg777.github.io/expdpy/llms.txt
+# https://cmg777.github.io/expdpy/llms-full.txt
+
+Sitemap: https://cmg777.github.io/expdpy/sitemap.xml

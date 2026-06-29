@@ -1,0 +1,1569 @@
+{
+  "tools": [
+    {
+      "name": "explore_descriptive_table",
+      "description": "Report descriptive statistics for the numeric/logical variables of ``df``.\n\nexpdpy reports statistical associations, not proof of causation. Describe results with associational language (\"is associated with\", \"co-moves with\"), not causal language. Panel data uses entity (unit) + time vocabulary; declare it once with set_panel(entity=, time=). Every result exposes interpret() for a plain-language reading and explain(topic) for method caveats; prefer them over ad-hoc narration.\nSee also concepts: descriptive_stats.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "description": "The dataset to analyse. Provide ONE of: a bundled dataset name; an absolute path to a .csv/.parquet readable by the server; or inline row records. Panel data uses entity (unit) + time columns.",
+            "oneOf": [
+              {
+                "type": "object",
+                "title": "BundledDataset",
+                "properties": {
+                  "dataset": {
+                    "type": "string",
+                    "enum": [
+                      "kuznets",
+                      "gapminder",
+                      "staggered_did",
+                      "firms",
+                      "productivity",
+                      "bolivia112_gdppc",
+                      "colonial_origins",
+                      "regional_conflict"
+                    ]
+                  },
+                  "with_labels": {
+                    "type": "boolean",
+                    "default": true
+                  }
+                },
+                "required": [
+                  "dataset"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "title": "DataPath",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "Absolute path to a .csv or .parquet file."
+                  }
+                },
+                "required": [
+                  "path"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "title": "InlineRecords",
+                "properties": {
+                  "records": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "Inline row records (list of column->value objects); capped by the server to keep token budgets small."
+                  }
+                },
+                "required": [
+                  "records"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "stats": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Statistics to display, in order, chosen from ``N``, ``Mean``, ``Std. dev.``, ``Min.``, ``25 %``, ``Median``, ``75 %``, ``Max.``. Defaults to ``Mean``, ``Std. dev.``, ``Median``, ``Min.``, ``Max.``. (The returned ``.df`` always carries all eight statistics regardless of this selection.)",
+            "default": [
+              "Mean",
+              "Std. dev.",
+              "Median",
+              "Min.",
+              "Max."
+            ]
+          },
+          "digits": {
+            "oneOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "object"
+              }
+            ],
+            "description": "Number of decimals for the displayed statistics: a single ``int`` applied to all, or a ``{statistic: decimals}`` mapping for per-statistic overrides (``N`` is always shown as an integer).",
+            "default": 3
+          },
+          "periods": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Periods to show as sub-columns in the by-period layout. ``None`` (default) shows the first and last period; otherwise the listed period values (those not present are dropped with a warning). Ignored when no time dimension is summarized."
+          },
+          "entity": {
+            "type": "string",
+            "description": "Optional panel identifiers (defaulting to those declared via :func:`expdpy.set_panel`). A resolved ``time`` drives the by-period layout; when both resolve, a note also reports the panel dimensions. For the within/between split of each variable see :func:`expdpy.explore_xtsum_table`. If omitted, the panel declared by set_panel() on the data is used."
+          },
+          "time": {
+            "type": "string",
+            "description": "If omitted, the panel declared by set_panel() on the data is used."
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "explore_correlation_table",
+      "description": "Correlation table with Pearson above and Spearman below the diagonal.\n\nexpdpy reports statistical associations, not proof of causation. Describe results with associational language (\"is associated with\", \"co-moves with\"), not causal language. Panel data uses entity (unit) + time vocabulary; declare it once with set_panel(entity=, time=). Every result exposes interpret() for a plain-language reading and explain(topic) for method caveats; prefer them over ad-hoc narration.\nSee also concepts: pearson, correlation_vs_causation.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "description": "The dataset to analyse. Provide ONE of: a bundled dataset name; an absolute path to a .csv/.parquet readable by the server; or inline row records. Panel data uses entity (unit) + time columns.",
+            "oneOf": [
+              {
+                "type": "object",
+                "title": "BundledDataset",
+                "properties": {
+                  "dataset": {
+                    "type": "string",
+                    "enum": [
+                      "kuznets",
+                      "gapminder",
+                      "staggered_did",
+                      "firms",
+                      "productivity",
+                      "bolivia112_gdppc",
+                      "colonial_origins",
+                      "regional_conflict"
+                    ]
+                  },
+                  "with_labels": {
+                    "type": "boolean",
+                    "default": true
+                  }
+                },
+                "required": [
+                  "dataset"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "title": "DataPath",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "Absolute path to a .csv or .parquet file."
+                  }
+                },
+                "required": [
+                  "path"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "title": "InlineRecords",
+                "properties": {
+                  "records": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "Inline row records (list of column->value objects); capped by the server to keep token budgets small."
+                  }
+                },
+                "required": [
+                  "records"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "digits": {
+            "type": "integer",
+            "description": "Number of decimals to display (``0 < digits < 5``).",
+            "default": 2
+          },
+          "bold": {
+            "type": "number",
+            "description": "Correlations with a p-value below ``bold`` are shown in bold. Set to ``0`` to disable. Must satisfy ``0 <= bold < 1``.",
+            "default": 0.05
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "explore_scatter_plot",
+      "description": "Scatter plot of ``y`` against ``x`` with optional aesthetics and a LOESS smoother.\n\nexpdpy reports statistical associations, not proof of causation. Describe results with associational language (\"is associated with\", \"co-moves with\"), not causal language. Panel data uses entity (unit) + time vocabulary; declare it once with set_panel(entity=, time=). Every result exposes interpret() for a plain-language reading and explain(topic) for method caveats; prefer them over ad-hoc narration.\nSee also concepts: correlation_vs_causation.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "description": "The dataset to analyse. Provide ONE of: a bundled dataset name; an absolute path to a .csv/.parquet readable by the server; or inline row records. Panel data uses entity (unit) + time columns.",
+            "oneOf": [
+              {
+                "type": "object",
+                "title": "BundledDataset",
+                "properties": {
+                  "dataset": {
+                    "type": "string",
+                    "enum": [
+                      "kuznets",
+                      "gapminder",
+                      "staggered_did",
+                      "firms",
+                      "productivity",
+                      "bolivia112_gdppc",
+                      "colonial_origins",
+                      "regional_conflict"
+                    ]
+                  },
+                  "with_labels": {
+                    "type": "boolean",
+                    "default": true
+                  }
+                },
+                "required": [
+                  "dataset"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "title": "DataPath",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "Absolute path to a .csv or .parquet file."
+                  }
+                },
+                "required": [
+                  "path"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "title": "InlineRecords",
+                "properties": {
+                  "records": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "Inline row records (list of column->value objects); capped by the server to keep token budgets small."
+                  }
+                },
+                "required": [
+                  "records"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "x": {
+            "type": "string",
+            "description": "Column names for the axes (both must be numeric). When omitted, they default to the declared roles (:func:`expdpy.set_roles`): ``x`` to the first covariate and ``y`` to the main outcome."
+          },
+          "y": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string",
+            "description": "Optional column mapped to marker color (numeric -> colorbar, otherwise discrete)."
+          },
+          "size": {
+            "type": "string",
+            "description": "Optional numeric column mapped to marker size."
+          },
+          "loess": {
+            "type": "integer",
+            "enum": [
+              0,
+              1,
+              2
+            ],
+            "description": "``0`` no smoother, ``1`` unweighted LOESS, ``2`` LOESS weighted by ``size``.",
+            "default": 0
+          },
+          "alpha": {
+            "type": "number",
+            "description": "Marker opacity. If ``None``, a sample-size-based default is used."
+          },
+          "entity": {
+            "type": "string",
+            "description": "Cross-sectional (unit) identifier. Defaults to the panel ``entity`` declared via :func:`expdpy.set_panel`. Only used when ``connect=True``. If omitted, the panel declared by set_panel() on the data is used."
+          },
+          "time": {
+            "type": "string",
+            "description": "Time identifier used to order each unit's trajectory when ``connect=True``. Defaults to the panel ``time``. If omitted, the panel declared by set_panel() on the data is used."
+          },
+          "connect": {
+            "type": "boolean",
+            "description": "If ``True`` (and an ``entity`` is available), draw a faint line connecting each unit's points in time order \u2014 turning the scatter into a panel trajectory plot.",
+            "default": false
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "explore_trend_plot",
+      "description": "Line-plot the mean (with standard-error bars) of variables over time.\n\nexpdpy reports statistical associations, not proof of causation. Describe results with associational language (\"is associated with\", \"co-moves with\"), not causal language. Panel data uses entity (unit) + time vocabulary; declare it once with set_panel(entity=, time=). Every result exposes interpret() for a plain-language reading and explain(topic) for method caveats; prefer them over ad-hoc narration.\nSee also concepts: time_trends.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "description": "The dataset to analyse. Provide ONE of: a bundled dataset name; an absolute path to a .csv/.parquet readable by the server; or inline row records. Panel data uses entity (unit) + time columns.",
+            "oneOf": [
+              {
+                "type": "object",
+                "title": "BundledDataset",
+                "properties": {
+                  "dataset": {
+                    "type": "string",
+                    "enum": [
+                      "kuznets",
+                      "gapminder",
+                      "staggered_did",
+                      "firms",
+                      "productivity",
+                      "bolivia112_gdppc",
+                      "colonial_origins",
+                      "regional_conflict"
+                    ]
+                  },
+                  "with_labels": {
+                    "type": "boolean",
+                    "default": true
+                  }
+                },
+                "required": [
+                  "dataset"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "title": "DataPath",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "Absolute path to a .csv or .parquet file."
+                  }
+                },
+                "required": [
+                  "path"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "title": "InlineRecords",
+                "properties": {
+                  "records": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "Inline row records (list of column->value objects); capped by the server to keep token budgets small."
+                  }
+                },
+                "required": [
+                  "records"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "var": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Variables to plot. Defaults to all numeric columns other than ``time``/``entity``."
+          },
+          "time": {
+            "type": "string",
+            "description": "Column name of the time identifier. Defaults to the panel ``time`` declared via :func:`expdpy.set_panel`. If omitted, the panel declared by set_panel() on the data is used."
+          },
+          "entity": {
+            "type": "string",
+            "description": "Column name of the cross-sectional (unit) identifier. Only used when ``spaghetti=True``. Defaults to the panel ``entity`` declared via :func:`expdpy.set_panel`. If omitted, the panel declared by set_panel() on the data is used."
+          },
+          "spaghetti": {
+            "type": "boolean",
+            "description": "If ``True`` (and a single ``var`` and an ``entity`` are available), draw a faint per-unit trajectory backdrop behind the mean line. For richer per-unit views see :func:`expdpy.explore_spaghetti_plot`.",
+            "default": false
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "explore_missing_values_plot",
+      "description": "Heatmap of missing-value frequency by variable and panel dimension.\n\nexpdpy reports statistical associations, not proof of causation. Describe results with associational language (\"is associated with\", \"co-moves with\"), not causal language. Panel data uses entity (unit) + time vocabulary; declare it once with set_panel(entity=, time=). Every result exposes interpret() for a plain-language reading and explain(topic) for method caveats; prefer them over ad-hoc narration.\nSee also concepts: panel_structure.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "description": "The dataset to analyse. Provide ONE of: a bundled dataset name; an absolute path to a .csv/.parquet readable by the server; or inline row records. Panel data uses entity (unit) + time columns.",
+            "oneOf": [
+              {
+                "type": "object",
+                "title": "BundledDataset",
+                "properties": {
+                  "dataset": {
+                    "type": "string",
+                    "enum": [
+                      "kuznets",
+                      "gapminder",
+                      "staggered_did",
+                      "firms",
+                      "productivity",
+                      "bolivia112_gdppc",
+                      "colonial_origins",
+                      "regional_conflict"
+                    ]
+                  },
+                  "with_labels": {
+                    "type": "boolean",
+                    "default": true
+                  }
+                },
+                "required": [
+                  "dataset"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "title": "DataPath",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "Absolute path to a .csv or .parquet file."
+                  }
+                },
+                "required": [
+                  "path"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "title": "InlineRecords",
+                "properties": {
+                  "records": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "Inline row records (list of column->value objects); capped by the server to keep token budgets small."
+                  }
+                },
+                "required": [
+                  "records"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "time": {
+            "type": "string",
+            "description": "Time identifier column. Defaults to the panel ``time`` declared via :func:`expdpy.set_panel`. Required when ``by=\"time\"``; must not contain missing values. If omitted, the panel declared by set_panel() on the data is used."
+          },
+          "entity": {
+            "type": "string",
+            "description": "Cross-sectional (unit) identifier column. Defaults to the panel ``entity``. Required when ``by=\"entity\"``; must not contain missing values. If omitted, the panel declared by set_panel() on the data is used."
+          },
+          "by": {
+            "type": "string",
+            "enum": [
+              "time",
+              "entity"
+            ],
+            "description": "Whether to aggregate missingness over ``\"time\"`` periods (the default) or over ``\"entity\"`` units.",
+            "default": "time"
+          },
+          "no_factors": {
+            "type": "boolean",
+            "description": "If ``True``, limit the plot to numeric/logical variables.",
+            "default": false
+          },
+          "binary": {
+            "type": "boolean",
+            "description": "If ``True``, show only whether values are missing (any) rather than the fraction.",
+            "default": false
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "explore_panel_structure",
+      "description": "Summarise the panel's balance and coverage, with a unit-by-period presence grid.\n\nexpdpy reports statistical associations, not proof of causation. Describe results with associational language (\"is associated with\", \"co-moves with\"), not causal language. Panel data uses entity (unit) + time vocabulary; declare it once with set_panel(entity=, time=). Every result exposes interpret() for a plain-language reading and explain(topic) for method caveats; prefer them over ad-hoc narration.\nSee also concepts: panel_structure.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "description": "The dataset to analyse. Provide ONE of: a bundled dataset name; an absolute path to a .csv/.parquet readable by the server; or inline row records. Panel data uses entity (unit) + time columns.",
+            "oneOf": [
+              {
+                "type": "object",
+                "title": "BundledDataset",
+                "properties": {
+                  "dataset": {
+                    "type": "string",
+                    "enum": [
+                      "kuznets",
+                      "gapminder",
+                      "staggered_did",
+                      "firms",
+                      "productivity",
+                      "bolivia112_gdppc",
+                      "colonial_origins",
+                      "regional_conflict"
+                    ]
+                  },
+                  "with_labels": {
+                    "type": "boolean",
+                    "default": true
+                  }
+                },
+                "required": [
+                  "dataset"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "title": "DataPath",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "Absolute path to a .csv or .parquet file."
+                  }
+                },
+                "required": [
+                  "path"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "title": "InlineRecords",
+                "properties": {
+                  "records": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "Inline row records (list of column->value objects); capped by the server to keep token budgets small."
+                  }
+                },
+                "required": [
+                  "records"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "entity": {
+            "type": "string",
+            "description": "Cross-sectional (unit) identifier. Defaults to the panel ``entity``. If omitted, the panel declared by set_panel() on the data is used."
+          },
+          "time": {
+            "type": "string",
+            "description": "Time identifier. Defaults to the panel ``time``. If omitted, the panel declared by set_panel() on the data is used."
+          },
+          "var": {
+            "type": "string",
+            "description": "Optional variable: when given, a cell counts as \"present\" only if ``var`` is non-missing there (rather than merely a row existing)."
+          },
+          "max_units": {
+            "type": "integer",
+            "description": "Cap on the number of units drawn in the presence grid (evenly sampled above it).",
+            "default": 200
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "analyze_regression_table",
+      "description": "Build a regression table of one or more OLS models.\n\nexpdpy reports statistical associations, not proof of causation. Describe results with associational language (\"is associated with\", \"co-moves with\"), not causal language. Panel data uses entity (unit) + time vocabulary; declare it once with set_panel(entity=, time=). Every result exposes interpret() for a plain-language reading and explain(topic) for method caveats; prefer them over ad-hoc narration.\nSee also concepts: ols, fixed_effects, clustered_se.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "description": "The dataset to analyse. Provide ONE of: a bundled dataset name; an absolute path to a .csv/.parquet readable by the server; or inline row records. Panel data uses entity (unit) + time columns.",
+            "oneOf": [
+              {
+                "type": "object",
+                "title": "BundledDataset",
+                "properties": {
+                  "dataset": {
+                    "type": "string",
+                    "enum": [
+                      "kuznets",
+                      "gapminder",
+                      "staggered_did",
+                      "firms",
+                      "productivity",
+                      "bolivia112_gdppc",
+                      "colonial_origins",
+                      "regional_conflict"
+                    ]
+                  },
+                  "with_labels": {
+                    "type": "boolean",
+                    "default": true
+                  }
+                },
+                "required": [
+                  "dataset"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "title": "DataPath",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "Absolute path to a .csv or .parquet file."
+                  }
+                },
+                "required": [
+                  "path"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "title": "InlineRecords",
+                "properties": {
+                  "records": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "Inline row records (list of column->value objects); capped by the server to keep token budgets small."
+                  }
+                },
+                "required": [
+                  "records"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "dvs": {
+            "oneOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Dependent variable name, or a list of names (one per model). Defaults to the declared main outcome (:func:`expdpy.set_roles`) when omitted."
+          },
+          "idvs": {
+            "oneOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            ],
+            "description": "Independent variable names. For multiple models, a list of lists. Defaults to the declared covariates (:func:`expdpy.set_roles`) when omitted."
+          },
+          "feffects": {
+            "oneOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            ],
+            "description": "Fixed-effects variable names (per model when multiple models are given)."
+          },
+          "clusters": {
+            "oneOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            ],
+            "description": "Cluster variable names for clustered standard errors (per model when multiple)."
+          },
+          "byvar": {
+            "type": "string",
+            "description": "A categorical variable to estimate the single model separately by. Only valid with a single dependent variable. Levels with too few observations to estimate the model (``n <= len(idvs) + 1``) are skipped."
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "analyze_panel_table",
+      "description": "Estimate pooled / between / fixed / random-effects models side by side.\n\nexpdpy reports statistical associations, not proof of causation. Describe results with associational language (\"is associated with\", \"co-moves with\"), not causal language. Panel data uses entity (unit) + time vocabulary; declare it once with set_panel(entity=, time=). Every result exposes interpret() for a plain-language reading and explain(topic) for method caveats; prefer them over ad-hoc narration.\nSee also concepts: fixed_effects, random_effects, hausman.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "description": "The dataset to analyse. Provide ONE of: a bundled dataset name; an absolute path to a .csv/.parquet readable by the server; or inline row records. Panel data uses entity (unit) + time columns.",
+            "oneOf": [
+              {
+                "type": "object",
+                "title": "BundledDataset",
+                "properties": {
+                  "dataset": {
+                    "type": "string",
+                    "enum": [
+                      "kuznets",
+                      "gapminder",
+                      "staggered_did",
+                      "firms",
+                      "productivity",
+                      "bolivia112_gdppc",
+                      "colonial_origins",
+                      "regional_conflict"
+                    ]
+                  },
+                  "with_labels": {
+                    "type": "boolean",
+                    "default": true
+                  }
+                },
+                "required": [
+                  "dataset"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "title": "DataPath",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "Absolute path to a .csv or .parquet file."
+                  }
+                },
+                "required": [
+                  "path"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "title": "InlineRecords",
+                "properties": {
+                  "records": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "Inline row records (list of column->value objects); capped by the server to keep token budgets small."
+                  }
+                },
+                "required": [
+                  "records"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "dv": {
+            "type": "string",
+            "description": "Dependent variable name."
+          },
+          "idvs": {
+            "oneOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Independent variable name(s)."
+          },
+          "entity": {
+            "type": "string",
+            "description": "The cross-section and time identifiers. Default to the panel declared via :func:`expdpy.set_panel` / :func:`expdpy.set_labels` (``set_panel=True``). If omitted, the panel declared by set_panel() on the data is used."
+          },
+          "time": {
+            "type": "string",
+            "description": "If omitted, the panel declared by set_panel() on the data is used."
+          },
+          "models": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "pooled",
+                "between",
+                "fe",
+                "re"
+              ]
+            },
+            "description": "Which estimators to include, in order.",
+            "default": [
+              "pooled",
+              "between",
+              "fe",
+              "re"
+            ]
+          },
+          "cov_type": {
+            "type": "string",
+            "enum": [
+              "clustered",
+              "robust",
+              "unadjusted"
+            ],
+            "description": "Covariance estimator: ``\"clustered\"`` (default), ``\"robust\"`` or ``\"unadjusted\"``.",
+            "default": "clustered"
+          },
+          "cluster_entity": {
+            "type": "boolean",
+            "description": "Cluster by entity when ``cov_type=\"clustered\"``.",
+            "default": true
+          }
+        },
+        "required": [
+          "data",
+          "dv",
+          "idvs"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "analyze_iv_regression",
+      "description": "Fit an instrumental-variables (2SLS) regression with a weak-instrument diagnostic.\n\nexpdpy reports statistical associations, not proof of causation. Describe results with associational language (\"is associated with\", \"co-moves with\"), not causal language. Panel data uses entity (unit) + time vocabulary; declare it once with set_panel(entity=, time=). Every result exposes interpret() for a plain-language reading and explain(topic) for method caveats; prefer them over ad-hoc narration.\nSee also concepts: instrumental_variables, correlation_vs_causation.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "description": "The dataset to analyse. Provide ONE of: a bundled dataset name; an absolute path to a .csv/.parquet readable by the server; or inline row records. Panel data uses entity (unit) + time columns.",
+            "oneOf": [
+              {
+                "type": "object",
+                "title": "BundledDataset",
+                "properties": {
+                  "dataset": {
+                    "type": "string",
+                    "enum": [
+                      "kuznets",
+                      "gapminder",
+                      "staggered_did",
+                      "firms",
+                      "productivity",
+                      "bolivia112_gdppc",
+                      "colonial_origins",
+                      "regional_conflict"
+                    ]
+                  },
+                  "with_labels": {
+                    "type": "boolean",
+                    "default": true
+                  }
+                },
+                "required": [
+                  "dataset"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "title": "DataPath",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "Absolute path to a .csv or .parquet file."
+                  }
+                },
+                "required": [
+                  "path"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "title": "InlineRecords",
+                "properties": {
+                  "records": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "Inline row records (list of column->value objects); capped by the server to keep token budgets small."
+                  }
+                },
+                "required": [
+                  "records"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "dv": {
+            "type": "string",
+            "description": "Dependent (outcome) variable name."
+          },
+          "endog": {
+            "oneOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Endogenous regressor name(s) to be instrumented."
+          },
+          "instruments": {
+            "oneOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Excluded instrument name(s). At least as many instruments as endogenous regressors are required (the order condition); more instruments over-identify the model."
+          },
+          "exog": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Included exogenous regressor (control) names, if any."
+          },
+          "feffects": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Fixed-effects variable names absorbed by pyfixest."
+          },
+          "clusters": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Cluster variable name(s) for cluster-robust standard errors."
+          }
+        },
+        "required": [
+          "data",
+          "dv",
+          "endog",
+          "instruments"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "analyze_event_study",
+      "description": "Estimate and plot an event study for staggered treatment adoption.\n\nexpdpy reports statistical associations, not proof of causation. Describe results with associational language (\"is associated with\", \"co-moves with\"), not causal language. Panel data uses entity (unit) + time vocabulary; declare it once with set_panel(entity=, time=). Every result exposes interpret() for a plain-language reading and explain(topic) for method caveats; prefer them over ad-hoc narration.\nSee also concepts: event_study, parallel_trends.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "description": "The dataset to analyse. Provide ONE of: a bundled dataset name; an absolute path to a .csv/.parquet readable by the server; or inline row records. Panel data uses entity (unit) + time columns.",
+            "oneOf": [
+              {
+                "type": "object",
+                "title": "BundledDataset",
+                "properties": {
+                  "dataset": {
+                    "type": "string",
+                    "enum": [
+                      "kuznets",
+                      "gapminder",
+                      "staggered_did",
+                      "firms",
+                      "productivity",
+                      "bolivia112_gdppc",
+                      "colonial_origins",
+                      "regional_conflict"
+                    ]
+                  },
+                  "with_labels": {
+                    "type": "boolean",
+                    "default": true
+                  }
+                },
+                "required": [
+                  "dataset"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "title": "DataPath",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "Absolute path to a .csv or .parquet file."
+                  }
+                },
+                "required": [
+                  "path"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "title": "InlineRecords",
+                "properties": {
+                  "records": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "Inline row records (list of column->value objects); capped by the server to keep token budgets small."
+                  }
+                },
+                "required": [
+                  "records"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "outcome": {
+            "type": "string",
+            "description": "Outcome variable name."
+          },
+          "unit": {
+            "type": "string",
+            "description": "Unit (cross-section) identifier. Defaults to the declared panel entity."
+          },
+          "time": {
+            "type": "string",
+            "description": "Time identifier. Defaults to the declared panel time. If omitted, the panel declared by set_panel() on the data is used."
+          },
+          "cohort": {
+            "type": "string",
+            "description": "First-treated period for each unit; ``never_treated_value`` marks never-treated units."
+          },
+          "estimator": {
+            "type": "string",
+            "enum": [
+              "did2s",
+              "twfe",
+              "saturated",
+              "lpdid"
+            ],
+            "description": "``\"did2s\"`` (Gardner two-stage, the default and robust to heterogeneity), ``\"twfe\"`` (classic two-way fixed effects \u2014 shown for comparison, biased under heterogeneous effects), ``\"saturated\"`` (Sun-Abraham, one curve per cohort) or ``\"lpdid\"`` (local-projections DiD).",
+            "default": "did2s"
+          },
+          "cluster": {
+            "type": "string",
+            "description": "Cluster variable for standard errors (defaults to ``unit``)."
+          },
+          "pre_window": {
+            "type": "integer",
+            "description": "Event-time window for ``\"lpdid\"`` (ignored by the other estimators)."
+          },
+          "post_window": {
+            "type": "integer"
+          },
+          "never_treated_value": {
+            "type": "integer",
+            "description": "The value of ``cohort`` that marks never-treated units (default ``0``).",
+            "default": 0
+          }
+        },
+        "required": [
+          "data",
+          "outcome",
+          "cohort"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "analyze_beta_convergence",
+      "description": "Unconditional and conditional \u03b2-convergence for a panel variable.\n\nexpdpy reports statistical associations, not proof of causation. Describe results with associational language (\"is associated with\", \"co-moves with\"), not causal language. Panel data uses entity (unit) + time vocabulary; declare it once with set_panel(entity=, time=). Every result exposes interpret() for a plain-language reading and explain(topic) for method caveats; prefer them over ad-hoc narration.\nSee also concepts: beta_convergence.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "description": "The dataset to analyse. Provide ONE of: a bundled dataset name; an absolute path to a .csv/.parquet readable by the server; or inline row records. Panel data uses entity (unit) + time columns.",
+            "oneOf": [
+              {
+                "type": "object",
+                "title": "BundledDataset",
+                "properties": {
+                  "dataset": {
+                    "type": "string",
+                    "enum": [
+                      "kuznets",
+                      "gapminder",
+                      "staggered_did",
+                      "firms",
+                      "productivity",
+                      "bolivia112_gdppc",
+                      "colonial_origins",
+                      "regional_conflict"
+                    ]
+                  },
+                  "with_labels": {
+                    "type": "boolean",
+                    "default": true
+                  }
+                },
+                "required": [
+                  "dataset"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "title": "DataPath",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "Absolute path to a .csv or .parquet file."
+                  }
+                },
+                "required": [
+                  "path"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "title": "InlineRecords",
+                "properties": {
+                  "records": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "Inline row records (list of column->value objects); capped by the server to keep token budgets small."
+                  }
+                },
+                "required": [
+                  "records"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "var": {
+            "type": "string",
+            "description": "Numeric variable to analyse (e.g. ``\"log_gdp_pc\"``)."
+          },
+          "controls": {
+            "oneOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Optional control name(s). Each enters the conditional model as its **initial-year** value. ``None`` runs the unconditional analysis only."
+          },
+          "entity": {
+            "type": "string",
+            "description": "Panel identifiers. Default to those declared via :func:`expdpy.set_panel`. If omitted, the panel declared by set_panel() on the data is used."
+          },
+          "time": {
+            "type": "string",
+            "description": "If omitted, the panel declared by set_panel() on the data is used."
+          },
+          "start": {
+            "type": "number",
+            "description": "First and last year used to form the growth rate. Default to the earliest and latest year in the panel; only units observed at **both** endpoints are kept."
+          },
+          "end": {
+            "type": "number"
+          },
+          "rolling": {
+            "type": "boolean",
+            "description": "When ``True`` (default), also estimate the convergence slope on every fixed-width window of ``window`` periods and return the time path.",
+            "default": true
+          },
+          "window": {
+            "type": "integer",
+            "description": "Width of the rolling window in **periods** (sorted distinct years). Default ``max(2, n_periods // 2)``."
+          },
+          "min_obs": {
+            "type": "integer",
+            "description": "Minimum number of units required in the cross-section and in each rolling window.",
+            "default": 10
+          },
+          "vcov": {
+            "type": "string",
+            "enum": [
+              "hetero",
+              "iid"
+            ],
+            "description": "Standard-error type for the reported coefficients: ``\"hetero\"`` (HC1, the default) or ``\"iid\"``. Does not affect the point estimate or the plotted band.",
+            "default": "hetero"
+          }
+        },
+        "required": [
+          "data",
+          "var"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "analyze_sigma_convergence",
+      "description": "\u03c3-convergence: track and test the cross-sectional dispersion of a panel variable.\n\nexpdpy reports statistical associations, not proof of causation. Describe results with associational language (\"is associated with\", \"co-moves with\"), not causal language. Panel data uses entity (unit) + time vocabulary; declare it once with set_panel(entity=, time=). Every result exposes interpret() for a plain-language reading and explain(topic) for method caveats; prefer them over ad-hoc narration.\nSee also concepts: sigma_convergence.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "description": "The dataset to analyse. Provide ONE of: a bundled dataset name; an absolute path to a .csv/.parquet readable by the server; or inline row records. Panel data uses entity (unit) + time columns.",
+            "oneOf": [
+              {
+                "type": "object",
+                "title": "BundledDataset",
+                "properties": {
+                  "dataset": {
+                    "type": "string",
+                    "enum": [
+                      "kuznets",
+                      "gapminder",
+                      "staggered_did",
+                      "firms",
+                      "productivity",
+                      "bolivia112_gdppc",
+                      "colonial_origins",
+                      "regional_conflict"
+                    ]
+                  },
+                  "with_labels": {
+                    "type": "boolean",
+                    "default": true
+                  }
+                },
+                "required": [
+                  "dataset"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "title": "DataPath",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "Absolute path to a .csv or .parquet file."
+                  }
+                },
+                "required": [
+                  "path"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "title": "InlineRecords",
+                "properties": {
+                  "records": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "Inline row records (list of column->value objects); capped by the server to keep token budgets small."
+                  }
+                },
+                "required": [
+                  "records"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "var": {
+            "type": "string",
+            "description": "Numeric variable whose cross-sectional dispersion is tracked (e.g. ``\"lifeExp\"``). Used as supplied. The Gini index additionally requires non-negative values."
+          },
+          "entity": {
+            "type": "string",
+            "description": "Panel identifiers. Default to those declared via :func:`expdpy.set_panel`. If omitted, the panel declared by set_panel() on the data is used."
+          },
+          "time": {
+            "type": "string",
+            "description": "If omitted, the panel declared by set_panel() on the data is used."
+          },
+          "start": {
+            "type": "number",
+            "description": "Optional first and last period to include. Default to the full range; the retained window must still be balanced."
+          },
+          "end": {
+            "type": "number"
+          },
+          "min_periods": {
+            "type": "integer",
+            "description": "Minimum number of periods required to estimate a dispersion trend (at least 3).",
+            "default": 3
+          },
+          "vcov": {
+            "type": "string",
+            "enum": [
+              "hetero",
+              "iid"
+            ],
+            "description": "Standard-error type for the trend coefficients: ``\"hetero\"`` (HC1, the default) or ``\"iid\"``. Does not change the point estimate.",
+            "default": "hetero"
+          }
+        },
+        "required": [
+          "data",
+          "var"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "analyze_kuznets_waves",
+      "description": "Estimate the extended Kuznets curve (\"Kuznets waves\") across three panel estimators.\n\nexpdpy reports statistical associations, not proof of causation. Describe results with associational language (\"is associated with\", \"co-moves with\"), not causal language. Panel data uses entity (unit) + time vocabulary; declare it once with set_panel(entity=, time=). Every result exposes interpret() for a plain-language reading and explain(topic) for method caveats; prefer them over ad-hoc narration.\nSee also concepts: kuznets_waves.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "description": "The dataset to analyse. Provide ONE of: a bundled dataset name; an absolute path to a .csv/.parquet readable by the server; or inline row records. Panel data uses entity (unit) + time columns.",
+            "oneOf": [
+              {
+                "type": "object",
+                "title": "BundledDataset",
+                "properties": {
+                  "dataset": {
+                    "type": "string",
+                    "enum": [
+                      "kuznets",
+                      "gapminder",
+                      "staggered_did",
+                      "firms",
+                      "productivity",
+                      "bolivia112_gdppc",
+                      "colonial_origins",
+                      "regional_conflict"
+                    ]
+                  },
+                  "with_labels": {
+                    "type": "boolean",
+                    "default": true
+                  }
+                },
+                "required": [
+                  "dataset"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "title": "DataPath",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "Absolute path to a .csv or .parquet file."
+                  }
+                },
+                "required": [
+                  "path"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "title": "InlineRecords",
+                "properties": {
+                  "records": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "description": "Inline row records (list of column->value objects); capped by the server to keep token budgets small."
+                  }
+                },
+                "required": [
+                  "records"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "inequality": {
+            "type": "string",
+            "description": "Numeric outcome (an inequality measure such as a Gini). Default ``\"gini_regional\"``.",
+            "default": "gini_regional"
+          },
+          "development": {
+            "type": "string",
+            "description": "Numeric development regressor, used as supplied (typically *log* GDP per capita); its powers ``g^2 .. g^degree`` are formed internally. Default ``\"log_gdp_pc\"``.",
+            "default": "log_gdp_pc"
+          },
+          "controls": {
+            "oneOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Optional covariate name(s) partialled out of the **between** and **within** figures via the Frisch-Waugh-Lovell theorem. They do **not** enter the comparison tables, which are pure polynomial buildups. ``None`` (default) partials out only the fixed effects (in the within figure)."
+          },
+          "entity": {
+            "type": "string",
+            "description": "Panel identifiers. Default to those declared via :func:`expdpy.set_panel`. If omitted, the panel declared by set_panel() on the data is used."
+          },
+          "time": {
+            "type": "string",
+            "description": "If omitted, the panel declared by set_panel() on the data is used."
+          },
+          "degree": {
+            "type": "integer",
+            "description": "Polynomial order in ``[2, 6]`` (default 4, the quartic \"waves\" specification). The tables show ``degree`` nested columns; ``degree=2`` recovers the classic inverted-U test.",
+            "default": 4
+          },
+          "vcov": {
+            "type": "string",
+            "enum": [
+              "hetero",
+              "iid"
+            ],
+            "description": "Standard-error type for the **pooled** and **between** tables: ``\"hetero\"`` (HC1, the default) or ``\"iid\"``. The **within** table always uses standard errors clustered by ``entity``. Does not change any point estimate.",
+            "default": "hetero"
+          },
+          "n_sample": {
+            "type": "integer",
+            "description": "Number of points drawn in the raw and within scatters (default 1000); the fitted curves always use every row. ``None`` plots every point. The between scatter (one point per entity) is never subsampled.",
+            "default": 1000
+          },
+          "seed": {
+            "type": "integer",
+            "description": "Seed for the point-subsampling RNG (default 0), for reproducible figures.",
+            "default": 0
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "explain",
+      "description": "Return the :class:`Explainer` for a method or concept.\n\nexpdpy reports statistical associations, not proof of causation. Describe results with associational language (\"is associated with\", \"co-moves with\"), not causal language. Panel data uses entity (unit) + time vocabulary; declare it once with set_panel(entity=, time=). Every result exposes interpret() for a plain-language reading and explain(topic) for method caveats; prefer them over ad-hoc narration.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "topic": {
+            "type": "string",
+            "description": "A topic key or alias (see :func:`list_topics`)."
+          },
+          "lang": {
+            "type": "string",
+            "description": "Language code. Only ``\"en\"`` ships today; the parameter is reserved so that adding translations later is non-breaking.",
+            "default": "en"
+          }
+        },
+        "required": [
+          "topic"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "list_topics",
+      "description": "Return the sorted list of canonical topic keys (for app menus and docs).\n\nexpdpy reports statistical associations, not proof of causation. Describe results with associational language (\"is associated with\", \"co-moves with\"), not causal language. Panel data uses entity (unit) + time vocabulary; declare it once with set_panel(entity=, time=). Every result exposes interpret() for a plain-language reading and explain(topic) for method caveats; prefer them over ad-hoc narration.",
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    }
+  ]
+}

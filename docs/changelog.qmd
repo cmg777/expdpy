@@ -2,6 +2,34 @@
 title: "Changelog"
 ---
 
+## 0.5.0 (2026-06-29)
+
+**expdpy is now first-class for LLMs and AI agents.** A new agent-facing surface lets you point
+an LLM at the library and have it work correctly — carrying expdpy's econometric guardrails
+(associations, not causation; `entity`/`time` panel vocabulary; the `.interpret()` / `explain()`
+contract). Everything derives from one source of truth (`expdpy._meta`), so the agent surface
+cannot silently drift from the API.
+
+### Added
+
+- **`llms.txt` + `llms-full.txt`** ([llmstxt.org](https://llmstxt.org) convention) at the site
+  root: a curated, guardrailed index of every function, article, dataset and concept, and a
+  full-text concatenation for one-shot context. Every docs page also gets a clean Markdown twin
+  at `<page>.html.md`.
+- **MCP server** (`pip install "expdpy[mcp]"`, console script `expdpy-mcp`): a stdio Model
+  Context Protocol server exposing a curated set of Explore/Analyze tools plus `explain` /
+  `list_topics` / `learn_concept`. Each tool returns the result's `.interpret()` reading, its
+  tables, and a saved figure path. Pass data by bundled-dataset name, file path, or inline records.
+- **Static tool schemas**: committed [Anthropic](tools/anthropic_tools.json) and
+  [OpenAI](tools/openai_tools.json) function-calling JSON (published under `/tools/`), generated
+  from the same registry the MCP server uses.
+- **`use-expdpy` agent skill** (`.claude/skills/use-expdpy/`) and the
+  [For AI / LLMs](use-with-llms.qmd) hub page: an end-user skill that teaches an agent to declare
+  the panel, pick the right function, read the result contract, and interpret responsibly.
+
+All artifacts are regenerated in the docs build and guarded by a CI freshness check. The change
+is purely additive — no existing API changes.
+
 ## 0.4.23 (2026-06-29)
 
 The data dictionary (`df_def`) becomes a first-class driver of labels, key variables and entity

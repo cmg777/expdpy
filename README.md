@@ -157,8 +157,8 @@ pip install "expdpy[streamlit] @ git+https://github.com/cmg777/expdpy.git"
 Pin to a release, branch, or commit for reproducible installs:
 
 ```bash
-pip install "expdpy==0.4.23"
-pip install "git+https://github.com/cmg777/expdpy.git@v0.4.23"
+pip install "expdpy==0.5.0"
+pip install "git+https://github.com/cmg777/expdpy.git@v0.5.0"
 pip install "git+https://github.com/cmg777/expdpy.git@main"
 ```
 
@@ -177,6 +177,34 @@ again (Runtime ▸ Run all).
 > `prepare_by_group_violin_graph` → `explore_violin_plot_by_group`). The utilities `set_panel`,
 > `resolve_panel`, `treat_outliers`, `explain` and `list_topics` keep their names. See the
 > [changelog](https://cmg777.github.io/expdpy/changelog.html) for the full rename map.
+
+## Using expdpy with LLMs & AI agents
+
+expdpy is built to be driven by large language models and AI agents — carrying its econometric
+guardrails (associations, not causation; `entity`/`time` panel vocabulary; the `.interpret()` /
+`explain()` contract) into every machine-readable surface:
+
+- **`llms.txt` / `llms-full.txt`** — a curated map and a full-text dump of the library at
+  [`/llms.txt`](https://cmg777.github.io/expdpy/llms.txt) and
+  [`/llms-full.txt`](https://cmg777.github.io/expdpy/llms-full.txt). Every docs page also has a
+  clean Markdown twin at `<page>.html.md`.
+- **Agent skill** — drop [`.claude/skills/use-expdpy/`](.claude/skills/use-expdpy) into your
+  project (Claude Code reads `.claude/skills/`), or read the
+  [For AI / LLMs](https://cmg777.github.io/expdpy/use-with-llms.html) page.
+- **Function-calling schemas** — committed Anthropic/OpenAI tool schemas, served at
+  [`/tools/anthropic_tools.json`](https://cmg777.github.io/expdpy/tools/anthropic_tools.json) and
+  [`/tools/openai_tools.json`](https://cmg777.github.io/expdpy/tools/openai_tools.json).
+- **MCP server** — let an agent call expdpy directly:
+
+  ```bash
+  pip install "expdpy[mcp]"
+  ```
+
+  Then register the stdio server with an MCP client (Claude Desktop, Claude Code, …):
+
+  ```json
+  { "mcpServers": { "expdpy": { "command": "expdpy-mcp" } } }
+  ```
 
 ## At a glance
 

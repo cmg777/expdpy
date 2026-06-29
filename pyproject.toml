@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "expdpy"
-version = "0.4.23"
+version = "0.5.0"
 description = "Explore your panel data interactively — a Python port of the ExPanDaR R package."
 readme = "README.md"
 license = { text = "MIT" }
@@ -51,11 +51,17 @@ streamlit = [
 # Retained as a no-op alias: random/between effects, the Hausman test and CRE now ship with
 # the core install (linearmodels is a core dependency). `pip install 'expdpy[panel]'` still works.
 panel = []
+# The MCP server that exposes a curated subset of expdpy as agent tools (stdio). PNG figure
+# export is optional (kaleido); HTML is the dependency-free default, so it is not pinned here.
+mcp = [
+    "mcp>=1.0",
+]
 
 [project.scripts]
 expdpy-explore = "expdpy.streamlit_app:main_explore"
 expdpy-analyze = "expdpy.streamlit_app:main_analyze"
 expdpy-learn = "expdpy.streamlit_app:main_learn"
+expdpy-mcp = "expdpy.mcp.__main__:main"
 
 [project.urls]
 Homepage = "https://github.com/cmg777/expdpy"
@@ -140,6 +146,7 @@ markers = [
     "against_r: numerical-parity tests that require R + the ExPanDaR package via rpy2",
     "streamlit: tests that require the Streamlit app extra",
     "panel: tests that require the linearmodels (panel) extra",
+    "mcp: tests that require the optional mcp (Model Context Protocol) extra",
 ]
 filterwarnings = ["ignore::DeprecationWarning"]
 
@@ -160,7 +167,7 @@ channels = ["conda-forge"]
 platforms = ["linux-64", "osx-arm64", "osx-64", "win-64"]
 
 [tool.pixi.pypi-dependencies]
-expdpy = { path = ".", editable = true, extras = ["streamlit"] }
+expdpy = { path = ".", editable = true, extras = ["streamlit", "mcp"] }
 
 [tool.pixi.feature.test.dependencies]
 pytest = ">=8"
@@ -219,4 +226,7 @@ lint = "pre-commit run --all-files"
 typecheck = "mypy src"
 build-quickstart-notebook = "python tools/build_quickstart_notebook.py"
 build-logo = "python tools/build_logo.py"
-docs-build = "python tools/build_quickstart_notebook.py && quartodoc build --config docs/_quarto.yml && python tools/build_source_pages.py && python tools/build_reference_enrichment.py && quarto render docs"
+build-tool-schemas = "python tools/build_tool_schemas.py"
+build-use-skill = "python tools/build_use_skill.py"
+build-llms = "python tools/build_llms_txt.py"
+docs-build = "python tools/build_quickstart_notebook.py && python tools/build_tool_schemas.py && quartodoc build --config docs/_quarto.yml && python tools/build_source_pages.py && python tools/build_reference_enrichment.py && python tools/build_use_skill.py && quarto render docs && python tools/build_llms_txt.py"

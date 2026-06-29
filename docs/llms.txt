@@ -1,0 +1,137 @@
+# expdpy
+
+> expdpy (v0.5.0) is a Python library for interactive panel and cross-sectional data analysis - a port of the R package ExPanDaR - organized as Explore / Analyze / Learn modules. expdpy reports statistical associations, not proof of causation. Describe results with associational language ("is associated with", "co-moves with"), not causal language. Panel data uses entity (unit) + time vocabulary; declare it once with set_panel(entity=, time=). Every result exposes interpret() for a plain-language reading and explain(topic) for method caveats; prefer them over ad-hoc narration.
+
+## Explore
+Exploratory analysis — descriptive / correlation / extreme-observation tables, distributions, time trends, group comparisons, missing-value maps, scatter plots, within/between variation, per-unit trajectories, panel-structure diagnostics, and distribution & transition dynamics.
+
+- [explore_descriptive_table](https://cmg777.github.io/expdpy/reference/explore_descriptive_table.html): Report descriptive statistics for the numeric/logical variables of ``df``.
+- [explore_correlation_table](https://cmg777.github.io/expdpy/reference/explore_correlation_table.html): Correlation table with Pearson above and Spearman below the diagonal.
+- [explore_ext_obs_table](https://cmg777.github.io/expdpy/reference/explore_ext_obs_table.html): Display the top and bottom ``n`` observations sorted by ``var``.
+- [explore_histogram](https://cmg777.github.io/expdpy/reference/explore_histogram.html): Histogram of a numeric variable, optionally with density overlays.
+- [explore_bar_plot](https://cmg777.github.io/expdpy/reference/explore_bar_plot.html): Bar chart of category counts for a (typically categorical) variable.
+- [explore_correlation_plot](https://cmg777.github.io/expdpy/reference/explore_correlation_plot.html): Visualise a correlation matrix (Pearson above, Spearman below the diagonal).
+- [explore_trend_plot](https://cmg777.github.io/expdpy/reference/explore_trend_plot.html): Line-plot the mean (with standard-error bars) of variables over time.
+- [explore_quantile_trend_plot](https://cmg777.github.io/expdpy/reference/explore_quantile_trend_plot.html): Line-plot quantiles of a single variable over time.
+- [explore_bar_plot_by_group](https://cmg777.github.io/expdpy/reference/explore_bar_plot_by_group.html): Bar chart of a statistic of ``var`` computed within each ``by_var`` group.
+- [explore_trend_plot_by_group](https://cmg777.github.io/expdpy/reference/explore_trend_plot_by_group.html): Line-plot the mean of ``var`` over time, one line per ``group_var`` level.
+- [explore_violin_plot_by_group](https://cmg777.github.io/expdpy/reference/explore_violin_plot_by_group.html): Violin plots of ``var`` distribution across ``by_var`` groups.
+- [explore_missing_values_plot](https://cmg777.github.io/expdpy/reference/explore_missing_values_plot.html): Heatmap of missing-value frequency by variable and panel dimension.
+- [explore_scatter_plot](https://cmg777.github.io/expdpy/reference/explore_scatter_plot.html): Scatter plot of ``y`` against ``x`` with optional aesthetics and a LOESS smoother.
+- [explore_animated_scatter_plot](https://cmg777.github.io/expdpy/reference/explore_animated_scatter_plot.html): Animated bubble scatter of ``y`` against ``x`` over time (a Gapminder-style view).
+- [explore_xtsum_table](https://cmg777.github.io/expdpy/reference/explore_xtsum_table.html): Decompose each variable's variation into overall / between / within (Stata ``xtsum``).
+- [explore_scatter_plot_within_between](https://cmg777.github.io/expdpy/reference/explore_scatter_plot_within_between.html): Scatter that decomposes the ``x``-``y`` relationship into between and within parts.
+- [explore_spaghetti_plot](https://cmg777.github.io/expdpy/reference/explore_spaghetti_plot.html): Plot every unit's trajectory of ``var`` over time, with a central-tendency overlay.
+- [explore_panel_structure](https://cmg777.github.io/expdpy/reference/explore_panel_structure.html): Summarise the panel's balance and coverage, with a unit-by-period presence grid.
+- [explore_value_heatmap](https://cmg777.github.io/expdpy/reference/explore_value_heatmap.html): Heatmap of a variable over the unit-by-time grid (units by periods, colour = value).
+- [explore_distribution_over_time](https://cmg777.github.io/expdpy/reference/explore_distribution_over_time.html): Show how the distribution of ``var`` shifts across periods.
+- [explore_transition_matrix](https://cmg777.github.io/expdpy/reference/explore_transition_matrix.html): Period-to-period transition matrix of a discrete (or binned) state within units.
+- [explore_within_persistence](https://cmg777.github.io/expdpy/reference/explore_within_persistence.html): Within-unit serial correlation: this period's value against the previous one.
+
+## Analyze
+Panel estimators — OLS with fixed effects and clustered SEs, stepwise / Newey–West / Driscoll–Kraay estimation, instrumental variables / 2SLS (cross-section and panel, with a first-stage weak-instrument F), the Frisch–Waugh–Lovell and coefficient plots, pooled / between / fixed / random effects, correlated random effects (Mundlak), the Hausman test, post-estimation, robust inference, event-study / difference-in-differences, β-convergence (unconditional / conditional with speed, half-life and a rolling view), σ-convergence (the trend in cross-sectional dispersion over time), and club convergence (the Phillips–Sul log(t) test with data-driven clustering).
+
+- [analyze_regression_table](https://cmg777.github.io/expdpy/reference/analyze_regression_table.html): Build a regression table of one or more OLS models.
+- [analyze_estimation](https://cmg777.github.io/expdpy/reference/analyze_estimation.html): Estimate an OLS model, optionally several nested or multi-outcome models at once.
+- [analyze_iv_regression](https://cmg777.github.io/expdpy/reference/analyze_iv_regression.html): Fit an instrumental-variables (2SLS) regression with a weak-instrument diagnostic.
+- [analyze_panel_iv_regression](https://cmg777.github.io/expdpy/reference/analyze_panel_iv_regression.html): Fit a panel IV (2SLS) regression absorbing entity (and time) fixed effects.
+- [analyze_fwl_plot](https://cmg777.github.io/expdpy/reference/analyze_fwl_plot.html): Frisch-Waugh-Lovell scatter of ``dv`` against the focal regressor ``var``.
+- [analyze_coefficient_plot](https://cmg777.github.io/expdpy/reference/analyze_coefficient_plot.html): Plot coefficient estimates with confidence intervals for one or more models.
+- [analyze_marginal_effects_plot](https://cmg777.github.io/expdpy/reference/analyze_marginal_effects_plot.html): Plot the marginal effect of ``focal`` across ``moderator`` for an interaction model.
+- [analyze_panel_table](https://cmg777.github.io/expdpy/reference/analyze_panel_table.html): Estimate pooled / between / fixed / random-effects models side by side.
+- [analyze_cre_table](https://cmg777.github.io/expdpy/reference/analyze_cre_table.html): Estimate a Correlated Random Effects (Mundlak) model.
+- [analyze_hausman_test](https://cmg777.github.io/expdpy/reference/analyze_hausman_test.html): Run the Hausman test comparing fixed-effects and random-effects estimates.
+- [analyze_fixef_plot](https://cmg777.github.io/expdpy/reference/analyze_fixef_plot.html): Plot the estimated group intercepts (fixed effects) of a model, ranked by value.
+- [analyze_predictions](https://cmg777.github.io/expdpy/reference/analyze_predictions.html): Return fitted values from a model (and residuals/actuals on the estimation sample).
+- [analyze_joint_test](https://cmg777.github.io/expdpy/reference/analyze_joint_test.html): Run a Wald joint-significance test that a set of coefficients are all zero.
+- [analyze_robust_inference](https://cmg777.github.io/expdpy/reference/analyze_robust_inference.html): Run robust inference on one coefficient via randomization inference or wild bootstrap.
+- [analyze_event_study](https://cmg777.github.io/expdpy/reference/analyze_event_study.html): Estimate and plot an event study for staggered treatment adoption.
+- [analyze_panel_view](https://cmg777.github.io/expdpy/reference/analyze_panel_view.html): Visualize the treatment structure of a panel (a themed ``panelview``).
+- [analyze_beta_convergence](https://cmg777.github.io/expdpy/reference/analyze_beta_convergence.html): Unconditional and conditional β-convergence for a panel variable.
+- [analyze_sigma_convergence](https://cmg777.github.io/expdpy/reference/analyze_sigma_convergence.html): σ-convergence: track and test the cross-sectional dispersion of a panel variable.
+- [analyze_convergence_clubs](https://cmg777.github.io/expdpy/reference/analyze_convergence_clubs.html): Phillips-Sul log(t) convergence test and data-driven club clustering for a panel.
+- [analyze_kuznets_waves](https://cmg777.github.io/expdpy/reference/analyze_kuznets_waves.html): Estimate the extended Kuznets curve ("Kuznets waves") across three panel estimators.
+
+## Learn
+The teaching layer — concept sandboxes (simulated demonstrations) and concept explainers. Plain-language interpretation lives on the result objects via ``.interpret()``.
+
+- [learn_omitted_variable_bias](https://cmg777.github.io/expdpy/reference/learn_omitted_variable_bias.html): Show how omitting a correlated confounder biases a regression coefficient.
+- [learn_pooled_vs_fixed_effects](https://cmg777.github.io/expdpy/reference/learn_pooled_vs_fixed_effects.html): Show how pooled OLS is biased by unit effects, and fixed effects fix it.
+- [learn_clustering_se](https://cmg777.github.io/expdpy/reference/learn_clustering_se.html): Show that clustering changes the standard error, not the point estimate.
+- [learn_first_differences](https://cmg777.github.io/expdpy/reference/learn_first_differences.html): Show that first differencing removes the unit effect — matching the within estimator.
+- [learn_within_vs_lsdv](https://cmg777.github.io/expdpy/reference/learn_within_vs_lsdv.html): Show that within (demeaning) and least-squares dummy variables give the same slope.
+- [learn_beta_convergence](https://cmg777.github.io/expdpy/reference/learn_beta_convergence.html): Show unconditional vs conditional β-convergence on a known-parameter panel.
+- [learn_sigma_convergence](https://cmg777.github.io/expdpy/reference/learn_sigma_convergence.html): Show σ-convergence on a panel whose dispersion narrows at a known rate.
+- [learn_convergence_clubs](https://cmg777.github.io/expdpy/reference/learn_convergence_clubs.html): Show Phillips-Sul club clustering recovering a *planted* club structure.
+- [learn_kuznets_waves](https://cmg777.github.io/expdpy/reference/learn_kuznets_waves.html): Show the three Kuznets-waves estimators recovering a *planted* polynomial wave.
+- [learn_hausman_test](https://cmg777.github.io/expdpy/reference/learn_hausman_test.html): Show why the Hausman test prefers fixed effects when unit effects are correlated.
+- [learn_correlated_random_effects](https://cmg777.github.io/expdpy/reference/learn_correlated_random_effects.html): Show the Mundlak (correlated random effects) device recovering the fixed-effects slope.
+- [learn_nickell_bias](https://cmg777.github.io/expdpy/reference/learn_nickell_bias.html): Show the Nickell bias in dynamic-panel fixed-effects estimates.
+- [learn_measurement_error](https://cmg777.github.io/expdpy/reference/learn_measurement_error.html): Show classical measurement-error attenuation: noise in the regressor biases OLS to zero.
+
+## Utilities
+Cross-cutting helpers shared across modules — panel declaration, data-dictionary inference, outlier treatment, and the concept-explainer registry.
+
+- [set_panel](https://cmg777.github.io/expdpy/reference/set_panel.html): Declare the panel's ``entity``, ``time`` (and optional ``entity_name``) columns on ``df``.
+- [resolve_panel](https://cmg777.github.io/expdpy/reference/resolve_panel.html): Resolve the ``(entity, time)`` ids for ``df``: explicit args win, else ``df.attrs``.
+- [set_roles](https://cmg777.github.io/expdpy/reference/set_roles.html): Declare the main ``outcome`` and ``covariates`` on ``df`` and return it.
+- [build_data_def](https://cmg777.github.io/expdpy/reference/build_data_def.html): Infer a best-guess data dictionary (``df_def``) for ``df``.
+- [treat_outliers](https://cmg777.github.io/expdpy/reference/treat_outliers.html): Treat numerical outliers by winsorizing or truncating.
+- [set_palette](https://cmg777.github.io/expdpy/reference/set_palette.html): Switch the global expdpy color palette.
+- [get_palette](https://cmg777.github.io/expdpy/reference/get_palette.html): Return the name of the currently active palette (``"default"`` / ``"colorblind"``).
+- [explain](https://cmg777.github.io/expdpy/reference/explain.html): Return the :class:`Explainer` for a method or concept.
+- [list_topics](https://cmg777.github.io/expdpy/reference/list_topics.html): Return the sorted list of canonical topic keys (for app menus and docs).
+
+## Interactive apps
+The three no-code ExPdPy apps (Streamlit) — one per module.
+
+- [ExploreApp](https://cmg777.github.io/expdpy/reference/ExploreApp.html): Launch the **Explore** app — exploratory analysis of panel / cross-sectional data.
+- [AnalyzeApp](https://cmg777.github.io/expdpy/reference/AnalyzeApp.html): Launch the **Analyze** app — panel estimators, panel models, CRE and event studies.
+- [LearnApp](https://cmg777.github.io/expdpy/reference/LearnApp.html): Launch the **Learn** app — concept sandboxes and the explainer index.
+
+## Datasets
+
+- [load_kuznets](https://cmg777.github.io/expdpy/reference/load_kuznets.html): Load the synthetic kuznets dataset (country-year, N-shaped regional Kuznets curve).
+- [load_kuznets_data_def](https://cmg777.github.io/expdpy/reference/load_kuznets_data_def.html): Return variable definitions for :func:`load_kuznets`.
+- [load_gapminder](https://cmg777.github.io/expdpy/reference/load_gapminder.html): Load the gapminder dataset (life expectancy, population, GDP per capita).
+- [load_staggered_did](https://cmg777.github.io/expdpy/reference/load_staggered_did.html): Load the synthetic staggered difference-in-differences dataset.
+- [load_productivity](https://cmg777.github.io/expdpy/reference/load_productivity.html): Load the cross-country labor-productivity convergence panel (PWT9.0, 1990-2014).
+- [load_productivity_data_def](https://cmg777.github.io/expdpy/reference/load_productivity_data_def.html): Return variable definitions for :func:`load_productivity`.
+- [load_bolivia112_gdppc](https://cmg777.github.io/expdpy/reference/load_bolivia112_gdppc.html): Load the Bolivian subnational GDP-per-capita panel (112 provinces, 1990-2024).
+- [load_bolivia112_gdppc_data_def](https://cmg777.github.io/expdpy/reference/load_bolivia112_gdppc_data_def.html): Return variable definitions for :func:`load_bolivia112_gdppc`.
+- [load_colonial_origins](https://cmg777.github.io/expdpy/reference/load_colonial_origins.html): Load the Colonial Origins cross-section (Acemoglu, Johnson & Robinson 2001).
+- [load_colonial_origins_data_def](https://cmg777.github.io/expdpy/reference/load_colonial_origins_data_def.html): Return variable definitions for :func:`load_colonial_origins`.
+- [load_regional_conflict](https://cmg777.github.io/expdpy/reference/load_regional_conflict.html): Load the African regional-conflict panel (a focused teaching subset).
+- [load_regional_conflict_data_def](https://cmg777.github.io/expdpy/reference/load_regional_conflict_data_def.html): Return variable definitions for :func:`load_regional_conflict`.
+- [get_config](https://cmg777.github.io/expdpy/reference/get_config.html): Return a startup configuration for ``ExPdPy``.
+
+## Articles
+
+- [Home](https://cmg777.github.io/expdpy/index.html)
+- [Explore](https://cmg777.github.io/expdpy/explore.html)
+- [Analyze](https://cmg777.github.io/expdpy/analyze.html)
+- [Learn](https://cmg777.github.io/expdpy/learn.html)
+- [For AI / LLMs](https://cmg777.github.io/expdpy/use-with-llms.html)
+- [Beta convergence (analyze_beta_convergence)](https://cmg777.github.io/expdpy/analyze_beta_convergence.html)
+- [Sigma convergence (analyze_sigma_convergence)](https://cmg777.github.io/expdpy/analyze_sigma_convergence.html)
+- [Convergence clubs (analyze_convergence_clubs)](https://cmg777.github.io/expdpy/analyze_convergence_clubs.html)
+- [Kuznets waves (analyze_kuznets_waves)](https://cmg777.github.io/expdpy/analyze_kuznets_waves.html)
+- [Instrumental variables (analyze_iv_regression)](https://cmg777.github.io/expdpy/analyze_iv_regression.html)
+- [Marginal effects (analyze_marginal_effects_plot)](https://cmg777.github.io/expdpy/analyze_marginal_effects_plot.html)
+- [The kuznets dataset](https://cmg777.github.io/expdpy/explanation/kuznets-dataset.html)
+- [Data model](https://cmg777.github.io/expdpy/explanation/data-model.html)
+- [Changelog](https://cmg777.github.io/expdpy/changelog.html)
+
+## Concepts
+Plain-language method explainers via explain("<topic>") - always associational (see "correlation_vs_causation"):
+
+beta_convergence, clustered_se, convergence_clubs, correlated_random_effects, correlation_vs_causation, descriptive_stats, dummy_variables, event_study, first_differences, fixed_effects, fwl, hausman, instrumental_variables, kuznets_waves, marginal_effects, measurement_error, nickell_bias, ols, omitted_variable_bias, panel_structure, parallel_trends, pearson, random_effects, sigma_convergence, spearman, time_trends, transition_matrix, truncate, winsorize, within_between_variation, within_transformation.
+
+## Tools for AI agents
+
+- [Anthropic tool schemas](https://cmg777.github.io/expdpy/tools/anthropic_tools.json): curated expdpy tools in Anthropic function-calling format
+- [OpenAI tool schemas](https://cmg777.github.io/expdpy/tools/openai_tools.json): the same tools in OpenAI function-calling format
+- [Agent skill and MCP setup](https://cmg777.github.io/expdpy/use-with-llms.html): the use-expdpy skill and the `pip install expdpy[mcp]` server
+- [Full text for LLMs](https://cmg777.github.io/expdpy/llms-full.txt): every function, docstring and concept concatenated into one file
+
+Curated agent tools: explore_descriptive_table, explore_correlation_table, explore_scatter_plot, explore_trend_plot, explore_missing_values_plot, explore_panel_structure, analyze_regression_table, analyze_panel_table, analyze_iv_regression, analyze_event_study, analyze_beta_convergence, analyze_sigma_convergence, analyze_kuznets_waves, explain, list_topics.
