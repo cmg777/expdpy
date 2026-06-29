@@ -12,8 +12,20 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
+from expdpy._validation import drop_required, required_columns
 from expdpy.streamlit_app._sample import apply_user_vars, build_analysis_sample
 from expdpy.streamlit_app._varcat import VarCats, create_var_categories
+
+
+def _types_map(df_def: pd.DataFrame | None) -> dict[str, str]:
+    """Return ``{var_name: type}`` from a data dictionary (empty when unavailable)."""
+    cols = getattr(df_def, "columns", [])
+    if df_def is None or "var_name" not in cols or "type" not in cols:
+        return {}
+    return {
+        str(n): str(t) for n, t in zip(df_def["var_name"], df_def["type"], strict=True)
+    }
+
 
 __all__ = ["OUTLIER_CHOICES", "pipeline_cfg", "filter_spec", "udv_records", "analysis"]
 
@@ -107,21 +119,33 @@ def analysis(
     entities: list[str],
     time: str | None,
     factor_cutoff: int,
+    df_def: pd.DataFrame | None = None,
 ) -> tuple[pd.DataFrame, VarCats, pd.DataFrame, str | None]:
     """Build the analysis sample + variable categories for the current selections.
 
     Returns ``(analysis_sample, var_cats, pre_subset_frame, udv_error)``. The
     ``pre_subset_frame`` (post user-defined-variables, pre subsetting) is used to populate
-    the subset-value choices without collapsing them once a subset is applied.
+    the subset-value choices without collapsing them once a subset is applied. The data
+    dictionary (``df_def``) makes its declared ``type`` authoritative for the variable
+    categories and enforces ``can_be_na`` (rows missing a required variable are dropped).
     """
     frame, udv_error = _udv_frame(data_id, base_df, entities, time)
+    frame = drop_required(frame, df_def)  # enforce the dictionary's can_be_na contract
+    types = _types_map(df_def)
     cfg = pipeline_cfg()
-    key = (data_id, udv_records(), tuple(sorted(cfg.items())), int(factor_cutoff))
+    key = (
+        data_id,
+        udv_records(),
+        tuple(sorted(cfg.items())),
+        int(factor_cutoff),
+        tuple(sorted(types.items())),
+        tuple(required_columns(df_def)),
+    )
     memo = st.session_state.get("_sample_memo")
     if memo is None or memo["key"] != key:
         sample = build_analysis_sample(frame, entities, time, cfg)
         var_cats = create_var_categories(
-            sample, entities, time, factor_cutoff=factor_cutoff
+            sample, entities, time, factor_cutoff=factor_cutoff, types=types
         )
         memo = {"key": key, "sample": sample, "var_cats": var_cats}
         st.session_state["_sample_memo"] = memo

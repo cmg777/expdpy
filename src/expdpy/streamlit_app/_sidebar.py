@@ -10,18 +10,19 @@ from __future__ import annotations
 
 import os
 import tempfile
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import pandas as pd
 import streamlit as st
 from pandas.api import types as pdt
 
-from expdpy import build_data_def, resolve_label, set_labels, set_panel
+from expdpy import build_data_def, resolve_label, set_labels, set_panel, set_roles
+from expdpy._labels import label_map
 from expdpy.data import _normalize_def
 from expdpy.streamlit_app import _handoff as handoff
 from expdpy.streamlit_app import _pipeline as pipeline
 from expdpy.streamlit_app import _widgets as w
-from expdpy.streamlit_app._appcore import _CONFIG_INPUT_KEYS
+from expdpy.streamlit_app._appcore import _CONFIG_INPUT_KEYS, _roles_from_def
 from expdpy.streamlit_app._config_io import dump_config, load_config
 from expdpy.streamlit_app._context import DATASETS, AppContext
 from expdpy.streamlit_app._export_nb import build_export_zip
@@ -29,11 +30,14 @@ from expdpy.streamlit_app._state import parse_config
 from expdpy.streamlit_app._upload import read_uploaded
 from expdpy.streamlit_app._varcat import VarCats, create_var_categories
 
-#: The five columns of a data dictionary (df_def), in order.
-_DDEF_COLUMNS = ["var_name", "var_def", "label", "type", "can_be_na"]
+#: The columns of a data dictionary (df_def), in order.
+_DDEF_COLUMNS = ["var_name", "var_def", "label", "type", "role", "can_be_na"]
 
 #: The allowed ``type`` values for a data dictionary (df_def).
 _DDEF_TYPES = ["entity", "time", "factor", "logical", "numeric"]
+
+#: The allowed ``role`` values for a data dictionary (df_def); ``""`` means no special role.
+_DDEF_ROLES = ["", "outcome", "covariate", "entity_name"]
 
 #: Stored-widget values that are *not* column names and so survive a dataset switch.
 _RESET_SKIP_VALUES = {"None", "All", "Full Sample", "1", "2", "3", "4", "5"}
@@ -67,6 +71,11 @@ class Active:
     working: pd.DataFrame | None = None
     #: The declared time column even when the sample is a single-period cross-section.
     panel_time: str | None = None
+    #: The declared main outcome / covariates / entity-name (from the df_def ``role`` column),
+    #: used to pre-select and float the key variables in the selectors.
+    outcome: str | None = None
+    covariates: list[str] = field(default_factory=list)
+    entity_name: str | None = None
 
 
 def get_active() -> Active | None:
@@ -98,6 +107,16 @@ def _parse_file(up, cache_key: str) -> pd.DataFrame:
     return cache["df"]
 
 
+def _enforce_unique_roles(rows: list[dict]) -> None:
+    """Keep only the first ``outcome`` / ``entity_name`` row (covariates may repeat); warn."""
+    for role in ("outcome", "entity_name"):
+        marked = [r for r in rows if str(r.get("role") or "") == role]
+        if len(marked) > 1:
+            st.warning(f"More than one {role} marked — keeping the first.")
+            for r in marked[1:]:
+                r["role"] = ""
+
+
 def _editable_data_def(
     df: pd.DataFrame, data_id: str, factor_cutoff: int
 ) -> pd.DataFrame:
@@ -109,6 +128,9 @@ def _editable_data_def(
     """
     if st.session_state.get("_ddef_seed_id") != data_id:
         guess = build_data_def(df, factor_cutoff=factor_cutoff).to_dict("records")
+        # build_data_def emits a role column; keep it present for any older guess path.
+        for r in guess:
+            r.setdefault("role", "")
         st.session_state["_ddef_rows"] = guess
         st.session_state["_ddef_applied"] = guess
         st.session_state["_ddef_seed_id"] = data_id
@@ -119,7 +141,9 @@ def _editable_data_def(
     ):
         st.caption(
             "Auto-detected from your data. Set one row's type to **entity** and one to "
-            "**time** to unlock the panel views, tidy the labels, then **Apply**."
+            "**time** to unlock the panel views, mark the **main outcome** and "
+            "**covariate(s)** (and the **entity_name** column) under *Role*, tidy the labels, "
+            "then **Apply**."
         )
         edited = st.data_editor(
             pd.DataFrame(st.session_state["_ddef_rows"], columns=_DDEF_COLUMNS),
@@ -132,6 +156,14 @@ def _editable_data_def(
                 "label": st.column_config.TextColumn("Label"),
                 "var_def": st.column_config.TextColumn("Description"),
                 "type": st.column_config.SelectboxColumn("Type", options=_DDEF_TYPES),
+                "role": st.column_config.SelectboxColumn(
+                    "Role",
+                    options=_DDEF_ROLES,
+                    help=(
+                        "Mark the main outcome, the covariate(s), and the column holding "
+                        "human-readable entity names. Figures and tables default to these."
+                    ),
+                ),
                 "can_be_na": st.column_config.CheckboxColumn("Can be NA"),
             },
         )
@@ -143,6 +175,7 @@ def _editable_data_def(
                 st.warning(
                     f"Unknown type(s) {', '.join(bad)} — those rows stay untyped."
                 )
+            _enforce_unique_roles(rows)
             st.session_state["_ddef_rows"] = rows
             st.session_state["_ddef_applied"] = rows
             st.rerun()
@@ -171,14 +204,19 @@ def _apply_labels_panel(df: pd.DataFrame, df_def: pd.DataFrame | None) -> pd.Dat
     try:
         set_labels(df, df_def)
         entities, time = handoff.resolve_ids(df_def, None, None)
+        outcome, covariates, entity_name = _roles_from_def(df_def, df.columns)
         kw: dict[str, str] = {}
         entity = entities[0] if entities else None
         if entity and entity in df.columns:
             kw["entity"] = entity
         if time and time in df.columns:
             kw["time"] = time
+        if entity_name and entity_name in df.columns:
+            kw["entity_name"] = entity_name
         if kw:
             set_panel(df, **kw)
+        if outcome or covariates:
+            set_roles(df, outcome=outcome, covariates=covariates)
     except Exception as exc:  # malformed dictionary → keep raw names, never crash
         st.warning(f"Could not apply the data dictionary: {exc}")
     return df
@@ -229,7 +267,11 @@ def _resolve_source(ctx: AppContext):
     """Return ``(source_name, data_id, base_df, df_def, entities, time)`` for the selection."""
     st.subheader("Data")
     built_in = list(ctx.samples) if ctx.samples else list(DATASETS)
-    selected = w.selectbox("Dataset", built_in, key="sample") if built_in else None
+    selected = (
+        w.selectbox("Dataset", built_in, key="sample", relabel=False)
+        if built_in
+        else None
+    )
 
     up = st.file_uploader(
         "…or upload your own data",
@@ -286,13 +328,21 @@ def _range_slider(label: str, lo, hi, key: str, *, as_int: bool):
     return st.slider(label, lo, hi, value=(lo, hi), key=key)
 
 
-def _candidate_cats(pre_subset, entities, time, factor_cutoff) -> tuple[list, list]:
+def _candidate_cats(
+    pre_subset, entities, time, factor_cutoff, df_def=None
+) -> tuple[list, list]:
     """Return ``(category_vars, range_vars)`` from the *pre-subset* frame.
 
     Computing candidates from the unfiltered frame is what keeps a selected factor from
     vanishing once the sample collapses it to a single value.
     """
-    vc = create_var_categories(pre_subset, entities, time, factor_cutoff=factor_cutoff)
+    vc = create_var_categories(
+        pre_subset,
+        entities,
+        time,
+        factor_cutoff=factor_cutoff,
+        types=pipeline._types_map(df_def),
+    )
     cat_vars = list(vc.grouping)
     ids = {*entities, time}
     range_vars = [
@@ -315,7 +365,7 @@ def _render_sample(
     """Render the sample-selection menu: period, category and range filters + outliers."""
     st.subheader("Sample")
     cat_vars, range_vars = _candidate_cats(
-        pre_subset, active.entities, time, factor_cutoff
+        pre_subset, active.entities, time, factor_cutoff, active.df_def
     )
 
     # --- Period (time) sub-sampling -------------------------------------------------------
@@ -336,11 +386,14 @@ def _render_sample(
             )
 
     # --- Filter by category ----------------------------------------------------------------
+    # These pickers select data *values* (and their captions already show the variable label),
+    # so they are not relabelled — keeping the stored values raw for the filter pipeline.
     chosen_cats = w.multiselect(
         "Filter by category",
         cat_vars,
         key="cat_filter_vars",
         help="Keep rows whose value is one of the categories you pick for each variable.",
+        relabel=False,
     )
     for var in chosen_cats:
         levels = [str(v) for v in sorted(pre_subset[var].dropna().unique(), key=str)]
@@ -349,6 +402,7 @@ def _render_sample(
             levels,
             key=f"catf::{var}",
             default=levels,
+            relabel=False,
         )
 
     # --- Filter by range -------------------------------------------------------------------
@@ -357,6 +411,7 @@ def _render_sample(
         range_vars,
         key="range_filter_vars",
         help="Keep rows whose value falls inside the range you set for each variable.",
+        relabel=False,
     )
     for var in chosen_ranges:
         col = pre_subset[var].dropna()
@@ -577,11 +632,15 @@ def render_sidebar(ctx: AppContext) -> Active:
         base_df = _apply_labels_panel(base_df, df_def)
 
         sample, var_cats, pre_subset, udv_error = pipeline.analysis(
-            data_id, base_df, entities, time, ctx.factor_cutoff
+            data_id, base_df, entities, time, ctx.factor_cutoff, df_def
         )
         # Re-attach labels/panel to the prepared sample: the subset/outlier steps preserve
         # ``attrs``, but the user-defined-variables path builds a fresh frame that drops them.
         sample = _apply_labels_panel(sample, df_def)
+        # Per-run label map used to relabel the variable menus ("Label (var_name)").
+        st.session_state["_label_map"] = label_map(sample)
+        # The declared key variables (from the df_def ``role`` column), for selector defaults.
+        outcome, covariates, entity_name = _roles_from_def(df_def, sample.columns)
 
         # When the period filter collapses the sample to a single period it is no longer a
         # panel — fall back to the cross-sectional gating (``effective_time = None``) so the
@@ -603,6 +662,9 @@ def render_sidebar(ctx: AppContext) -> Active:
             active_components=handoff.active_components(ctx.components, effective_time),
             working=pre_subset,
             panel_time=time,
+            outcome=outcome,
+            covariates=covariates,
+            entity_name=entity_name,
         )
 
         _render_active_summary(active, pre_subset)

@@ -41,12 +41,61 @@ def _has(active: Active, name: str) -> bool:
     return name in active.active_components
 
 
+def _prioritize(names: list[str], active: Active) -> list[str]:
+    """Float the declared key variables (outcome, then covariates) to the front of ``names``.
+
+    A no-op when no roles are declared, so role-less data keeps its original column order.
+    """
+    front = [n for n in [active.outcome, *active.covariates] if n in set(names)]
+    if not front:
+        return names
+    front = list(dict.fromkeys(front))
+    rest = [n for n in names if n not in set(front)]
+    return [*front, *rest]
+
+
 def _numeric(active: Active) -> list[str]:
-    return active.var_cats.numeric_logical or ["None"]
+    return _prioritize(active.var_cats.numeric_logical, active) or ["None"]
 
 
 def _factors(active: Active) -> list[str]:
-    return active.var_cats.grouping or ["None"]
+    return _prioritize(active.var_cats.grouping, active) or ["None"]
+
+
+def _d_outcome(active: Active) -> str | None:
+    """Default a single numeric selector to the declared main outcome."""
+    return active.outcome
+
+
+def _d_cov(active: Active) -> str | None:
+    """Default a single covariate selector to the first declared covariate."""
+    return active.covariates[0] if active.covariates else None
+
+
+def _d_covs(active: Active) -> list[str]:
+    """Default a multiselect to all declared covariates."""
+    return list(active.covariates)
+
+
+def _x_default(active: Active, nums: list[str]) -> str | None:
+    """Scatter x default: the first covariate, else a numeric that is not the outcome."""
+    if active.covariates:
+        return active.covariates[0]
+    rest = [n for n in nums if n != active.outcome and n != "None"]
+    return rest[0] if rest else None
+
+
+def _y_default(active: Active, nums: list[str]) -> str | None:
+    """Scatter y default: the main outcome, else the second numeric (prior behaviour)."""
+    if active.outcome in nums:
+        return active.outcome
+    return nums[1] if len(nums) > 1 else None
+
+
+def _key_numeric_default(active: Active, nums: list[str]) -> list[str]:
+    """Multiselect default: the key variables present, else the first few numerics."""
+    keys = [n for n in [active.outcome, *active.covariates] if n in nums]
+    return keys or nums[: min(4, len(nums))]
 
 
 def _fe_choices(active: Active) -> list[str]:
@@ -144,9 +193,14 @@ def page_overview() -> None:
 
     if panel:
         st.subheader("Value heatmap")
-        vh_var = w.selectbox("Variable", _numeric(active), key="ps_vh_var")
+        vh_var = w.selectbox(
+            "Variable", _numeric(active), key="ps_vh_var", default=_d_outcome(active)
+        )
         standardize = w.selectbox(
-            "Standardize", ["none", "by_time", "by_entity", "global"], key="ps_vh_std"
+            "Standardize",
+            ["none", "by_time", "by_entity", "global"],
+            key="ps_vh_std",
+            relabel=False,
         )
         _show_panel_result(
             lambda: explore_value_heatmap(
@@ -167,7 +221,9 @@ def page_describe() -> None:
         )
     if _has(active, "histogram"):
         st.subheader("Histogram")
-        var = w.selectbox("Variable", _numeric(active), key="hist_var")
+        var = w.selectbox(
+            "Variable", _numeric(active), key="hist_var", default=_d_outcome(active)
+        )
         bins = w.slider("Bins", 5, 100, key="hist_nr_of_breaks", default=20)
         render.render_plotly(
             lambda: comp.histogram(active.sample, var, int(bins)),
@@ -175,14 +231,18 @@ def page_describe() -> None:
         )
     if _has(active, "bar_chart"):
         st.subheader("Bar chart")
-        var = w.selectbox("Variable", _factors(active), key="bar_chart_var1")
+        var = w.selectbox(
+            "Variable", _factors(active), key="bar_chart_var1", default=_d_cov(active)
+        )
         render.render_plotly(
             lambda: comp.bar_chart(active.sample, var),
             code=render.code_for("bar_chart", active.time),
         )
     if _has(active, "ext_obs"):
         st.subheader("Extreme observations")
-        var = w.selectbox("Variable", _numeric(active), key="ext_obs_var")
+        var = w.selectbox(
+            "Variable", _numeric(active), key="ext_obs_var", default=_d_outcome(active)
+        )
         render.render_ext_obs(
             active.sample, var, code=render.code_for("ext_obs", active.time)
         )
@@ -204,7 +264,10 @@ def page_within_between() -> None:
 
     st.subheader("Within / between variation")
     xtsum_vars = w.multiselect(
-        "Variables", nums, key="ps_xtsum_vars", default=nums[: min(4, len(nums))]
+        "Variables",
+        nums,
+        key="ps_xtsum_vars",
+        default=_key_numeric_default(active, nums),
     )
     if [v for v in xtsum_vars if v not in (None, "None")]:
         try:
@@ -219,7 +282,9 @@ def page_within_between() -> None:
 
     st.divider()
     st.subheader("Per-unit trajectories (spaghetti)")
-    spag_var = w.selectbox("Variable", nums, key="ps_spag_var")
+    spag_var = w.selectbox(
+        "Variable", nums, key="ps_spag_var", default=_d_outcome(active)
+    )
     _show_panel_result(
         lambda: explore_spaghetti_plot(
             active.sample, spag_var, entity=entity, time=time
@@ -233,24 +298,36 @@ def page_by_group() -> None:
     st.header("By group")
     if _has(active, "by_group_bar_graph"):
         st.subheader("Group means (bar)")
-        byvar = w.selectbox("Group by", _factors(active), key="bgbg_byvar")
-        var = w.selectbox("Variable", _numeric(active), key="bgbg_var")
+        byvar = w.selectbox(
+            "Group by", _factors(active), key="bgbg_byvar", default=_d_cov(active)
+        )
+        var = w.selectbox(
+            "Variable", _numeric(active), key="bgbg_var", default=_d_outcome(active)
+        )
         render.render_plotly(
             lambda: comp.by_group_bar(active.sample, byvar, var),
             code=render.code_for("by_group_bar_graph", active.time),
         )
     if _has(active, "by_group_violin_graph"):
         st.subheader("Distribution by group (violin)")
-        byvar = w.selectbox("Group by", _factors(active), key="bgvg_byvar")
-        var = w.selectbox("Variable", _numeric(active), key="bgvg_var")
+        byvar = w.selectbox(
+            "Group by", _factors(active), key="bgvg_byvar", default=_d_cov(active)
+        )
+        var = w.selectbox(
+            "Variable", _numeric(active), key="bgvg_var", default=_d_outcome(active)
+        )
         render.render_plotly(
             lambda: comp.by_group_violin(active.sample, byvar, var),
             code=render.code_for("by_group_violin_graph", active.time),
         )
     if _has(active, "by_group_trend_graph"):
         st.subheader("Group means over time")
-        byvar = w.selectbox("Group by", _factors(active), key="bgtg_byvar")
-        var = w.selectbox("Variable", _numeric(active), key="bgtg_var")
+        byvar = w.selectbox(
+            "Group by", _factors(active), key="bgtg_byvar", default=_d_cov(active)
+        )
+        var = w.selectbox(
+            "Variable", _numeric(active), key="bgtg_var", default=_d_outcome(active)
+        )
         render.render_plotly(
             lambda: comp.by_group_trend(active.sample, active.time, byvar, var),
             code=render.code_for("by_group_trend_graph", active.time),
@@ -271,6 +348,7 @@ def page_trends() -> None:
                 _numeric(active),
                 key=f"trend_graph_var{i}",
                 none=(i > 1),
+                default=_d_outcome(active) if i == 1 else None,
             )
             for i in (1, 2, 3)
         ]
@@ -280,18 +358,26 @@ def page_trends() -> None:
         )
     if _has(active, "quantile_trend_graph"):
         st.subheader("Quantile trend graph")
-        var = w.selectbox("Variable", _numeric(active), key="quantile_trend_graph_var")
+        var = w.selectbox(
+            "Variable",
+            _numeric(active),
+            key="quantile_trend_graph_var",
+            default=_d_outcome(active),
+        )
         render.render_plotly(
             lambda: comp.quantile_trend(active.sample, active.time, var),
             code=render.code_for("quantile_trend_graph", active.time),
         )
     if _is_panel(active):
         st.subheader("Distribution over time")
-        dot_var = w.selectbox("Variable", _numeric(active), key="ps_dot_var")
+        dot_var = w.selectbox(
+            "Variable", _numeric(active), key="ps_dot_var", default=_d_outcome(active)
+        )
         dot_style = w.selectbox(
             "Style",
             ["ridgeline", "animated_hist", "animated_violin"],
             key="ps_dot_style",
+            relabel=False,
         )
         _show_panel_result(
             lambda: explore_distribution_over_time(
@@ -316,13 +402,15 @@ def page_correlations() -> None:
         nums = _numeric(active)
         c1, c2 = st.columns(2)
         with c1:
-            x = w.selectbox("X", nums, key="scatter_x")
+            x = w.selectbox(
+                "X", nums, key="scatter_x", default=_x_default(active, nums)
+            )
             color = w.selectbox(
                 "Color", _factors(active) + nums, key="scatter_color", none=True
             )
         with c2:
             y = w.selectbox(
-                "Y", nums, key="scatter_y", default=nums[1] if len(nums) > 1 else None
+                "Y", nums, key="scatter_y", default=_y_default(active, nums)
             )
             size = w.selectbox("Size", nums, key="scatter_size", none=True)
         loess = w.checkbox("LOESS smoother", key="scatter_loess", default=True)
@@ -338,10 +426,12 @@ def page_correlations() -> None:
         nums = _numeric(active)
         c1, c2 = st.columns(2)
         with c1:
-            wb_x = w.selectbox("X", nums, key="ps_wb_x")
+            wb_x = w.selectbox(
+                "X", nums, key="ps_wb_x", default=_x_default(active, nums)
+            )
         with c2:
             wb_y = w.selectbox(
-                "Y", nums, key="ps_wb_y", default=nums[1] if len(nums) > 1 else None
+                "Y", nums, key="ps_wb_y", default=_y_default(active, nums)
             )
         _show_panel_result(
             lambda: explore_scatter_plot_within_between(
@@ -435,8 +525,12 @@ def page_regression() -> None:
     if not _has(active, "regression"):
         st.info("The regression component is disabled for this app.")
         return
-    y = w.selectbox("Dependent variable", _numeric(active), key="reg_y")
-    xs = w.multiselect("Independent variables", _numeric(active), key="reg_x")
+    y = w.selectbox(
+        "Dependent variable", _numeric(active), key="reg_y", default=_d_outcome(active)
+    )
+    xs = w.multiselect(
+        "Independent variables", _numeric(active), key="reg_x", default=_d_covs(active)
+    )
     c1, c2 = st.columns(2)
     with c1:
         fe1 = w.selectbox(
@@ -481,6 +575,7 @@ def page_regression() -> None:
             "Focal variable",
             valid_xs,
             key="fwl_focal",
+            default=_d_cov(active),
             help="Its coefficient is the FWL slope; the remaining regressors become controls.",
         )
         render.render_plotly(
@@ -533,8 +628,12 @@ def page_postestimation() -> None:
     st.caption(
         "Fit a model from the same controls as the Regression page, then interrogate it."
     )
-    y = w.selectbox("Dependent variable", _numeric(active), key="reg_y")
-    xs = w.multiselect("Independent variables", _numeric(active), key="reg_x")
+    y = w.selectbox(
+        "Dependent variable", _numeric(active), key="reg_y", default=_d_outcome(active)
+    )
+    xs = w.multiselect(
+        "Independent variables", _numeric(active), key="reg_x", default=_d_covs(active)
+    )
     fe1 = w.selectbox("Fixed effect", _fe_choices(active), key="reg_fe1", none=True)
     valid_xs = [x for x in xs if x not in (None, "", "None")]
     if not (y and y != "None" and valid_xs):
@@ -582,7 +681,7 @@ def page_postestimation() -> None:
         "A randomization-inference p-value for one coefficient — more cautious than the "
         "asymptotic standard error when clusters are few."
     )
-    param = w.selectbox("Coefficient", valid_xs, key="pe_param")
+    param = w.selectbox("Coefficient", valid_xs, key="pe_param", default=_d_cov(active))
     if st.button("Run randomization inference", key="pe_run"):
         try:
             ri = analyze_robust_inference(
@@ -796,7 +895,9 @@ def page_dynamics() -> None:
     factors = _factors(active)
 
     st.subheader("Transition matrix")
-    tm_var = w.selectbox("State variable", factors + nums, key="ps_tm_var")
+    tm_var = w.selectbox(
+        "State variable", factors + nums, key="ps_tm_var", default=_d_outcome(active)
+    )
     tm_bins = w.slider("Bins (numeric only)", 2, 8, key="ps_tm_bins", default=4)
     _show_panel_result(
         lambda: explore_transition_matrix(
@@ -806,7 +907,7 @@ def page_dynamics() -> None:
 
     st.divider()
     st.subheader("Within-unit persistence")
-    wp_var = w.selectbox("Variable", nums, key="ps_wp_var")
+    wp_var = w.selectbox("Variable", nums, key="ps_wp_var", default=_d_outcome(active))
     _show_panel_result(
         lambda: explore_within_persistence(
             active.sample, wp_var, entity=entity, time=time
@@ -835,9 +936,11 @@ def page_event_study() -> None:
     st.caption(f"Unit: **{unit}** · Time: **{time}**")
     c1, c2, c3 = st.columns(3)
     with c1:
-        outcome = st.selectbox("Outcome", _numeric(active), key="es_outcome")
+        outcome = w.selectbox(
+            "Outcome", _numeric(active), key="es_outcome", default=_d_outcome(active)
+        )
     with c2:
-        cohort = st.selectbox("First-treatment cohort", factors, key="es_cohort")
+        cohort = w.selectbox("First-treatment cohort", factors, key="es_cohort")
     with c3:
         estimator = st.selectbox(
             "Estimator", ["did2s", "twfe", "saturated", "lpdid"], key="es_estimator"
@@ -884,8 +987,12 @@ def page_panel_models() -> None:
     assert active.time is not None  # narrowed by _is_panel
     entity, time = active.entities[0], active.time
     st.caption(f"Entity: **{entity}** · Time: **{time}**")
-    dv = st.selectbox("Dependent variable", _numeric(active), key="pm_dv")
-    xs = st.multiselect("Independent variables", _numeric(active), key="pm_xs")
+    dv = w.selectbox(
+        "Dependent variable", _numeric(active), key="pm_dv", default=_d_outcome(active)
+    )
+    xs = w.multiselect(
+        "Independent variables", _numeric(active), key="pm_xs", default=_d_covs(active)
+    )
     if not (dv and xs):
         st.info("Choose a dependent variable and at least one independent variable.")
         return
@@ -955,7 +1062,7 @@ def page_convergence() -> None:
     st.caption(
         "Do initially poorer units grow faster? (speed and half-life of catch-up.)"
     )
-    beta_var = st.selectbox("Variable", nums, key="beta_var")
+    beta_var = w.selectbox("Variable", nums, key="beta_var", default=_d_outcome(active))
     if beta_var and beta_var != "None":
         _show_panel_result(
             lambda: analyze_beta_convergence(
@@ -966,7 +1073,9 @@ def page_convergence() -> None:
     st.divider()
     st.subheader("Sigma convergence")
     st.caption("Does the cross-sectional dispersion shrink over time?")
-    sigma_var = st.selectbox("Variable", nums, key="sigma_var")
+    sigma_var = w.selectbox(
+        "Variable", nums, key="sigma_var", default=_d_outcome(active)
+    )
     if sigma_var and sigma_var != "None":
         try:
             sig = analyze_sigma_convergence(
@@ -984,7 +1093,9 @@ def page_convergence() -> None:
     st.divider()
     st.subheader("Convergence clubs")
     st.caption("Phillips-Sul log(t) test plus data-driven clustering into clubs.")
-    clubs_var = st.selectbox("Variable (pass it in logs)", nums, key="clubs_var")
+    clubs_var = w.selectbox(
+        "Variable (pass it in logs)", nums, key="clubs_var", default=_d_outcome(active)
+    )
     col1, col2 = st.columns(2)
     use_hp = col1.checkbox("HP-filter trend (lambda=400)", value=True, key="clubs_hp")
     merge = col2.selectbox(
@@ -1035,12 +1146,19 @@ def page_kuznets_waves() -> None:
     st.caption(f"Entity: **{entity}** · Time: **{time}**")
     numeric = _numeric(active)
     col1, col2 = st.columns(2)
-    inequality = col1.selectbox("Inequality (outcome)", numeric, key="kw_ineq")
+    with col1:
+        inequality = w.selectbox(
+            "Inequality (outcome)", numeric, key="kw_ineq", default=_d_outcome(active)
+        )
     dev_opts = [c for c in numeric if c != inequality] or numeric
-    development = col2.selectbox(
-        "Development (e.g. log GDP per capita)", dev_opts, key="kw_dev"
-    )
-    controls = st.multiselect(
+    with col2:
+        development = w.selectbox(
+            "Development (e.g. log GDP per capita)",
+            dev_opts,
+            key="kw_dev",
+            default=_d_cov(active),
+        )
+    controls = w.multiselect(
         "Controls to partial out of the between/within waves (optional)",
         [c for c in numeric if c not in (inequality, development)],
         key="kw_controls",

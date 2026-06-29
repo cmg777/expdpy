@@ -16,11 +16,11 @@ from expdpy.data import (
     load_staggered_did,
 )
 
-_DEF_COLUMNS = ["var_name", "var_def", "label", "type", "can_be_na"]
+_DEF_COLUMNS = ["var_name", "var_def", "label", "type", "role", "can_be_na"]
 _TYPES = {"entity", "time", "factor", "logical", "numeric"}
 
 
-def test_returns_five_column_contract():
+def test_returns_column_contract():
     df = pd.DataFrame({"country": ["A", "B"], "year": [2000, 2001], "gdp": [1.0, 2.0]})
     ddef = ex.build_data_def(df)
     assert list(ddef.columns) == _DEF_COLUMNS
@@ -28,6 +28,8 @@ def test_returns_five_column_contract():
     assert len(ddef) == df.shape[1]
     assert list(ddef["var_name"]) == list(df.columns)  # one row per column, in order
     assert set(ddef["type"]).issubset(_TYPES)
+    # No covariate/outcome is ever auto-assigned; role is blank unless an entity_name is found.
+    assert set(ddef["role"]).issubset({"", "entity_name"})
 
 
 def test_type_inference_table():

@@ -158,6 +158,7 @@ quartodoc:
       contents:
         - set_panel
         - resolve_panel
+        - set_roles
         - build_data_def
         - treat_outliers
         - set_palette

@@ -11,6 +11,7 @@ from pandas.api import types as pdt
 from scipy.stats import gaussian_kde, norm
 
 from expdpy._labels import resolve_label
+from expdpy._roles import resolve_roles
 from expdpy._theme import apply_default_layout, color_for
 from expdpy._types import BarChartResult, HistogramResult
 from expdpy._validation import ExpdpyWarning, ensure_dataframe
@@ -30,7 +31,7 @@ def _kde_on_grid(values: np.ndarray, grid: np.ndarray) -> np.ndarray:
 
 def explore_histogram(
     df: pd.DataFrame,
-    var: str,
+    var: str | None = None,
     *,
     bins: int = 30,
     kde: bool = False,
@@ -45,7 +46,8 @@ def explore_histogram(
     df
         Data frame containing ``var``.
     var
-        Numeric column to bin.
+        Numeric column to bin. Defaults to the declared main outcome
+        (:func:`expdpy.set_roles`) when omitted.
     bins
         Number of equal-width bins.
     kde
@@ -88,6 +90,12 @@ def explore_histogram(
     ```
     """
     df = ensure_dataframe(df)
+    if var is None:
+        var = resolve_roles(df)[0]
+    if var is None:
+        raise ValueError(
+            "explore_histogram: pass var=, or declare a main outcome via set_roles"
+        )
     if var not in df.columns:
         raise ValueError("var needs to be in df")
     if not pdt.is_numeric_dtype(df[var]):

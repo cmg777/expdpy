@@ -2,6 +2,45 @@
 title: "Changelog"
 ---
 
+## 0.4.23 (2026-06-29)
+
+The data dictionary (`df_def`) becomes a first-class driver of labels, key variables and entity
+names — across both the library and the no-code apps. Additive and backward-compatible: a
+dictionary without the new column behaves exactly as before.
+
+### Data dictionary — a new `role` column
+
+- `df_def` gains a sixth column, **`role`**, with values `outcome` / `covariate` /
+  `entity_name` (blank otherwise). Mark the **main outcome** and **main covariate(s)** once, and
+  the figures, tables and apps default to them; mark an **`entity_name`** column (a readable
+  label for each unit) and figures render units as **`Name (id)`** (e.g. `Bolivia (BOL)`).
+- **`build_data_def`** now emits the `role` column and **auto-detects** the entity-name column (a
+  text column that is constant within, and ~1:1 with, the entity id).
+- New **`set_roles(df, outcome=, covariates=)`** utility (stored on `df.attrs`, like
+  `set_panel` / `set_labels`); `set_panel` gains an `entity_name=` argument; and
+  `set_labels(df, df_def, set_panel=True)` now also declares the roles + entity-name a
+  dictionary carries.
+
+### Library — figures and entry functions use the metadata
+
+- Spaghetti, panel-structure / value heatmaps, within-persistence, within/between scatter,
+  animated scatter, β-convergence, convergence clubs, Kuznets waves and the extreme-observations
+  table now show **`Name (id)`** when an entity-name column is declared.
+- When their primary variable is omitted, `explore_scatter_plot` (x = first covariate, y =
+  outcome), `analyze_regression_table` (dv = outcome, idvs = covariates), `explore_histogram` and
+  `explore_trend_plot` default to the declared roles; the descriptive and correlation tables lead
+  with the key variables.
+
+### Apps — labels, defaults and the dictionary editor
+
+- Variable menus now display **`Label (var_name)`** when the dictionary provides labels; the
+  selected value stays the raw column name.
+- The marked outcome / covariate(s) are **pre-selected** as defaults and **floated to the top** of
+  each dropdown.
+- The data-dictionary editor gains a **Role** selector, the declared **`type`** is now
+  authoritative for the variable categories, and **`can_be_na = False`** is enforced (rows missing
+  a required variable are dropped from the analysis sample).
+
 ## 0.4.22 (2026-06-27)
 
 A teaching + internals release: four new concept sandboxes, an internal helper refactor, and

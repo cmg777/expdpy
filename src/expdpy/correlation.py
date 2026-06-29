@@ -8,8 +8,10 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
+from expdpy._common import lead_columns as _lead_columns
 from expdpy._corr import cor_mat
 from expdpy._labels import resolve_labels
+from expdpy._roles import resolve_roles
 from expdpy._theme import active_diverging_scale, apply_default_layout, diverging_color
 from expdpy._types import CorrelationGraphResult
 from expdpy._validation import ensure_dataframe, numeric_logical_columns
@@ -86,7 +88,8 @@ def explore_correlation_plot(
     """
     df = ensure_dataframe(df)
     labels_src = df  # resolve labels before the column reslice drops df.attrs
-    df = df[numeric_logical_columns(df)]
+    _outcome, _covariates = resolve_roles(df)
+    df = df[_lead_columns(numeric_logical_columns(df), [_outcome, *_covariates])]
     if len(df) < 5 or df.shape[1] < 2:
         raise ValueError(
             "'df' needs at least two variables and five observations of numerical data"

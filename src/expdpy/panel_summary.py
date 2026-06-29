@@ -17,9 +17,11 @@ from great_tables import GT
 from pandas.api import types as pdt
 
 from expdpy._common import default_alpha as _default_alpha
+from expdpy._common import entity_display_map as _entity_display_map
 from expdpy._labels import resolve_label
-from expdpy._panel import resolve_panel
+from expdpy._panel import resolve_entity_name, resolve_panel
 from expdpy._panel_math import panel_decompose
+from expdpy._roles import resolve_roles
 from expdpy._theme import apply_default_layout, color_for
 from expdpy._types import WithinBetweenScatterResult, XtsumTableResult
 from expdpy._validation import (
@@ -187,8 +189,8 @@ def _fit_line(
 
 def explore_scatter_plot_within_between(
     df: pd.DataFrame,
-    x: str,
-    y: str,
+    x: str | None = None,
+    y: str | None = None,
     *,
     entity: str | None = None,
     time: str | None = None,
@@ -209,7 +211,8 @@ def explore_scatter_plot_within_between(
     df
         Panel data frame.
     x, y
-        Numeric column names for the axes.
+        Numeric column names for the axes. When omitted, they default to the declared roles
+        (:func:`expdpy.set_roles`): ``x`` to the first covariate and ``y`` to the main outcome.
     entity
         Cross-sectional (unit) identifier. Defaults to the panel ``entity``.
     time
@@ -241,11 +244,24 @@ def explore_scatter_plot_within_between(
     df = ensure_dataframe(df)
     entity, time = resolve_panel(df, entity, time, require_entity=True)
     assert entity is not None  # require_entity=True guarantees this
+    outcome, covariates = resolve_roles(df)
+    if x is None:
+        x = covariates[0] if covariates else None
+    if y is None:
+        y = outcome
+    if x is None or y is None:
+        raise ValueError(
+            "explore_scatter_plot_within_between: pass x= and y=, or declare them via "
+            "set_roles (the first covariate becomes x, the outcome becomes y)"
+        )
     for axis_name, col in (("x", x), ("y", y)):
+        if col not in df.columns:
+            raise ValueError(f"{axis_name} ({col!r}) needs to be in df")
         if not pdt.is_numeric_dtype(df[col]):
             raise ValueError(f"{axis_name} ({col!r}) needs to be numeric")
     x_label = resolve_label(df, x)
     y_label = resolve_label(df, y)
+    disp = _entity_display_map(df, entity, resolve_entity_name(df))
     cols = list(dict.fromkeys([entity, x, y, *([time] if time else [])]))
     sub = drop_missing(
         df[cols], [entity, x, y], func="explore_scatter_plot_within_between"
@@ -308,7 +324,7 @@ def explore_scatter_plot_within_between(
             mode="markers",
             name="pooled",
             marker={"color": color_for(9), "opacity": alpha, "size": 6},
-            customdata=sub[entity].astype(str),
+            customdata=sub[entity].map(lambda u: disp.get(str(u), str(u))),
             hovertemplate="%{customdata}<br>x=%{x:.4g}, y=%{y:.4g}<extra>pooled</extra>",
         )
     )
@@ -324,7 +340,7 @@ def explore_scatter_plot_within_between(
                 "size": 9,
                 "line": {"color": "white", "width": 0.5},
             },
-            customdata=em.index.astype(str),
+            customdata=em.index.map(lambda u: disp.get(str(u), str(u))),
             hovertemplate="%{customdata}<br>mean x=%{x:.4g}, mean y=%{y:.4g}"
             "<extra>between</extra>",
         )

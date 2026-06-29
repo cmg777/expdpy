@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import os
 
+import pandas as pd
 import pytest
 
 pytest.importorskip("streamlit")
@@ -22,7 +23,7 @@ from expdpy.streamlit_app._config_io import dump_config, load_config
 from expdpy.streamlit_app._context import DATASETS
 from expdpy.streamlit_app._export_nb import build_export_zip
 from expdpy.streamlit_app._pages import selected_specs
-from expdpy.streamlit_app._sidebar import Active, _apply_labels_panel
+from expdpy.streamlit_app._sidebar import _DDEF_COLUMNS, Active, _apply_labels_panel
 from expdpy.streamlit_app._state import parse_config
 
 pytestmark = pytest.mark.streamlit
@@ -459,6 +460,110 @@ def test_apply_labels_panel_tolerates_missing_dict():
 
     df = load_kuznets()
     assert _apply_labels_panel(df, None) is df  # no dictionary → unchanged, no crash
+
+
+def test_apply_labels_panel_declares_roles_and_entity_name():
+    from expdpy.data import load_bolivia112_gdppc
+
+    base = load_bolivia112_gdppc()
+    ddef = ex.build_data_def(base)  # auto-detects ``prov`` as entity_name
+    ddef.loc[ddef["var_name"] == "log_gdppc", "role"] = "outcome"
+    ddef.loc[ddef["var_name"] == "gdppc", "role"] = "covariate"
+    df = _apply_labels_panel(base, ddef)
+    from expdpy._panel import stored_entity_name
+    from expdpy._roles import stored_roles
+
+    assert stored_roles(df) == ("log_gdppc", ["gdppc"])
+    assert stored_entity_name(df) == "prov"
+
+
+def test_roles_from_def_and_prioritize():
+    from expdpy.streamlit_app._appcore import _roles_from_def
+    from expdpy.streamlit_app._pages import _prioritize
+
+    ddef = pd.DataFrame(
+        {
+            "var_name": ["y", "x1", "x2", "name", "id"],
+            "role": ["outcome", "covariate", "covariate", "entity_name", ""],
+        }
+    )
+    assert _roles_from_def(ddef) == ("y", ["x1", "x2"], "name")
+    assert _roles_from_def(ddef, columns=["y", "x1"]) == ("y", ["x1"], None)
+    assert _roles_from_def(pd.DataFrame({"var_name": ["y"]})) == (None, [], None)
+
+    active = Active(
+        source_name="s",
+        data_id="d",
+        base_df=pd.DataFrame(),
+        df_def=None,
+        entities=[],
+        time=None,
+        sample=pd.DataFrame(),
+        var_cats=None,  # type: ignore[arg-type]
+        active_components=[],
+        outcome="y",
+        covariates=["x1", "x2"],
+    )
+    assert _prioritize(["a", "x2", "y", "b", "x1"], active) == [
+        "y",
+        "x1",
+        "x2",
+        "a",
+        "b",
+    ]
+
+
+def test_normalize_def_cleans_role_column():
+    from expdpy.data import _normalize_def
+
+    out = _normalize_def(
+        pd.DataFrame(
+            {"var_name": ["a", "b"], "role": ["outcome", "junk"], "can_be_na": [1, 0]}
+        )
+    )
+    assert list(out["role"]) == ["outcome", ""]  # unknown value coerced to blank
+    assert "role" in _DDEF_COLUMNS  # editor exposes the column
+
+
+def test_menus_show_label_format():
+    """A bundled df_def with curated labels makes the menus read ``Label (var_name)``."""
+    at = _page("correlations")
+    assert not at.exception
+    opts = at.selectbox(key="scatter_x").options
+    assert any(o.endswith(")") and " (" in o for o in opts)
+
+
+def test_role_defaults_preselect_in_app(monkeypatch):
+    from expdpy.data import load_kuznets
+
+    ddef = ex.build_data_def(load_kuznets())
+    ddef.loc[ddef["var_name"] == "gini_regional", "role"] = "outcome"
+    ddef.loc[ddef["var_name"] == "log_gdp_pc", "role"] = "covariate"
+    bundle = handoff.write_bundle(
+        {"Kuznets": load_kuznets()},
+        df_def=ddef,
+        var_def=None,
+        entities=["country"],
+        time="year",
+        components=None,
+        factor_cutoff=10,
+        title="t",
+        export_nb_option=True,
+        save_settings_option=True,
+        base_cfg={},
+    )
+    try:
+        monkeypatch.setenv(handoff.EXPDPY_BUNDLE_ENV, bundle)
+        at = AppTest.from_string(_PAGE_SCRIPT, default_timeout=120)
+        at.session_state["_test_page"] = "regression"
+        at.run()
+        assert not at.exception
+        assert (
+            at.selectbox(key="reg_y").value == "gini_regional"
+        )  # raw value, pre-selected
+        assert at.multiselect(key="reg_x").value == ["log_gdp_pc"]
+    finally:
+        handoff.cleanup_bundle(bundle)
 
 
 # --- sample selection: filters, period, persistence, cross-section ------------

@@ -44,11 +44,19 @@ def _read_parquet(name: str) -> pd.DataFrame:
         return pd.read_parquet(path)
 
 
+#: Allowed values for a data dictionary's ``role`` column.
+_ROLE_VALUES = {"outcome", "covariate", "entity_name"}
+
+
 def _normalize_def(df: pd.DataFrame) -> pd.DataFrame:
-    """Coerce a data/var-definition frame's ``can_be_na`` column to boolean."""
-    if "can_be_na" in df.columns:
+    """Coerce a data/var-definition frame's ``can_be_na`` to bool and clean any ``role`` column."""
+    if "can_be_na" in df.columns or "role" in df.columns:
         df = df.copy()
+    if "can_be_na" in df.columns:
         df["can_be_na"] = df["can_be_na"].astype(float).astype(bool)
+    if "role" in df.columns:
+        cleaned = df["role"].fillna("").astype(str).str.strip()
+        df["role"] = cleaned.where(cleaned.isin(_ROLE_VALUES), "")
     return df
 
 

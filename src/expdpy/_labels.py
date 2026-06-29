@@ -26,6 +26,7 @@ from collections.abc import Iterable, Mapping
 import pandas as pd
 
 from expdpy._panel import set_panel as _set_panel
+from expdpy._roles import set_roles as _set_roles
 from expdpy._validation import ensure_dataframe
 
 __all__ = ["label_map", "resolve_label", "resolve_labels", "set_labels"]
@@ -74,6 +75,23 @@ def _panel_ids_from_def(df_def: pd.DataFrame) -> tuple[str | None, str | None]:
     return (entities[0] if entities else None), (times[0] if times else None)
 
 
+def _entity_name_from_def(df_def: pd.DataFrame) -> str | None:
+    """Return the first ``var_name`` a ``df_def`` marks ``role == "entity_name"`` (else None)."""
+    if "role" not in df_def.columns:
+        return None
+    names = list(df_def.loc[df_def["role"] == "entity_name", "var_name"])
+    return str(names[0]) if names else None
+
+
+def _roles_from_def(df_def: pd.DataFrame) -> tuple[str | None, list[str]]:
+    """Return ``(outcome, covariates)`` from a ``df_def``'s ``role`` column (else ``(None, [])``)."""
+    if "role" not in df_def.columns:
+        return None, []
+    outcomes = list(df_def.loc[df_def["role"] == "outcome", "var_name"])
+    covariates = list(df_def.loc[df_def["role"] == "covariate", "var_name"])
+    return (str(outcomes[0]) if outcomes else None), [str(c) for c in covariates]
+
+
 def set_labels(
     df: pd.DataFrame,
     labels: Mapping[str, str] | pd.DataFrame | None = None,
@@ -96,8 +114,10 @@ def set_labels(
         whose ``label`` / ``var_def`` columns supply the labels. ``None`` leaves the stored
         mapping unchanged.
     set_panel
-        When ``True`` and ``labels`` is a ``df_def``, also declare the panel by calling
-        :func:`~expdpy.set_panel` with the ``entity`` / ``time`` columns it tags.
+        When ``True`` and ``labels`` is a ``df_def``, also declare the structural metadata it
+        carries: the panel (``entity`` / ``time``, plus an ``entity_name`` column tagged
+        ``role == "entity_name"``) via :func:`~expdpy.set_panel`, and the analytical roles
+        (``role`` of ``outcome`` / ``covariate``) via :func:`~expdpy.set_roles`.
 
     Returns
     -------
@@ -122,7 +142,11 @@ def set_labels(
             mapping = _mapping_from_def(labels)
             if set_panel:
                 entity, time = _panel_ids_from_def(labels)
-                _set_panel(df, entity=entity, time=time)
+                entity_name = _entity_name_from_def(labels)
+                _set_panel(df, entity=entity, time=time, entity_name=entity_name)
+                outcome, covariates = _roles_from_def(labels)
+                if outcome is not None or covariates:
+                    _set_roles(df, outcome=outcome, covariates=covariates)
         else:
             mapping = {str(k): str(v) for k, v in labels.items()}
         current = dict(df.attrs.get(_LABELS_KEY, {}))

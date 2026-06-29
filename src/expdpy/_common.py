@@ -25,6 +25,9 @@ __all__ = [
     "try_convert_ts_id",
     "se",
     "xaxis",
+    "entity_display_map",
+    "entity_display_series",
+    "lead_columns",
 ]
 
 # Full date strings only (YYYY-MM-DD / YYYY/MM/DD) — bare-year strings like "2013" must fall
@@ -113,3 +116,78 @@ def xaxis(
         cats = [str(c) for c in ts_values.cat.categories]
         axis.update(type="category", categoryorder="array", categoryarray=cats)
     return axis
+
+
+def _is_blank_name(value: object) -> bool:
+    """Return ``True`` for ``None`` / NaN / empty-or-whitespace strings."""
+    if value is None or value is pd.NA:
+        return True
+    if isinstance(value, float) and np.isnan(value):
+        return True
+    return not str(value).strip()
+
+
+def entity_display_map(
+    df: pd.DataFrame, entity: str, entity_name: str | None
+) -> dict[str, str]:
+    """Map each entity id (as ``str``) to a ``"Name (id)"`` display string.
+
+    Used by panel figures/tables so a unit shows a readable label (e.g. ``"Bolivia (BOL)"``)
+    instead of the bare id. The mapping is keyed by ``str(id)`` so a lookup is robust to the id
+    being re-typed along the way (e.g. an int id stringified by a cross-section reshape): look
+    up with ``disp.get(str(u), str(u))``.
+
+    Falls back to an identity map ``{str(id): str(id)}`` when ``entity_name`` is ``None``, not a
+    column of ``df``, or equal to ``entity`` (no ``"X (X)"``); per id, when the name is blank or
+    missing the display is the bare ``str(id)``.
+
+    Parameters
+    ----------
+    df
+        The frame holding the ``entity`` (and optionally ``entity_name``) columns.
+    entity
+        The entity (unit) id column.
+    entity_name
+        The human-readable name column constant within each entity, or ``None``.
+
+    Returns
+    -------
+    dict
+        ``{str(id): display_string}`` for every distinct id in ``df[entity]``.
+    """
+    ids = df[entity].dropna().unique()
+    if entity_name is None or entity_name == entity or entity_name not in df.columns:
+        return {str(uid): str(uid) for uid in ids}
+    pairs = df[[entity, entity_name]].drop_duplicates(subset=[entity])
+    names = dict(zip(pairs[entity], pairs[entity_name], strict=True))
+    out: dict[str, str] = {}
+    for uid in ids:
+        name = names.get(uid)
+        out[str(uid)] = str(uid) if _is_blank_name(name) else f"{name} ({uid})"
+    return out
+
+
+def entity_display_series(
+    df: pd.DataFrame, entity: str, entity_name: str | None
+) -> pd.Series:
+    """Return per-row ``"Name (id)"`` display labels aligned to ``df.index``.
+
+    A row-wise convenience over :func:`entity_display_map` (``str(id)`` fallback throughout).
+    """
+    disp = entity_display_map(df, entity, entity_name)
+    return df[entity].map(lambda uid: disp.get(str(uid), str(uid)))
+
+
+def lead_columns(names: list[str], lead: list[str | None]) -> list[str]:
+    """Reorder ``names`` so any of ``lead`` (in order, ignoring ``None``/absent) come first.
+
+    Stable for the remaining columns. Used to float the declared key variables (main outcome,
+    then covariates) to the front of a table or correlation matrix when roles are set; a no-op
+    when none of ``lead`` is present (so role-less data keeps its original column order).
+    """
+    present = set(names)
+    front = list(dict.fromkeys(c for c in lead if c is not None and c in present))
+    if not front:
+        return list(names)
+    front_set = set(front)
+    return [*front, *[n for n in names if n not in front_set]]

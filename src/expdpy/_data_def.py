@@ -6,9 +6,9 @@ human-readable label and its role in the panel (``entity`` / ``time`` / ``factor
 DataFrame, so a user who brings only a data file still gets labelled figures and panel-aware
 views — and, in the ``ExPdPy`` apps, an editable starting point.
 
-The result is a plain frame with the same five columns the loaders return
-(``var_name`` / ``var_def`` / ``label`` / ``type`` / ``can_be_na``), consumable directly by
-:func:`~expdpy.set_labels`::
+The result is a plain frame with the same columns the loaders return
+(``var_name`` / ``var_def`` / ``label`` / ``type`` / ``role`` / ``can_be_na``), consumable
+directly by :func:`~expdpy.set_labels`::
 
     df = ex.set_labels(df, ex.build_data_def(df), set_panel=True)
 
@@ -29,8 +29,8 @@ from expdpy._validation import ensure_dataframe
 
 __all__ = ["build_data_def"]
 
-#: The five columns of a data-definition frame, in order.
-_COLUMNS = ["var_name", "var_def", "label", "type", "can_be_na"]
+#: The six columns of a data-definition frame, in order.
+_COLUMNS = ["var_name", "var_def", "label", "type", "role", "can_be_na"]
 
 #: Lower-cased name tokens that hint a column is a cross-sectional (unit) identifier.
 _ENTITY_HINTS = {
@@ -63,6 +63,50 @@ _ENTITY_HINTS = {
     "individual",
     "person",
     "household",
+}
+
+#: Lower-cased name tokens that hint a column holds a human-readable *entity name* (a label
+#: for the unit, e.g. a country/province name), used to pick the entity-name column.
+_NAME_TOKENS = {
+    "name",
+    "names",
+    "country",
+    "countries",
+    "nation",
+    "province",
+    "prov",
+    "region",
+    "state",
+    "district",
+    "municipality",
+    "muni",
+    "department",
+    "dept",
+    "firm",
+    "company",
+    "person",
+    "household",
+    "individual",
+    "label",
+    "title",
+}
+
+#: Lower-cased name tokens that hint a column is a *code/id* (the opposite of a readable name).
+_CODE_TOKENS = {
+    "id",
+    "ids",
+    "code",
+    "iso",
+    "iso2",
+    "iso3",
+    "ticker",
+    "gvkey",
+    "permno",
+    "cusip",
+    "key",
+    "num",
+    "no",
+    "gid",
 }
 
 #: Lower-cased name tokens that hint a column is the time identifier.
@@ -166,6 +210,65 @@ def _detect_entities(
     return []
 
 
+def _avg_len(s: pd.Series) -> float:
+    """Average string length of a column's non-missing values (a name-likeness tiebreak)."""
+    vals = s.dropna().astype(str)
+    return float(vals.str.len().mean()) if len(vals) else 0.0
+
+
+def _name_likeness(name: object, s: pd.Series) -> int:
+    """Score how *name-like* (vs *code-like*) a column is — higher means more readable."""
+    toks = _tokens(name)
+    score = 2 * bool(toks & _NAME_TOKENS) - 2 * bool(toks & _CODE_TOKENS)
+    if pdt.is_integer_dtype(s):
+        score -= 1
+    return score
+
+
+def _detect_entity_name(
+    df: pd.DataFrame, entities: list[str], time_col: str | None
+) -> str | None:
+    """Detect a human-readable entity-name column, or ``None``.
+
+    A candidate is a text/categorical column that is **constant within** the primary entity id
+    and **~1:1** with it (one label per unit). The most name-like candidate wins, but only when
+    it is strictly more name-like than the entity id itself (so an id that is already a name —
+    e.g. ``country`` paired with ``iso`` — yields ``None`` rather than a backwards label).
+    """
+    if not entities:
+        return None
+    primary = entities[0]
+    n_ent = int(df[primary].dropna().nunique())
+    if n_ent == 0:
+        return None
+    candidates: list[str] = []
+    for c in df.columns:
+        if c in (primary, time_col):
+            continue
+        s = df[c]
+        if pdt.is_numeric_dtype(s) or pdt.is_bool_dtype(s):
+            continue
+        if not (
+            pdt.is_object_dtype(s)
+            or isinstance(s.dtype, pd.CategoricalDtype)
+            or pdt.is_string_dtype(s)
+        ):
+            continue
+        g = df[[primary, c]].dropna()
+        if g.empty or (g.groupby(primary)[c].nunique() > 1).any():
+            continue  # not constant within the entity
+        if g[c].nunique() < 0.95 * n_ent:
+            continue  # not ~1:1 with the entities
+        candidates.append(c)
+    if not candidates:
+        return None
+    key = lambda c: (_name_likeness(c, df[c]), _avg_len(df[c]))  # noqa: E731
+    best = max(candidates, key=key)
+    if key(best) <= (_name_likeness(primary, df[primary]), _avg_len(df[primary])):
+        return None
+    return best
+
+
 def build_data_def(
     df: pd.DataFrame,
     *,
@@ -183,6 +286,12 @@ def build_data_def(
     range), ``logical`` (boolean or two-valued), ``factor`` (categorical/object, or numeric
     with at most ``factor_cutoff`` distinct values), else ``numeric``.
 
+    A best-guess ``role`` is also filled: a text column that is constant within the entity and
+    ~1:1 with it (a readable label for the unit, e.g. a country name beside an ISO code) is
+    tagged ``entity_name``; all other rows are left blank. The analytical roles ``outcome`` /
+    ``covariate`` are never guessed — mark them yourself (in the dictionary or via
+    :func:`~expdpy.set_roles`).
+
     Parameters
     ----------
     df
@@ -198,8 +307,8 @@ def build_data_def(
     Returns
     -------
     pandas.DataFrame
-        A dictionary frame with columns ``var_name``, ``var_def``, ``label``, ``type`` and
-        ``can_be_na`` (one row per column of ``df``, in column order).
+        A dictionary frame with columns ``var_name``, ``var_def``, ``label``, ``type``,
+        ``role`` and ``can_be_na`` (one row per column of ``df``, in column order).
 
     Examples
     --------
@@ -225,6 +334,7 @@ def build_data_def(
     time_col = time if time is not None else _detect_time(df, cols)
     entities = explicit_entities or _detect_entities(df, cols, time_col)
     entity_set = set(entities)
+    name_col = _detect_entity_name(df, entities, time_col)
 
     rows = []
     for col in cols:
@@ -241,6 +351,7 @@ def build_data_def(
                 "var_def": label,
                 "label": label,
                 "type": typ,
+                "role": "entity_name" if col == name_col else "",
                 "can_be_na": typ not in ("entity", "time"),
             }
         )

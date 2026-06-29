@@ -8,7 +8,7 @@ interactive app; they carry no UI-framework dependency and are reused throughout
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
 
 import pandas as pd
@@ -25,6 +25,7 @@ __all__ = [
     "_cluster_vars",
     "_normalize_samples",
     "_resolve_ids",
+    "_roles_from_def",
 ]
 
 
@@ -51,6 +52,30 @@ def _resolve_ids(
     if isinstance(entity, str):
         entity = [entity]
     return (list(entity) if entity else []), time
+
+
+def _roles_from_def(
+    df_def: pd.DataFrame | None, columns: Iterable[str] | None = None
+) -> tuple[str | None, list[str], str | None]:
+    """Extract ``(outcome, covariates, entity_name)`` from a df_def's ``role`` column.
+
+    Returns ``(None, [], None)`` when ``df_def`` is ``None`` or has no ``role`` column. When
+    ``columns`` is given, roles naming a column not present are dropped.
+    """
+    if df_def is None or "role" not in getattr(df_def, "columns", []):
+        return None, [], None
+    role = df_def["role"].astype(str)
+    outcomes = list(df_def.loc[role == "outcome", "var_name"])
+    covariates = [str(c) for c in df_def.loc[role == "covariate", "var_name"]]
+    names = list(df_def.loc[role == "entity_name", "var_name"])
+    outcome = str(outcomes[0]) if outcomes else None
+    entity_name = str(names[0]) if names else None
+    if columns is not None:
+        present = set(columns)
+        outcome = outcome if outcome in present else None
+        covariates = [c for c in covariates if c in present]
+        entity_name = entity_name if entity_name in present else None
+    return outcome, covariates, entity_name
 
 
 def _active_components(components: Any, time: str | None) -> list[str]:
@@ -111,5 +136,11 @@ _CONFIG_INPUT_KEYS = [
     "es_cohort",
     "es_estimator",
     "pm_dv",
-    "pm_idvs",
+    "pm_xs",
+    "beta_var",
+    "sigma_var",
+    "clubs_var",
+    "kw_ineq",
+    "kw_dev",
+    "kw_controls",
 ]

@@ -15,6 +15,7 @@ from expdpy._common import try_convert_ts_id as _try_convert_ts_id
 from expdpy._common import xaxis as _xaxis
 from expdpy._labels import resolve_label, resolve_labels
 from expdpy._panel import resolve_panel
+from expdpy._roles import resolve_roles
 from expdpy._theme import apply_default_layout, color_for
 from expdpy._types import QuantileTrendGraphResult, TrendGraphResult
 from expdpy._validation import drop_missing, ensure_dataframe
@@ -102,7 +103,9 @@ def explore_trend_plot(
     entity, time = resolve_panel(df, entity, time, require_time=True)
     assert time is not None  # require_time=True guarantees this
     if var is None:
-        var = _numeric_vars(df, time, entity)
+        # Default to the declared main outcome when one is set, else all numeric variables.
+        outcome = resolve_roles(df)[0]
+        var = [outcome] if outcome is not None else _numeric_vars(df, time, entity)
     else:
         var = list(var)
         missing = [v for v in var if v not in df.columns]
@@ -246,6 +249,9 @@ def explore_quantile_trend_plot(
         raise ValueError("quantiles need to be in the open interval (0, 1)")
     if len(set(quantiles)) != len(quantiles):
         raise ValueError("quantiles need to be unique")
+    if var is None:
+        # Default to the declared main outcome when one is set, else a numeric variable.
+        var = resolve_roles(df)[0]
     if var is None:
         candidates = _numeric_vars(df, time)
         if not candidates:

@@ -12,9 +12,10 @@ from great_tables import GT
 from pandas.api import types as pdt
 
 from expdpy._common import argsort_levels
+from expdpy._common import entity_display_map as _entity_display_map
 from expdpy._common import try_convert_ts_id as _try_convert_ts_id
 from expdpy._labels import resolve_label
-from expdpy._panel import resolve_panel
+from expdpy._panel import resolve_entity_name, resolve_panel
 from expdpy._theme import (
     active_diverging_scale,
     active_sequential_scale,
@@ -101,6 +102,7 @@ def explore_panel_structure(
     entity_label = resolve_label(df, entity)
     time_label = resolve_label(df, time)
     var_label = resolve_label(df, var) if var else None
+    ent_disp = _entity_display_map(df, entity, resolve_entity_name(df))
 
     keep = [entity, time, *([var] if var else [])]
     work = df[keep].dropna(subset=[entity, time]).copy()
@@ -163,7 +165,7 @@ def explore_panel_structure(
         [np.where(row)[0][0] if row.any() else n_periods for row in presence]
     )
     order = np.lexsort((-obs_per_unit, first_seen))
-    sorted_units = [str(grid.index[i]) for i in order]
+    sorted_units = [ent_disp.get(str(grid.index[i]), str(grid.index[i])) for i in order]
     z_full = presence.astype(int)[order]
     shown_units = _even_sample(sorted_units, max_units, what="panel_structure")
     shown_mask = [u in set(shown_units) for u in sorted_units]
@@ -263,6 +265,7 @@ def explore_value_heatmap(
     entity_label = resolve_label(df, entity)
     time_label = resolve_label(df, time)
     var_label = resolve_label(df, var)
+    ent_disp = _entity_display_map(df, entity, resolve_entity_name(df))
 
     work = df[[entity, time, var]].dropna(subset=[entity, time]).copy()
     work[time] = _try_convert_ts_id(work[time])[0]
@@ -305,7 +308,7 @@ def explore_value_heatmap(
         go.Heatmap(
             z=z,
             x=[str(c) for c in pivot.columns],
-            y=[str(i) for i in pivot.index],
+            y=[ent_disp.get(str(i), str(i)) for i in pivot.index],
             colorscale=active_diverging_scale()
             if diverging
             else active_sequential_scale(),

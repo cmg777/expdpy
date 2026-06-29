@@ -14,9 +14,10 @@ from pandas.api import types as pdt
 from scipy.stats import gaussian_kde
 
 from expdpy._common import default_alpha as _default_alpha
+from expdpy._common import entity_display_map as _entity_display_map
 from expdpy._common import try_convert_ts_id as _try_convert_ts_id
 from expdpy._labels import resolve_label
-from expdpy._panel import resolve_panel
+from expdpy._panel import resolve_entity_name, resolve_panel
 from expdpy._theme import (
     active_sequential_scale,
     apply_default_layout,
@@ -540,6 +541,7 @@ def explore_within_persistence(
         raise ValueError(f"var ({var!r}) needs to be numeric")
 
     var_label = resolve_label(df, var)
+    disp = _entity_display_map(df, entity, resolve_entity_name(df))
 
     sub = drop_missing(
         df[[entity, time, var]], [entity, time, var], func="explore_within_persistence"
@@ -582,7 +584,7 @@ def explore_within_persistence(
             mode="markers",
             marker={"color": color_for(0), "opacity": alpha, "size": 6},
             name="pairs",
-            customdata=pairs[entity].astype(str),
+            customdata=pairs[entity].map(lambda u: disp.get(str(u), str(u))),
             hovertemplate="%{customdata}<br>prev=%{x:.4g}, now=%{y:.4g}<extra></extra>",
         )
     )

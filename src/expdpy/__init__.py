@@ -13,7 +13,8 @@ conceptual modules:
   plain-language ``.interpret()`` on every result, and runnable concept sandboxes.
 * **Utilities** — shared helpers used across modules: ``set_panel`` / ``resolve_panel``
   (declare the panel once), ``set_labels`` / ``resolve_label`` (declare human-readable
-  variable labels once), ``build_data_def`` (infer a data dictionary from a raw frame),
+  variable labels once), ``set_roles`` (mark the main outcome / covariates so figures and the
+  apps default to them), ``build_data_def`` (infer a data dictionary from a raw frame),
   ``treat_outliers`` (winsorize/truncate), and the concept-explainer registry entry points
   (``explain`` / ``list_topics``).
 
@@ -26,6 +27,7 @@ from __future__ import annotations
 from expdpy._data_def import build_data_def
 from expdpy._labels import resolve_label, set_labels
 from expdpy._panel import resolve_panel, set_panel
+from expdpy._roles import set_roles
 from expdpy._theme import get_palette, set_palette
 from expdpy._types import (
     AnimatedScatterResult,
@@ -136,7 +138,7 @@ from expdpy.tables import (
 )
 from expdpy.trends import explore_quantile_trend_plot, explore_trend_plot
 
-__version__ = "0.4.22"
+__version__ = "0.4.23"
 
 __all__ = [
     # ===== EXPLORE =====
@@ -230,6 +232,8 @@ __all__ = [
     # variable labels (human-readable display names)
     "set_labels",
     "resolve_label",
+    # analytical roles (main outcome / covariates)
+    "set_roles",
     # data dictionary inference (df_def)
     "build_data_def",
     # outlier treatment

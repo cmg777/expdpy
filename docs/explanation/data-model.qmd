@@ -52,20 +52,55 @@ Its columns:
 | column      | required?            | meaning                                                                                                   |
 |-------------|----------------------|-----------------------------------------------------------------------------------------------------------|
 | `var_name`  | **required**         | the column name in the data (must match exactly)                                                          |
-| `type`      | **required**         | one of `entity`, `time`, `factor`, `logical`, `numeric`                                                   |
+| `type`      | **required**         | one of `entity`, `time`, `factor`, `logical`, `numeric` (made **authoritative** for the app's variable menus) |
 | `label`     | recommended          | a **concise, human-readable label** used for axis titles, legends and table headers (with units where helpful, e.g. `"GDP per capita (USD)"`) |
 | `var_def`   | optional             | a longer description (or, for `var_def` tables, an expression). Used as the label only when `label` is absent |
-| `can_be_na` | optional             | if `False`, rows missing this variable are dropped                                                         |
+| `role`      | optional             | marks the **key variables**: one `outcome`, any number of `covariate`, and one `entity_name` (the column holding readable unit names). Blank for everything else |
+| `can_be_na` | optional             | if `False`, rows missing this variable are **dropped** from the analysis sample (only the entity/time ids are required by default) |
 
 ```python
 from expdpy.data import load_kuznets_data_def
 
-# columns: var_name, var_def, label, type, can_be_na
+# columns: var_name, var_def, label, type, role, can_be_na
 load_kuznets_data_def()  # entity (country, iso), time (year), factors and numerics
 ```
 
-The bundled `*_data_def` tables (`kuznets`, `gapminder`, `firms`, `staggered_did`) now ship a
-curated `label` for every variable.
+The bundled `*_data_def` tables (`kuznets`, `gapminder`, `firms`, `staggered_did`) ship a curated
+`label` for every variable.
+
+## Key variables: main outcome & covariates
+
+Mark the variable you most care about as the **main outcome** and the explanatory variable(s) of
+interest as **covariates** — in the dictionary's `role` column, or directly with
+`set_roles(df, outcome=..., covariates=[...])`. Once declared, the figures, tables and apps
+**default to these key variables** instead of the first numeric column:
+
+- a scatter plots the covariate against the outcome; a regression uses the outcome as the
+  dependent variable and the covariates as the regressors;
+- single-variable views (histogram, trend, extreme observations, spaghetti, …) default to the
+  outcome, and the descriptive / correlation tables lead with the key variables;
+- in the apps, the key variables are **pre-selected** and **floated to the top** of every
+  dropdown.
+
+```python
+import expdpy as ex
+from expdpy.data import load_kuznets, load_kuznets_data_def
+
+df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
+df = ex.set_roles(df, outcome="gini_regional", covariates=["log_gdp_pc"])
+
+ex.explore_scatter_plot(df).fig          # x = log_gdp_pc, y = gini_regional
+ex.analyze_regression_table(df).etable    # gini_regional ~ log_gdp_pc
+```
+
+## Entity names vs entity ids
+
+A panel keys on an `entity` **id** (e.g. an ISO code or a numeric province id), but a separate
+column often holds a readable **name** for each unit (e.g. the country or province name). Tag that
+column `role = entity_name` (or let `build_data_def` auto-detect it — any text column that is
+constant within, and ~1:1 with, the entity id), and every figure that labels individual units
+shows **`Name (id)`** — e.g. `Bolivia (BOL)` in a spaghetti legend or a hover tooltip — by reading
+`df.attrs`. No per-figure arguments are needed; the `.df` you get back keeps the raw ids.
 
 ## Readable labels in figures and tables
 
@@ -83,9 +118,12 @@ ex.explore_trend_plot(df, var="gini_regional").fig   # y-axis: "Regional inequal
 ex.explore_descriptive_table(df).gt                  # rows labelled, not "gini_regional"
 ```
 
-`set_labels` stores the labels on `df.attrs` (just as `set_panel` stores the panel ids), so they
-survive across calls — though, like the panel ids, some pandas operations drop `attrs`; re-apply
-`set_labels` after such steps, or pass labels explicitly.
+`set_labels` stores the labels on `df.attrs` (just as `set_panel` stores the panel ids and
+`set_roles` stores the key variables), so they survive across calls — though, like the panel ids,
+some pandas operations drop `attrs`; re-apply `set_labels` / `set_panel` / `set_roles` after such
+steps, or pass the values explicitly. One call does it all:
+`set_labels(df, df_def, set_panel=True)` reads the dictionary's labels **and** declares the panel,
+the `entity_name`, and the `outcome` / `covariate` roles it carries.
 
 The label for each variable is resolved in order of preference:
 
@@ -103,7 +141,10 @@ the **raw** variable names; only the displayed axes and headers use the labels.
 
 Inside the app, columns are classified for the selectors: a **factor** is categorical/object
 or a numeric column with at most `factor_cutoff` (default 10) distinct values; a
-**two-level** column has exactly two values; the rest are **numeric** or **logical**.
+**two-level** column has exactly two values; the rest are **numeric** or **logical**. When the
+dictionary declares a `type`, that declaration is **authoritative** — a numeric column you tag
+`factor` becomes a grouping variable, for instance, regardless of its dtype. The marked outcome
+and covariates are also floated to the top of the matching selectors.
 
 ## Time-axis conversion
 

@@ -50,8 +50,9 @@ import statsmodels.api as sm
 from pandas.api import types as pdt
 from plotly.subplots import make_subplots
 
+from expdpy._common import entity_display_map as _entity_display_map
 from expdpy._labels import resolve_label
-from expdpy._panel import resolve_panel
+from expdpy._panel import resolve_entity_name, resolve_panel
 from expdpy._theme import apply_default_layout, color_for
 from expdpy._types import (
     BetaConvergenceResult,
@@ -516,6 +517,8 @@ def analyze_beta_convergence(
             raise TypeError(f"control {c!r} must be numeric")
 
     var_label = resolve_label(df, var)
+    # Entity-name display map ("Name (id)"), built before the dedup groupby drops attrs.
+    ent_disp = _entity_display_map(df, entity, resolve_entity_name(df))
     notes: list[str] = []
 
     n_dup = int(df.duplicated([entity, time]).sum())
@@ -548,7 +551,7 @@ def analyze_beta_convergence(
     fig = _scatter(
         uncond["initial"].to_numpy(dtype=float),
         uncond["growth"].to_numpy(dtype=float),
-        uncond[entity].to_numpy(),
+        uncond[entity].map(lambda u: ent_disp.get(str(u), str(u))).to_numpy(),
         f"Initial {var_label}",
         f"Growth of {var_label}",
         (beta, se, r2, n, speed, hl),
@@ -593,7 +596,7 @@ def analyze_beta_convergence(
                 fig_conditional = _scatter(
                     x_res,
                     y_res,
-                    cond[entity].to_numpy(),
+                    cond[entity].map(lambda u: ent_disp.get(str(u), str(u))).to_numpy(),
                     f"Residualized initial {var_label}",
                     f"Residualized growth of {var_label}",
                     (beta_c, se_c, r2_c, n_c, speed_c, hl_c),
@@ -1530,8 +1533,10 @@ def _clubs_paths_fig(
     time: str,
     time_label: str,
     var_label: str,
+    disp: dict[str, str] | None = None,
 ) -> go.Figure:
     """All units' relative-transition paths, coloured by club (one legend entry per club)."""
+    disp = disp or {}
     fig = go.Figure()
     seen: set[int] = set()
     for ent, sub in long.groupby(entity, observed=True, sort=False):
@@ -1547,7 +1552,7 @@ def _clubs_paths_fig(
                 legendgroup=_club_name(club),
                 name=_club_name(club),
                 showlegend=club not in seen,
-                customdata=np.full(len(sub), str(ent)),
+                customdata=np.full(len(sub), disp.get(str(ent), str(ent))),
                 hovertemplate=(
                     f"%{{customdata}} ({_club_name(club)})<br>{time_label}=%{{x}}<br>"
                     "relative=%{y:.3f}<extra></extra>"
@@ -1842,6 +1847,8 @@ def analyze_convergence_clubs(
 
     var_label = resolve_label(df, var)
     time_label = resolve_label(df, time)
+    # Entity-name display map ("Name (id)"), built before the slice/groupby drops attrs.
+    ent_disp = _entity_display_map(df, entity, resolve_entity_name(df))
     notes: list[str] = []
 
     work = df[[entity, time, var]].copy()
@@ -1939,7 +1946,7 @@ def analyze_convergence_clubs(
     )
 
     fig = _clubs_avg_fig(long, entity, time, time_label, var_label, title)
-    fig_paths = _clubs_paths_fig(long, entity, time, time_label, var_label)
+    fig_paths = _clubs_paths_fig(long, entity, time, time_label, var_label, ent_disp)
     fig_clubs = _clubs_facets_fig(long, entity, time, time_label, var_label)
 
     if converged:

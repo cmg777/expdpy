@@ -14,6 +14,7 @@ from statsmodels.nonparametric.smoothers_lowess import lowess
 from expdpy._common import default_alpha as _default_alpha
 from expdpy._labels import resolve_label
 from expdpy._panel import resolve_panel
+from expdpy._roles import resolve_roles
 from expdpy._theme import active_sequential_scale, apply_default_layout, color_for
 from expdpy._types import ScatterPlotResult
 from expdpy._validation import drop_missing, ensure_dataframe
@@ -45,8 +46,8 @@ def _lowess_curve(
 
 def explore_scatter_plot(
     df: pd.DataFrame,
-    x: str,
-    y: str,
+    x: str | None = None,
+    y: str | None = None,
     *,
     color: str | None = None,
     size: str | None = None,
@@ -65,7 +66,9 @@ def explore_scatter_plot(
     df
         Data frame containing the variables.
     x, y
-        Column names for the axes (both must be numeric).
+        Column names for the axes (both must be numeric). When omitted, they default to the
+        declared roles (:func:`expdpy.set_roles`): ``x`` to the first covariate and ``y`` to
+        the main outcome.
     color
         Optional column mapped to marker color (numeric -> colorbar, otherwise discrete).
     size
@@ -117,7 +120,19 @@ def explore_scatter_plot(
     """
     df = ensure_dataframe(df)
     entity, time = resolve_panel(df, entity, time)
+    outcome, covariates = resolve_roles(df)
+    if x is None:
+        x = covariates[0] if covariates else None
+    if y is None:
+        y = outcome
+    if x is None or y is None:
+        raise ValueError(
+            "explore_scatter_plot: pass x= and y=, or declare them via set_roles "
+            "(the first covariate becomes x, the outcome becomes y)"
+        )
     for axis_name, axis_col in (("x", x), ("y", y)):
+        if axis_col not in df.columns:
+            raise ValueError(f"{axis_name} ({axis_col!r}) needs to be in df")
         if not pdt.is_numeric_dtype(df[axis_col]):
             raise ValueError(f"{axis_name} ({axis_col!r}) needs to be numeric")
     if connect and entity is None:

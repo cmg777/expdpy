@@ -31,8 +31,9 @@ import pandas as pd
 import plotly.graph_objects as go
 from pandas.api import types as pdt
 
+from expdpy._common import entity_display_map as _entity_display_map
 from expdpy._labels import resolve_label
-from expdpy._panel import resolve_panel
+from expdpy._panel import resolve_entity_name, resolve_panel
 from expdpy._theme import apply_default_layout, color_for
 from expdpy._types import KuznetsWavesResult
 from expdpy._validation import ensure_dataframe
@@ -366,6 +367,8 @@ def analyze_kuznets_waves(
 
     ineq_label = resolve_label(df, inequality)
     dev_label = resolve_label(df, development)
+    # Entity-name display map ("Name (id)"), built before the dedup groupby drops attrs.
+    ent_disp = _entity_display_map(df, entity, resolve_entity_name(df))
     notes: list[str] = []
 
     n_dup = int(df.duplicated([entity, time]).sum())
@@ -481,7 +484,7 @@ def analyze_kuznets_waves(
     fig = _wave_fig(
         g,
         work[inequality].to_numpy(dtype=float),
-        work[entity].to_numpy(),
+        work[entity].map(lambda u: ent_disp.get(str(u), str(u))).to_numpy(),
         grid,
         b0_p + _eval_poly(betas_p, grid),
         dev_label,
@@ -511,7 +514,7 @@ def analyze_kuznets_waves(
     fig_between = _wave_fig(
         gbar,
         y_between,
-        between_df[entity].to_numpy(),
+        between_df[entity].map(lambda u: ent_disp.get(str(u), str(u))).to_numpy(),
         grid_b,
         b0_b + _eval_poly(betas_b, grid_b),
         f"{dev_label} (entity mean)",
@@ -547,7 +550,7 @@ def analyze_kuznets_waves(
     fig_within = _wave_fig(
         g,
         y_within,
-        work[entity].to_numpy(),
+        work[entity].map(lambda u: ent_disp.get(str(u), str(u))).to_numpy(),
         grid,
         curve_w,
         dev_label,

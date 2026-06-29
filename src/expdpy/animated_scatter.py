@@ -13,8 +13,9 @@ import pandas as pd
 import plotly.graph_objects as go
 from pandas.api import types as pdt
 
+from expdpy._common import entity_display_map as _entity_display_map
 from expdpy._labels import resolve_label
-from expdpy._panel import resolve_panel
+from expdpy._panel import resolve_entity_name, resolve_panel
 from expdpy._theme import active_sequential_scale, apply_default_layout, color_for
 from expdpy._types import AnimatedScatterResult
 from expdpy._validation import ensure_dataframe
@@ -118,6 +119,7 @@ def explore_animated_scatter_plot(
     x_label, y_label = resolve_label(df, x), resolve_label(df, y)
     color_label = resolve_label(df, color) if color else None
     time_label = resolve_label(df, time)
+    disp = _entity_display_map(df, entity, resolve_entity_name(df)) if entity else {}
 
     cols = list(dict.fromkeys(c for c in (x, y, size, color, entity, time) if c))
     sub = df[cols].dropna().copy()
@@ -163,7 +165,7 @@ def explore_animated_scatter_plot(
         return m
 
     def _scatter(part: pd.DataFrame, name: str, marker: dict, show: bool) -> go.Scatter:
-        text = part[entity].astype(str) if entity else None
+        text = part[entity].map(lambda u: disp.get(str(u), str(u))) if entity else None
         hover = (
             f"<b>%{{text}}</b><br>{x_label}=%{{x}}<br>{y_label}=%{{y}}<extra></extra>"
             if entity

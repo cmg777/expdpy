@@ -14,6 +14,8 @@ __all__ = [
     "numeric_logical_columns",
     "ExpdpyWarning",
     "drop_missing",
+    "drop_required",
+    "required_columns",
     "require_columns",
 ]
 
@@ -103,6 +105,46 @@ def drop_missing(
             stacklevel=stacklevel,
         )
     return out
+
+
+def required_columns(df_def: pd.DataFrame | None) -> list[str]:
+    """Return the variables a data dictionary marks as required (``can_be_na`` is ``False``).
+
+    A required variable is one whose ``can_be_na`` flag is falsey; rows missing it are dropped
+    from the analysis sample (see :func:`drop_required`). Returns ``[]`` for a ``df_def`` that is
+    ``None`` or lacks the ``can_be_na`` / ``var_name`` columns.
+    """
+    cols = getattr(df_def, "columns", [])
+    if df_def is None or "can_be_na" not in cols or "var_name" not in cols:
+        return []
+    required = df_def["can_be_na"].apply(
+        lambda v: not bool(v) if pd.notna(v) else False
+    )
+    return [str(v) for v in df_def.loc[required, "var_name"]]
+
+
+def drop_required(df: pd.DataFrame, df_def: pd.DataFrame | None) -> pd.DataFrame:
+    """Drop rows missing any variable the ``df_def`` marks required (``can_be_na`` ``False``).
+
+    Quietly applies the dictionary's completeness contract: only variables flagged
+    ``can_be_na == False`` and present in ``df`` are enforced. Returns ``df`` unchanged when no
+    such variables exist (the common case — by default only the entity/time ids are required).
+
+    Parameters
+    ----------
+    df
+        The data frame to filter.
+    df_def
+        The data dictionary describing ``df`` (or ``None``).
+
+    Returns
+    -------
+    pandas.DataFrame
+        The frame restricted to rows that have every required variable present.
+    """
+    df = ensure_dataframe(df)
+    cols = [c for c in required_columns(df_def) if c in df.columns]
+    return df.dropna(subset=cols) if cols else df
 
 
 def require_columns(df: pd.DataFrame, cols: Sequence[str], *, where: str) -> None:

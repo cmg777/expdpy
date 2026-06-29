@@ -12,9 +12,12 @@ import pandas as pd
 from great_tables import GT
 from pandas.api import types as pdt
 
+from expdpy._common import entity_display_map as _entity_display_map
+from expdpy._common import lead_columns as _lead_columns
 from expdpy._corr import cor_mat
 from expdpy._labels import resolve_label, resolve_labels
-from expdpy._panel import resolve_panel, stored_panel
+from expdpy._panel import resolve_entity_name, resolve_panel, stored_panel
+from expdpy._roles import resolve_roles
 from expdpy._types import (
     CorrelationTableResult,
     DescriptiveTableResult,
@@ -198,6 +201,9 @@ def explore_descriptive_table(
     # In a panel the entity/time ids are coordinates, not variables to summarize.
     id_cols = {c for c in (entity, time) if c is not None}
     var_cols = [c for c in cols if c not in id_cols]
+    # Lead with the declared key variables (outcome, then covariates) when roles are set.
+    outcome, covariates = resolve_roles(df)
+    var_cols = _lead_columns(var_cols, [outcome, *covariates])
     if len(var_cols) < 1 or len(df) < 2:
         raise ValueError("unsuitable data frame (does it contain numerical data?)")
 
@@ -374,7 +380,8 @@ def explore_correlation_table(
     """
     df = ensure_dataframe(df)
     labels_src = df  # resolve labels before the column reslice drops df.attrs
-    df = df[numeric_logical_columns(df)]
+    outcome, covariates = resolve_roles(df)
+    df = df[_lead_columns(numeric_logical_columns(df), [outcome, *covariates])]
     if len(df) < 5 or df.shape[1] < 2:
         raise ValueError(
             "'df' needs at least two variables and five observations of numerical data"
@@ -558,11 +565,23 @@ def explore_ext_obs_table(
         ignore_index=True,
     )
 
+    # Show the unit as "Name (id)" when an entity-name column is declared (display only — the
+    # returned ``df`` keeps the raw ids). The id column then renders as text, not a number.
+    name_col = resolve_entity_name(df)
+    primary = entity_list[0] if entity_list else None
+    relabelled: list[str] = []
+    if name_col and primary and primary in display.columns:
+        ent_disp = _entity_display_map(df, primary, name_col)
+        display[primary] = display[primary].map(lambda u: ent_disp.get(str(u), str(u)))
+        relabelled.append(primary)
+
     gt = (
         GT(display, groupname_col=group_col)
         .cols_label({c: resolve_label(df, c) for c in cols})
         .fmt_number(
-            columns=[c for c in cols if pdt.is_numeric_dtype(df[c])],
+            columns=[
+                c for c in cols if pdt.is_numeric_dtype(df[c]) and c not in relabelled
+            ],
             decimals=digits,
             use_seps=True,
         )

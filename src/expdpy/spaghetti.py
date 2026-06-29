@@ -13,10 +13,11 @@ from pandas.api import types as pdt
 from plotly.subplots import make_subplots
 
 from expdpy._common import default_alpha as _default_alpha
+from expdpy._common import entity_display_map as _entity_display_map
 from expdpy._common import try_convert_ts_id as _try_convert_ts_id
 from expdpy._common import xaxis as _xaxis
 from expdpy._labels import resolve_label
-from expdpy._panel import resolve_panel
+from expdpy._panel import resolve_entity_name, resolve_panel
 from expdpy._theme import apply_default_layout, color_for
 from expdpy._types import SpaghettiGraphResult
 from expdpy._validation import drop_missing, ensure_dataframe
@@ -38,6 +39,7 @@ def _draw_unit_lines(
     entity_label: str,
     time_label: str,
     var_label: str,
+    disp: dict[str, str],
     row: int | None = None,
     col: int | None = None,
     show_overlay_legend: bool = False,
@@ -55,7 +57,7 @@ def _draw_unit_lines(
                 x=x,
                 y=part[var],
                 mode="lines",
-                name=str(uid),
+                name=disp.get(str(uid), str(uid)),
                 line=({"color": color_for(hl_idx), "width": 2.5} if is_hl else faint),
                 showlegend=is_hl,
                 hovertemplate=f"{entity_label}=%{{fullData.name}}<br>{time_label}=%{{x}}<br>"
@@ -162,6 +164,8 @@ def explore_spaghetti_plot(
     time_label = resolve_label(df, time)
     var_label = resolve_label(df, var)
     facet_label = resolve_label(df, facet) if facet else None
+    # Build the entity-name display map ("Name (id)") on the full frame before slicing.
+    disp = _entity_display_map(df, entity, resolve_entity_name(df))
 
     cols = list(dict.fromkeys([entity, time, var, *([facet] if facet else [])]))
     sub = drop_missing(df[cols], [entity, time, var], func="explore_spaghetti_plot")
@@ -216,6 +220,7 @@ def explore_spaghetti_plot(
             entity_label=entity_label,
             time_label=time_label,
             var_label=var_label,
+            disp=disp,
             show_overlay_legend=True,
         )
         xaxis = _xaxis(time, ordered, ts_conv, title=time_label)
@@ -248,6 +253,7 @@ def explore_spaghetti_plot(
                 entity_label=entity_label,
                 time_label=time_label,
                 var_label=var_label,
+                disp=disp,
                 row=r + 1,
                 col=c + 1,
                 show_overlay_legend=(i == 0),

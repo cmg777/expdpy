@@ -19,6 +19,7 @@ from expdpy._estimation import (
     tidy_model,
 )
 from expdpy._labels import label_map
+from expdpy._roles import resolve_roles
 from expdpy._types import RegressionTableResult
 from expdpy._validation import drop_missing, ensure_dataframe
 
@@ -56,8 +57,8 @@ def _fit_one(
 
 def analyze_regression_table(
     df: pd.DataFrame,
-    dvs: Sequence[str] | str,
-    idvs: Sequence[str] | Sequence[Sequence[str]],
+    dvs: Sequence[str] | str | None = None,
+    idvs: Sequence[str] | Sequence[Sequence[str]] | None = None,
     feffects: Sequence[str] | Sequence[Sequence[str]] | None = None,
     clusters: Sequence[str] | Sequence[Sequence[str]] | None = None,
     *,
@@ -74,9 +75,11 @@ def analyze_regression_table(
     df
         Data frame containing the data.
     dvs
-        Dependent variable name, or a list of names (one per model).
+        Dependent variable name, or a list of names (one per model). Defaults to the declared
+        main outcome (:func:`expdpy.set_roles`) when omitted.
     idvs
-        Independent variable names. For multiple models, a list of lists.
+        Independent variable names. For multiple models, a list of lists. Defaults to the
+        declared covariates (:func:`expdpy.set_roles`) when omitted.
     feffects
         Fixed-effects variable names (per model when multiple models are given).
     clusters
@@ -133,6 +136,18 @@ def analyze_regression_table(
     ```
     """
     df = ensure_dataframe(df)
+    if dvs is None or idvs is None:
+        outcome, covariates = resolve_roles(df)
+        dvs = outcome if dvs is None else dvs
+        idvs = covariates if idvs is None else idvs
+    if dvs is None or (isinstance(dvs, (list, tuple)) and not dvs):
+        raise ValueError(
+            "analyze_regression_table: pass dvs=, or declare a main outcome via set_roles"
+        )
+    if idvs is None or (isinstance(idvs, (list, tuple)) and len(idvs) == 0):
+        raise ValueError(
+            "analyze_regression_table: pass idvs=, or declare covariates via set_roles"
+        )
     dvs_list = _as_list(dvs)
     multi = len(dvs_list) > 1
 
