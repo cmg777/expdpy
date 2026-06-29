@@ -108,7 +108,11 @@ Use `references/wiring-checklist.md` for the exact files per layer. Core always:
 dataclass in `_types.py` (+ `__all__`), exports in `__init__.py` (`__all__` grouped by module),
 `interpret_*` import wiring if Interpretable, and registering `<fn>` in `docs/_quarto.yml`
 quartodoc `contents` (the step that creates the reference page — with its auto-executed example
-output and `[source]` link). Optional layers only if requested: the
+output and `[source]` link). The **LLM layer is Core-always too**: regenerate and commit the agent
+artifacts (`schemas/*.json`, the `use-expdpy` `function-catalog.md`, `docs/use-with-llms.qmd`,
+`docs/llms.txt`) so CI `artifacts-fresh` passes, and optionally curate `<fn>` into
+`CURATED_TOOL_SPECS` in `src/expdpy/_meta.py` (`references/wiring-checklist.md`, LLM layer section).
+Optional layers only if requested: the
 pedagogy explainer (`pedagogy/_text/<topic>.py`) + `interpret_*` (`pedagogy/_interpret.py`,
 association-only, ending in `_ASSOC_NOTE`, no "causes"/"effect of") + both `__all__`s +
 `pedagogy/__init__.py`; a `learn_*` sandbox; a Streamlit tab; a Quarto→Colab notebook
@@ -126,6 +130,12 @@ Run the quality gate, then the adversarial review:
   tools/build_source_pages.py && python tools/build_reference_enrichment.py && quarto render
   docs/reference/<fn>.qmd"`. A clean render confirms the example runs and the `[source]`
   link/anchor resolve. Fix any failure by making the example self-contained.
+- **LLM artifacts check** — regenerate and confirm no drift (mirrors CI `artifacts-fresh`):
+  `pixi run -e docs python tools/build_tool_schemas.py && pixi run -e docs python
+  tools/build_use_skill.py && pixi run -e docs python tools/build_llms_txt.py --canonical-only`,
+  then `git diff --exit-code -- schemas/ .claude/skills/use-expdpy/references/function-catalog.md
+  docs/use-with-llms.qmd docs/llms.txt`. Commit the regenerated artifacts (and, if you curated the
+  function, the `_meta.py` edit).
 - If a notebook was added, regenerate and run the drift-check
   (`pixi run -e docs python tools/build_quickstart_notebook.py`; then `git diff` ignoring the
   build-timestamp line) and render the `.qmd` so its asserts execute.

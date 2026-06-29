@@ -29,6 +29,31 @@ dataclass (e.g. `BetaConvergenceResult`), and `<topic>` with the explainer key.
   the docstring `Examples` are executed there at build time, they must be self-contained and
   runnable — see `references/templates.md` and the Phase 5 docs check.
 
+## LLM layer (always)
+
+The agent-facing surface derives from the public API (`__all__` + docstrings) via
+`src/expdpy/_meta.py` — see CLAUDE.md **Keeping the LLM layer in sync**. Two parts:
+
+- **Auto-coverage (mandatory).** The moment `<fn>` is exported and in the quarto `contents` (the
+  Core step), it flows into `llms.txt` / `llms-full.txt`, its per-page `.md`, and the `use-expdpy`
+  `function-catalog.md`. Regenerate and commit, or CI `artifacts-fresh` fails:
+  ```bash
+  pixi run -e docs python tools/build_tool_schemas.py
+  pixi run -e docs python tools/build_use_skill.py
+  pixi run -e docs python tools/build_llms_txt.py --canonical-only
+  ```
+  Commit `schemas/anthropic_tools.json`, `schemas/openai_tools.json`,
+  `.claude/skills/use-expdpy/references/function-catalog.md`, `docs/use-with-llms.qmd`,
+  `docs/llms.txt`. (`llms-full.txt` + per-page `.html.md` are `_site`-only — not committed.)
+- **Curation (optional: expose `<fn>` as an agent tool).** For a **high-value, headless-safe**
+  `<fn>`, append a `ToolSpec(name="<fn>", figure_attrs=(...), tables=(...), table_methods=(...),
+  see_also_topics=("<topic>", ...), forced_kwargs=...)` to `CURATED_TOOL_SPECS` in
+  `src/expdpy/_meta.py` — **output-surface metadata only** (the input JSON Schema is compiled from
+  the signature + docstring; use `forced_kwargs={"format": "df"}` for `_table` functions). Then
+  regenerate (above) so `<fn>` appears in the MCP server + Anthropic/OpenAI schemas.
+  `tests/test_meta.py` / `tests/test_tool_schemas.py` validate the spec; the
+  `uncurated_analysis_functions` test lists what is not yet curated.
+
 ## Pedagogy (optional: concept explainer + `.interpret()`)
 
 - **`src/expdpy/pedagogy/_text/<topic>.py`** — new file calling `register_topic(Explainer(
@@ -97,6 +122,8 @@ dataclass (e.g. `BetaConvergenceResult`), and `<topic>` with the explainer key.
   unreleased entry is acceptable instead of a new bump.
 - Update README install pins and, if user-facing, the feature blurb.
 - If the new module is architecturally notable, add it to the CLAUDE.md "Architecture" list.
+- Regenerate + commit the LLM artifacts (see **LLM layer (always)**) — required for the CI
+  `artifacts-fresh` job.
 
 ## Tests (always — see `references/templates.md`)
 

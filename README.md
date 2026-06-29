@@ -206,6 +206,12 @@ guardrails (associations, not causation; `entity`/`time` panel vocabulary; the `
   { "mcpServers": { "expdpy": { "command": "expdpy-mcp" } } }
   ```
 
+> **For contributors:** these surfaces stay in sync with the library automatically. A new public
+> function flows into `llms.txt` and the function catalog straight from its docstring (you
+> regenerate and commit the artifacts; a CI gate enforces it), and high-value functions can be
+> curated as MCP tools. See *Keeping the LLM layer in sync* in
+> [CLAUDE.md](https://github.com/cmg777/expdpy/blob/main/CLAUDE.md) and the `write-function` skill.
+
 ## At a glance
 
 The lead example throughout the docs is the bundled `kuznets` panel (80 countries ×
