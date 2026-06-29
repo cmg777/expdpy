@@ -149,6 +149,36 @@ def test_build_data_def_detects_name_on_bolivia():
     assert list(ddef.loc[ddef["role"] == "entity_name", "var_name"]) == ["prov"]
 
 
+@pytest.mark.parametrize(
+    ("loader", "outcome", "covariates", "entity_name"),
+    [
+        (
+            "kuznets",
+            "gini_regional",
+            ["log_gdp_pc", "log_gdp_pc_sq", "log_gdp_pc_cu"],
+            None,
+        ),
+        ("gapminder", "lifeExp", ["gdpPercap"], None),
+        ("bolivia112_gdppc", "log_gdppc", [], "prov"),
+        ("colonial_origins", "log_gdp_pc_1995", ["expropriation_risk"], None),
+        ("productivity", "log_gdppc", [], None),
+        ("staggered_did", "outcome", [], None),
+        ("firms", "log_revenue", ["employees"], None),
+        ("regional_conflict", "conflict", ["log_lights"], None),
+    ],
+)
+def test_bundled_data_defs_carry_roles(loader, outcome, covariates, entity_name):
+    """Each bundled dictionary ships the curated roles (regenerate via add_roles_to_data_defs)."""
+    import expdpy.data as data
+
+    df = getattr(data, f"load_{loader}")()
+    ddef = getattr(data, f"load_{loader}_data_def")()
+    assert "role" in ddef.columns
+    df = ex.set_labels(df, ddef, set_panel=True)
+    assert stored_roles(df) == (outcome, covariates)
+    assert stored_entity_name(df) == entity_name
+
+
 # -------------------------------------------------------------------------- role-based defaults ---
 def test_scatter_defaults_to_roles():
     df = set_roles(_toy(), outcome="y", covariates=["x"])

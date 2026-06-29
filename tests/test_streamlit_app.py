@@ -392,7 +392,7 @@ def test_export_zip_contents():
         # The data dictionary is shipped alongside the data so labels/panel round-trip.
         assert "expdpy_data_def.csv" in names
         ddef_csv = zf.read("expdpy_data_def.csv").decode()
-        assert ddef_csv.splitlines()[0] == "var_name,var_def,label,type,can_be_na"
+        assert ddef_csv.splitlines()[0] == "var_name,var_def,label,type,role,can_be_na"
         nb = json.loads(zf.read("ExPdPy_analysis.ipynb"))
         cells = ["".join(c["source"]) for c in nb["cells"]]
         # Colab-ready: a pinned install + restart cell, and a set_labels(set_panel) load.

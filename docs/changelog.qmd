@@ -16,6 +16,9 @@ dictionary without the new column behaves exactly as before.
   label for each unit) and figures render units as **`Name (id)`** (e.g. `Bolivia (BOL)`).
 - **`build_data_def`** now emits the `role` column and **auto-detects** the entity-name column (a
   text column that is constant within, and ~1:1 with, the entity id).
+- Every **bundled `*_data_def`** ships curated roles, so the flagship datasets demonstrate the
+  defaults out of the box — loading `kuznets` defaults a regression to the cubic Kuznets curve,
+  `bolivia112_gdppc` labels provinces as `Name (id)`, and so on.
 - New **`set_roles(df, outcome=, covariates=)`** utility (stored on `df.attrs`, like
   `set_panel` / `set_labels`); `set_panel` gains an `entity_name=` argument; and
   `set_labels(df, df_def, set_panel=True)` now also declares the roles + entity-name a

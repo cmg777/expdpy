@@ -82,15 +82,20 @@ interest as **covariates** — in the dictionary's `role` column, or directly wi
 - in the apps, the key variables are **pre-selected** and **floated to the top** of every
   dropdown.
 
+The bundled `*_data_def` dictionaries already mark their key variables, so the defaults work the
+moment you attach them — and `set_roles` declares the same for your own data:
+
 ```python
 import expdpy as ex
 from expdpy.data import load_kuznets, load_kuznets_data_def
 
+# kuznets ships role=outcome on gini_regional and role=covariate on the log-GDP terms
 df = ex.set_labels(load_kuznets(), load_kuznets_data_def(), set_panel=True)
-df = ex.set_roles(df, outcome="gini_regional", covariates=["log_gdp_pc"])
-
 ex.explore_scatter_plot(df).fig          # x = log_gdp_pc, y = gini_regional
-ex.analyze_regression_table(df).etable    # gini_regional ~ log_gdp_pc
+ex.analyze_regression_table(df).etable    # the cubic Kuznets curve, by default
+
+# declare the same on a frame of your own
+df = ex.set_roles(df, outcome="gini_regional", covariates=["log_gdp_pc"])
 ```
 
 ## Entity names vs entity ids
