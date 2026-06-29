@@ -188,8 +188,8 @@ guardrails (associations, not causation; `entity`/`time` panel vocabulary; the `
   [`/llms.txt`](https://cmg777.github.io/expdpy/llms.txt) and
   [`/llms-full.txt`](https://cmg777.github.io/expdpy/llms-full.txt). Every docs page also has a
   clean Markdown twin at `<page>.html.md`.
-- **Agent skill** — drop [`.claude/skills/use-expdpy/`](.claude/skills/use-expdpy) into your
-  project (Claude Code reads `.claude/skills/`), or read the
+- **Agent skill** — drop [`.claude/skills/use-expdpy/`](https://github.com/cmg777/expdpy/tree/main/.claude/skills/use-expdpy)
+  into your project (Claude Code reads `.claude/skills/`), or read the
   [For AI / LLMs](https://cmg777.github.io/expdpy/use-with-llms.html) page.
 - **Function-calling schemas** — committed Anthropic/OpenAI tool schemas, served at
   [`/tools/anthropic_tools.json`](https://cmg777.github.io/expdpy/tools/anthropic_tools.json) and
