@@ -75,6 +75,7 @@ _EXPLORE_PAGES = [
     "trends",
     "by_group",
     "correlations",
+    "composition",
     "dynamics",
 ]
 _ANALYZE_PAGES = [

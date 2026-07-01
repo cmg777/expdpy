@@ -2,6 +2,24 @@
 title: "Changelog"
 ---
 
+## 0.5.1 (2026-07-01)
+
+**Richer animated exploration for panel data.** Four new time-animated Explore views make
+"watch this evolve year by year" a one-call operation, each degrading gracefully to a static
+figure when no time id is available:
+
+- `explore_treemap_plot` / `explore_sunburst_plot` — hierarchical composition (a flexible
+  `path=[...]`, defaulting to the panel entity) sized by a value and colored by another,
+  animated over time with a fixed color scale.
+- `explore_box_plot` / `explore_strip_plot` — distribution-by-group box and strip plots that
+  animate over time, with a pinned value axis, an optional log scale, and (for strip) point
+  sampling on large panels. Both carry a plain-language `.interpret()`.
+
+**Consistency + polish.** All animated figures now share one control surface via a new internal
+`_animate` helper (unified "▶ Play" / "⏸ Pause" buttons, frame speed, and a time-labelled
+slider), and `explore_animated_scatter_plot` gains `log_x` / `log_y` toggles (the canonical
+Gapminder log-income axis).
+
 ## 0.5.0 (2026-06-29)
 
 **expdpy is now first-class for LLMs and AI agents.** A new agent-facing surface lets you point

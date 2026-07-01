@@ -33,6 +33,7 @@ from expdpy._types import (
     AnimatedScatterResult,
     BarChartResult,
     BetaConvergenceResult,
+    BoxPlotResult,
     ByGroupBarGraphResult,
     ByGroupTrendGraphResult,
     ByGroupViolinResult,
@@ -65,7 +66,10 @@ from expdpy._types import (
     ScatterPlotResult,
     SigmaConvergenceResult,
     SpaghettiGraphResult,
+    StripPlotResult,
+    SunburstPlotResult,
     TransitionMatrixResult,
+    TreemapPlotResult,
     TrendGraphResult,
     ValueHeatmapResult,
     WithinBetweenScatterResult,
@@ -75,10 +79,13 @@ from expdpy._types import (
 from expdpy.animated_scatter import explore_animated_scatter_plot
 from expdpy.by_group import (
     explore_bar_plot_by_group,
+    explore_box_plot,
+    explore_strip_plot,
     explore_trend_plot_by_group,
     explore_violin_plot_by_group,
 )
 from expdpy.coefplot import analyze_coefficient_plot
+from expdpy.composition import explore_sunburst_plot, explore_treemap_plot
 from expdpy.convergence import (
     analyze_beta_convergence,
     analyze_convergence_clubs,
@@ -138,7 +145,7 @@ from expdpy.tables import (
 )
 from expdpy.trends import explore_quantile_trend_plot, explore_trend_plot
 
-__version__ = "0.5.0"
+__version__ = "0.5.1"
 
 __all__ = [
     # ===== EXPLORE =====
@@ -158,6 +165,8 @@ __all__ = [
     "explore_bar_plot_by_group",
     "explore_trend_plot_by_group",
     "explore_violin_plot_by_group",
+    "explore_box_plot",
+    "explore_strip_plot",
     # missing values
     "explore_missing_values_plot",
     # scatter
@@ -175,6 +184,9 @@ __all__ = [
     "explore_distribution_over_time",
     "explore_transition_matrix",
     "explore_within_persistence",
+    # composition (animated treemap / sunburst)
+    "explore_treemap_plot",
+    "explore_sunburst_plot",
     # ===== ANALYZE =====
     # regression table (OLS / fixed effects / clustered SEs)
     "analyze_regression_table",
@@ -260,6 +272,8 @@ __all__ = [
     "ByGroupBarGraphResult",
     "ByGroupTrendGraphResult",
     "ByGroupViolinResult",
+    "BoxPlotResult",
+    "StripPlotResult",
     "XtsumTableResult",
     "WithinBetweenScatterResult",
     "SpaghettiGraphResult",
@@ -268,6 +282,8 @@ __all__ = [
     "DistributionOverTimeResult",
     "TransitionMatrixResult",
     "WithinPersistenceResult",
+    "TreemapPlotResult",
+    "SunburstPlotResult",
     # analyze
     "RegressionTableResult",
     "EstimationResult",

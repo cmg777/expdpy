@@ -1,9 +1,9 @@
 # expdpy
 
-> expdpy (v0.5.0) is a Python library for interactive panel and cross-sectional data analysis - a port of the R package ExPanDaR - organized as Explore / Analyze / Learn modules. expdpy reports statistical associations, not proof of causation. Describe results with associational language ("is associated with", "co-moves with"), not causal language. Panel data uses entity (unit) + time vocabulary; declare it once with set_panel(entity=, time=). Every result exposes interpret() for a plain-language reading and explain(topic) for method caveats; prefer them over ad-hoc narration.
+> expdpy (v0.5.1) is a Python library for interactive panel and cross-sectional data analysis - a port of the R package ExPanDaR - organized as Explore / Analyze / Learn modules. expdpy reports statistical associations, not proof of causation. Describe results with associational language ("is associated with", "co-moves with"), not causal language. Panel data uses entity (unit) + time vocabulary; declare it once with set_panel(entity=, time=). Every result exposes interpret() for a plain-language reading and explain(topic) for method caveats; prefer them over ad-hoc narration.
 
 ## Explore
-Exploratory analysis — descriptive / correlation / extreme-observation tables, distributions, time trends, group comparisons, missing-value maps, scatter plots, within/between variation, per-unit trajectories, panel-structure diagnostics, and distribution & transition dynamics.
+Exploratory analysis — descriptive / correlation / extreme-observation tables, distributions, time trends, group comparisons, missing-value maps, scatter plots, within/between variation, per-unit trajectories, panel-structure diagnostics, distribution & transition dynamics, and animated composition (treemap / sunburst).
 
 - [explore_descriptive_table](https://cmg777.github.io/expdpy/reference/explore_descriptive_table.html): Report descriptive statistics for the numeric/logical variables of ``df``.
 - [explore_correlation_table](https://cmg777.github.io/expdpy/reference/explore_correlation_table.html): Correlation table with Pearson above and Spearman below the diagonal.
@@ -16,6 +16,8 @@ Exploratory analysis — descriptive / correlation / extreme-observation tables,
 - [explore_bar_plot_by_group](https://cmg777.github.io/expdpy/reference/explore_bar_plot_by_group.html): Bar chart of a statistic of ``var`` computed within each ``by_var`` group.
 - [explore_trend_plot_by_group](https://cmg777.github.io/expdpy/reference/explore_trend_plot_by_group.html): Line-plot the mean of ``var`` over time, one line per ``group_var`` level.
 - [explore_violin_plot_by_group](https://cmg777.github.io/expdpy/reference/explore_violin_plot_by_group.html): Violin plots of ``var`` distribution across ``by_var`` groups.
+- [explore_box_plot](https://cmg777.github.io/expdpy/reference/explore_box_plot.html): Box plots of ``var`` across ``by_var`` groups, animated over ``time`` when available.
+- [explore_strip_plot](https://cmg777.github.io/expdpy/reference/explore_strip_plot.html): Strip plots of ``var`` across ``by_var`` groups, animated over ``time`` when available.
 - [explore_missing_values_plot](https://cmg777.github.io/expdpy/reference/explore_missing_values_plot.html): Heatmap of missing-value frequency by variable and panel dimension.
 - [explore_scatter_plot](https://cmg777.github.io/expdpy/reference/explore_scatter_plot.html): Scatter plot of ``y`` against ``x`` with optional aesthetics and a LOESS smoother.
 - [explore_animated_scatter_plot](https://cmg777.github.io/expdpy/reference/explore_animated_scatter_plot.html): Animated bubble scatter of ``y`` against ``x`` over time (a Gapminder-style view).
@@ -27,6 +29,8 @@ Exploratory analysis — descriptive / correlation / extreme-observation tables,
 - [explore_distribution_over_time](https://cmg777.github.io/expdpy/reference/explore_distribution_over_time.html): Show how the distribution of ``var`` shifts across periods.
 - [explore_transition_matrix](https://cmg777.github.io/expdpy/reference/explore_transition_matrix.html): Period-to-period transition matrix of a discrete (or binned) state within units.
 - [explore_within_persistence](https://cmg777.github.io/expdpy/reference/explore_within_persistence.html): Within-unit serial correlation: this period's value against the previous one.
+- [explore_treemap_plot](https://cmg777.github.io/expdpy/reference/explore_treemap_plot.html): Treemap of a hierarchy sized by ``size``, animated over ``time`` when available.
+- [explore_sunburst_plot](https://cmg777.github.io/expdpy/reference/explore_sunburst_plot.html): Sunburst of a hierarchy sized by ``size``, animated over ``time`` when available.
 
 ## Analyze
 Panel estimators — OLS with fixed effects and clustered SEs, stepwise / Newey–West / Driscoll–Kraay estimation, instrumental variables / 2SLS (cross-section and panel, with a first-stage weak-instrument F), the Frisch–Waugh–Lovell and coefficient plots, pooled / between / fixed / random effects, correlated random effects (Mundlak), the Hausman test, post-estimation, robust inference, event-study / difference-in-differences, β-convergence (unconditional / conditional with speed, half-life and a rolling view), σ-convergence (the trend in cross-sectional dispersion over time), and club convergence (the Phillips–Sul log(t) test with data-driven clustering).

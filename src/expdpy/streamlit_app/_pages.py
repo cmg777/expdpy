@@ -293,7 +293,9 @@ def page_within_between() -> None:
 
 
 def page_by_group() -> None:
-    """By-group bar, violin and trend graphs."""
+    """By-group bar, violin, box/strip and trend graphs."""
+    from expdpy import explore_box_plot, explore_strip_plot
+
     active = _active_or_stop()
     st.header("By group")
     if _has(active, "by_group_bar_graph"):
@@ -331,6 +333,48 @@ def page_by_group() -> None:
         render.render_plotly(
             lambda: comp.by_group_trend(active.sample, active.time, byvar, var),
             code=render.code_for("by_group_trend_graph", active.time),
+        )
+    if _factors(active) and _numeric(active):
+        st.subheader("Distribution by group (box)")
+        box_by = w.selectbox(
+            "Group by", _factors(active), key="bgbox_byvar", default=_d_cov(active)
+        )
+        box_var = w.selectbox(
+            "Variable", _numeric(active), key="bgbox_var", default=_d_outcome(active)
+        )
+        box_anim = (
+            w.checkbox("Animate over time", key="bgbox_anim", default=False)
+            if _is_panel(active)
+            else False
+        )
+        _show_panel_result(
+            lambda: explore_box_plot(
+                active.sample,
+                box_by,
+                box_var,
+                time=active.time if box_anim else None,
+            )
+        )
+
+        st.subheader("Distribution by group (strip)")
+        strip_by = w.selectbox(
+            "Group by", _factors(active), key="bgstrip_byvar", default=_d_cov(active)
+        )
+        strip_var = w.selectbox(
+            "Variable", _numeric(active), key="bgstrip_var", default=_d_outcome(active)
+        )
+        strip_anim = (
+            w.checkbox("Animate over time", key="bgstrip_anim", default=False)
+            if _is_panel(active)
+            else False
+        )
+        _show_panel_result(
+            lambda: explore_strip_plot(
+                active.sample,
+                strip_by,
+                strip_var,
+                time=active.time if strip_anim else None,
+            )
         )
 
 
@@ -879,6 +923,14 @@ def _is_panel(active: Active) -> bool:
     return bool(active.time and active.entities)
 
 
+def _can_compose(active: Active) -> bool:
+    """Composition views need a hierarchy: a panel entity, or at least one factor column."""
+    if _is_panel(active):
+        return True
+    var_cats = active.var_cats
+    return bool(var_cats and var_cats.grouping)
+
+
 def page_dynamics() -> None:
     """State transitions and within-unit persistence over the panel's time dimension."""
     from expdpy import explore_transition_matrix, explore_within_persistence
@@ -912,6 +964,52 @@ def page_dynamics() -> None:
         lambda: explore_within_persistence(
             active.sample, wp_var, entity=entity, time=time
         )
+    )
+
+
+def page_composition() -> None:
+    """Animated treemap / sunburst of a hierarchy over the panel's time dimension."""
+    from expdpy import explore_sunburst_plot, explore_treemap_plot
+
+    active = _active_or_stop()
+    st.header("Composition")
+    factors = _factors(active)
+    nums = _numeric(active)
+    if not _can_compose(active):
+        st.info(
+            "Composition views need a categorical column (a hierarchy) or a panel entity."
+        )
+        return
+
+    path = w.multiselect(
+        "Hierarchy (root → leaf)",
+        factors,
+        key="comp_path",
+        default=factors[:2],
+        help="Leave empty to use the panel entity as a single level.",
+    )
+    size = w.selectbox(
+        "Size by", nums, key="comp_size", none=True, default=_d_outcome(active)
+    )
+    color = w.selectbox("Color by", nums, key="comp_color", none=True)
+    animate = (
+        w.checkbox("Animate over time", key="comp_anim", default=True)
+        if _is_panel(active)
+        else False
+    )
+    chart = w.selectbox(
+        "Chart", ["treemap", "sunburst"], key="comp_kind", relabel=False
+    )
+    fn = explore_treemap_plot if chart == "treemap" else explore_sunburst_plot
+    _show_panel_result(
+        lambda: fn(
+            active.sample,
+            path=path or None,
+            size=None if size == "None" else size,
+            color=None if color == "None" else color,
+            time=active.time if animate else None,
+        ),
+        interpret=False,
     )
 
 
@@ -1274,6 +1372,7 @@ _PAGE_SPECS: list[PageSpec] = [
         page_correlations,
         ["corrplot", "scatter_plot"],
     ),
+    ("Composition", "🧩", "composition", page_composition, _can_compose),
     ("Dynamics", "🔁", "dynamics", page_dynamics, _is_panel),
     # Analyze (in the docs case-study order: fit -> read it -> choose the estimator ->
     # the flagship curve -> a related convergence question -> a causal design)
@@ -1297,6 +1396,7 @@ _MODULE: dict[str, str] = {
     "trends": "explore",
     "by_group": "explore",
     "correlations": "explore",
+    "composition": "explore",
     "dynamics": "explore",
     "regression": "analyze",
     "postestimation": "analyze",

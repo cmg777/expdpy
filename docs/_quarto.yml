@@ -83,7 +83,7 @@ quartodoc:
         Exploratory analysis — descriptive / correlation / extreme-observation tables,
         distributions, time trends, group comparisons, missing-value maps, scatter plots,
         within/between variation, per-unit trajectories, panel-structure diagnostics,
-        and distribution & transition dynamics.
+        distribution & transition dynamics, and animated composition (treemap / sunburst).
       contents:
         - explore_descriptive_table
         - explore_correlation_table
@@ -96,6 +96,8 @@ quartodoc:
         - explore_bar_plot_by_group
         - explore_trend_plot_by_group
         - explore_violin_plot_by_group
+        - explore_box_plot
+        - explore_strip_plot
         - explore_missing_values_plot
         - explore_scatter_plot
         - explore_animated_scatter_plot
@@ -107,6 +109,8 @@ quartodoc:
         - explore_distribution_over_time
         - explore_transition_matrix
         - explore_within_persistence
+        - explore_treemap_plot
+        - explore_sunburst_plot
     - title: Analyze
       desc: >-
         Panel estimators — OLS with fixed effects and clustered SEs, stepwise / Newey–West /

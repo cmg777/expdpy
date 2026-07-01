@@ -40,6 +40,14 @@ def test_numeric_color_uses_colorbar(gap):
     assert res.fig.data[0].marker.showscale
 
 
+def test_log_x_axis(gap):
+    res = ex.explore_animated_scatter_plot(
+        gap, x="gdpPercap", y="lifeExp", size="pop", color="continent", log_x=True
+    )
+    assert res.fig.layout.xaxis.type == "log"
+    assert res.fig.layout.xaxis.range is not None
+
+
 def test_requires_time_id():
     df = pd.DataFrame({"x": [1.0, 2, 3], "y": [1.0, 2, 3]})
     with pytest.raises(ValueError, match="time id"):

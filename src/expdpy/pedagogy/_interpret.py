@@ -26,6 +26,7 @@ from expdpy.pedagogy._format import (
 
 __all__ = [
     "interpret_beta_convergence",
+    "interpret_box_over_time",
     "interpret_coefficient_plot",
     "interpret_convergence_clubs",
     "interpret_correlation",
@@ -976,6 +977,68 @@ def interpret_distribution_over_time(result: Any, *, lang: str = "en") -> str:
             f"(from {fmt_num(float(iqr.iloc[0]))} to {fmt_num(float(iqr.iloc[-1]))}).",
         ]
     )
+
+
+def _period_str(value: Any) -> str:
+    """Format a period label, rendering integral floats (years) without a decimal point."""
+    if isinstance(value, float) and float(value).is_integer():
+        return str(int(value))
+    return str(value)
+
+
+def interpret_box_over_time(result: Any, *, lang: str = "en") -> str:
+    """Interpret box/strip distributions by group: center shifts and the group gap over time."""
+    df = result.df
+    cols = list(df.columns)
+    has_time = len(cols) >= 3
+    time_col = cols[0] if has_time else None
+    by_col = cols[1] if has_time else cols[0]
+    val_col = cols[2] if has_time else cols[1]
+
+    def _extremes(frame: Any) -> tuple[Any, Any, float]:
+        gmed = frame.groupby(by_col, observed=True)[val_col].median().dropna()
+        hi, lo = gmed.idxmax(), gmed.idxmin()
+        return hi, lo, float(gmed.loc[hi] - gmed.loc[lo])
+
+    periods = sorted(df[time_col].dropna().unique()) if has_time else []
+    lines = [f"Distribution of **{val_col}** across **{by_col}** groups:"]
+
+    if len(periods) >= 2:
+        first, last = periods[0], periods[-1]
+        grouped = df.groupby(time_col, observed=True)[val_col]
+        med = grouped.median()
+        iqr = grouped.quantile(0.75) - grouped.quantile(0.25)
+        dmed = float(med.loc[last] - med.loc[first])
+        dspr = float(iqr.loc[last] - iqr.loc[first])
+        spread = "widened" if dspr > 0 else "narrowed" if dspr < 0 else "held steady"
+        lines.append(
+            f"- Pooling across groups, the median is {direction_word(dmed)} in "
+            f"{_period_str(last)} than in {_period_str(first)} "
+            f"(from {fmt_num(float(med.loc[first]))} to {fmt_num(float(med.loc[last]))}); "
+            f"the spread (IQR) {spread}."
+        )
+        hi, lo, gap_last = _extremes(df[df[time_col] == last])
+        _, _, gap_first = _extremes(df[df[time_col] == first])
+        gap_word = (
+            "widened"
+            if gap_last > gap_first
+            else "narrowed"
+            if gap_last < gap_first
+            else "was unchanged"
+        )
+        lines.append(
+            f"- In {_period_str(last)}, **{hi}** had the highest median and **{lo}** the "
+            f"lowest; the gap between them {gap_word} since {_period_str(first)}."
+        )
+    else:
+        hi, lo, _ = _extremes(df)
+        tail = " (shown for a single period)" if has_time else ""
+        lines.append(
+            f"- **{hi}** has the highest median and **{lo}** the lowest{tail}."
+        )
+
+    lines += ["", _ASSOC_NOTE]
+    return "\n".join(lines)
 
 
 def interpret_transition_matrix(result: Any, *, lang: str = "en") -> str:

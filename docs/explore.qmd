@@ -224,11 +224,48 @@ distribution per continent, so you can see overlap and outliers a mean would mas
 ex.explore_violin_plot_by_group(df, "continent", "gini_regional").fig
 ```
 
+`explore_box_plot` gives the same comparison as boxes — and because we have a panel, passing
+`time=` turns it into an animation: press **▶ Play** to watch each continent's distribution move
+year by year (the value axis stays pinned so the motion is comparable).
+
+```{python}
+ex.explore_box_plot(df, "continent", "gini_regional", time="year").fig
+```
+
+`explore_strip_plot` shows every region as a point instead of a summary — useful when a group has
+only a handful of members. It animates over time the same way.
+
+```{python}
+ex.explore_strip_plot(df, "continent", "gini_regional", time="year").fig
+```
+
 `explore_trend_plot_by_group` puts time back in: one trend line per continent, revealing whether the
 groups move together or diverge.
 
 ```{python}
 ex.explore_trend_plot_by_group(df, group_var="continent", var="gini_regional").fig
+```
+
+### Composition — who makes up the whole, and how it shifts
+
+Group comparisons ask *how big* each group is on average; composition views ask *what share* of a
+total each part holds. `explore_treemap_plot` nests countries within continents, sizes each tile by
+population and colors it by inequality, and — with `time=` — animates the whole picture across the
+years.
+
+```{python}
+ex.explore_treemap_plot(
+    df, path=["continent", "country"], size="population", color="gini_regional", time="year"
+).fig
+```
+
+`explore_sunburst_plot` is the radial counterpart: the same hierarchy as concentric rings, so nested
+part-to-whole shares read at a glance.
+
+```{python}
+ex.explore_sunburst_plot(
+    df, path=["continent", "country"], size="population", color="gini_regional", time="year"
+).fig
 ```
 
 ## Stage 6 — Relationships and the Kuznets curve

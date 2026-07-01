@@ -20,6 +20,7 @@ from expdpy.pedagogy import Interpretable
 from expdpy.pedagogy import explain as _explain
 from expdpy.pedagogy._interpret import (
     interpret_beta_convergence,
+    interpret_box_over_time,
     interpret_coefficient_plot,
     interpret_convergence_clubs,
     interpret_correlation,
@@ -63,6 +64,7 @@ __all__ = [
     "AnimatedScatterResult",
     "BarChartResult",
     "BetaConvergenceResult",
+    "BoxPlotResult",
     "ByGroupBarGraphResult",
     "ByGroupTrendGraphResult",
     "ByGroupViolinResult",
@@ -95,7 +97,10 @@ __all__ = [
     "ScatterPlotResult",
     "SigmaConvergenceResult",
     "SpaghettiGraphResult",
+    "StripPlotResult",
+    "SunburstPlotResult",
     "TransitionMatrixResult",
+    "TreemapPlotResult",
     "TrendGraphResult",
     "ValueHeatmapResult",
     "WithinBetweenScatterResult",
@@ -278,6 +283,70 @@ class AnimatedScatterResult:
 
     df: pd.DataFrame
     fig: go.Figure
+
+
+@dataclass(frozen=True)
+class TreemapPlotResult:
+    """Result of :func:`expdpy.explore_treemap_plot`.
+
+    ``df`` is the complete-case frame plotted; ``fig`` is the Plotly treemap (animated over the
+    time id when one is available, otherwise a single static composition).
+    """
+
+    df: pd.DataFrame
+    fig: go.Figure
+
+
+@dataclass(frozen=True)
+class SunburstPlotResult:
+    """Result of :func:`expdpy.explore_sunburst_plot`.
+
+    ``df`` is the complete-case frame plotted; ``fig`` is the Plotly sunburst (animated over the
+    time id when one is available, otherwise a single static composition).
+    """
+
+    df: pd.DataFrame
+    fig: go.Figure
+
+
+@dataclass(frozen=True)
+class BoxPlotResult(Interpretable):
+    """Result of :func:`expdpy.explore_box_plot`.
+
+    ``df`` is the complete-case frame plotted — columns ``[time, by_var, var]`` when animated,
+    else ``[by_var, var]``; ``fig`` is the Plotly box plot (animated over time when available).
+    """
+
+    df: pd.DataFrame
+    fig: go.Figure
+
+    def interpret(self, *, lang: str = "en") -> str:
+        """Plain-language reading of how the group medians and spread shift over time."""
+        return interpret_box_over_time(self, lang=lang)
+
+    def explain(self, *, lang: str = "en") -> Explainer:
+        """Concept explainer for descriptive statistics."""
+        return _explain("descriptive_stats", lang=lang)
+
+
+@dataclass(frozen=True)
+class StripPlotResult(Interpretable):
+    """Result of :func:`expdpy.explore_strip_plot`.
+
+    ``df`` is the complete-case frame plotted — columns ``[time, by_var, var]`` when animated,
+    else ``[by_var, var]``; ``fig`` is the Plotly strip plot (animated over time when available).
+    """
+
+    df: pd.DataFrame
+    fig: go.Figure
+
+    def interpret(self, *, lang: str = "en") -> str:
+        """Plain-language reading of how the group medians and spread shift over time."""
+        return interpret_box_over_time(self, lang=lang)
+
+    def explain(self, *, lang: str = "en") -> Explainer:
+        """Concept explainer for descriptive statistics."""
+        return _explain("descriptive_stats", lang=lang)
 
 
 @dataclass(frozen=True)

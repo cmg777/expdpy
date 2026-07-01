@@ -13,6 +13,7 @@ from great_tables import GT
 from pandas.api import types as pdt
 from scipy.stats import gaussian_kde
 
+from expdpy._animate import fmt_period, play_pause_updatemenus, time_slider
 from expdpy._common import default_alpha as _default_alpha
 from expdpy._common import entity_display_map as _entity_display_map
 from expdpy._common import try_convert_ts_id as _try_convert_ts_id
@@ -230,13 +231,13 @@ def _animated(
             )
         return go.Violin(
             y=vals,
-            name=str(p),
+            name=fmt_period(p),
             fillcolor=color_for(0),
             line_color=color_for(0),
             meanline_visible=True,
         )
 
-    frames = [go.Frame(data=[_trace(p)], name=str(p)) for p in periods]
+    frames = [go.Frame(data=[_trace(p)], name=fmt_period(p)) for p in periods]
     fig = go.Figure(data=[_trace(periods[0])], frames=frames)
     if style == "animated_hist":
         fig.update_xaxes(title=var_label, range=[lo, hi])
@@ -244,58 +245,8 @@ def _animated(
     else:
         fig.update_yaxes(title=var_label)
     fig.update_layout(
-        updatemenus=[
-            {
-                "type": "buttons",
-                "x": 0,
-                "y": 1.15,
-                "xanchor": "left",
-                "buttons": [
-                    {
-                        "label": "▶ Play",
-                        "method": "animate",
-                        "args": [
-                            None,
-                            {
-                                "frame": {"duration": 600, "redraw": True},
-                                "fromcurrent": True,
-                            },
-                        ],
-                    },
-                    {
-                        "label": "❚❚ Pause",
-                        "method": "animate",
-                        "args": [
-                            [None],
-                            {
-                                "frame": {"duration": 0, "redraw": False},
-                                "mode": "immediate",
-                            },
-                        ],
-                    },
-                ],
-            }
-        ],
-        sliders=[
-            {
-                "active": 0,
-                "currentvalue": {"prefix": f"{time_label} = "},
-                "steps": [
-                    {
-                        "label": str(p),
-                        "method": "animate",
-                        "args": [
-                            [str(p)],
-                            {
-                                "frame": {"duration": 0, "redraw": True},
-                                "mode": "immediate",
-                            },
-                        ],
-                    }
-                    for p in periods
-                ],
-            }
-        ],
+        updatemenus=play_pause_updatemenus(),
+        sliders=time_slider([fmt_period(p) for p in periods], time_label=time_label),
     )
     apply_default_layout(fig)
     return fig

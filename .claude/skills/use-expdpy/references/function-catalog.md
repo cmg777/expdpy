@@ -16,6 +16,8 @@ Every public function, grouped by module, with its call signature and one-line s
 - `explore_bar_plot_by_group(df, by_var, var[, stat_fun, order_by_stat, ...])` - Bar chart of a statistic of ``var`` computed within each ``by_var`` group.
 - `explore_trend_plot_by_group(df, group_var, var[, time, points, ...])` - Line-plot the mean of ``var`` over time, one line per ``group_var`` level.
 - `explore_violin_plot_by_group(df, by_var, var[, order_by_mean, group_on_y, ...])` - Violin plots of ``var`` distribution across ``by_var`` groups.
+- `explore_box_plot(df, by_var, var[, time, order_by_mean, ...])` - Box plots of ``var`` across ``by_var`` groups, animated over ``time`` when available.
+- `explore_strip_plot(df, by_var, var[, time, order_by_mean, ...])` - Strip plots of ``var`` across ``by_var`` groups, animated over ``time`` when available.
 - `explore_missing_values_plot(df[, time, entity, ...])` - Heatmap of missing-value frequency by variable and panel dimension.
 - `explore_scatter_plot(df[, x, y, ...])` - Scatter plot of ``y`` against ``x`` with optional aesthetics and a LOESS smoother.
 - `explore_animated_scatter_plot(df, x, y[, size, color, ...])` - Animated bubble scatter of ``y`` against ``x`` over time (a Gapminder-style view).
@@ -27,6 +29,8 @@ Every public function, grouped by module, with its call signature and one-line s
 - `explore_distribution_over_time(df, var[, entity, time, ...])` - Show how the distribution of ``var`` shifts across periods.
 - `explore_transition_matrix(df, var[, entity, time, ...])` - Period-to-period transition matrix of a discrete (or binned) state within units.
 - `explore_within_persistence(df, var[, entity, time, ...])` - Within-unit serial correlation: this period's value against the previous one.
+- `explore_treemap_plot(df[, path, size, ...])` - Treemap of a hierarchy sized by ``size``, animated over ``time`` when available.
+- `explore_sunburst_plot(df[, path, size, ...])` - Sunburst of a hierarchy sized by ``size``, animated over ``time`` when available.
 
 ## Analyze
 

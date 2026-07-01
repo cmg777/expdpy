@@ -13,6 +13,12 @@ import pandas as pd
 import plotly.graph_objects as go
 from pandas.api import types as pdt
 
+from expdpy._animate import (
+    fmt_period,
+    global_range,
+    play_pause_updatemenus,
+    time_slider,
+)
 from expdpy._common import entity_display_map as _entity_display_map
 from expdpy._labels import resolve_label
 from expdpy._panel import resolve_entity_name, resolve_panel
@@ -21,23 +27,6 @@ from expdpy._types import AnimatedScatterResult
 from expdpy._validation import ensure_dataframe
 
 __all__ = ["explore_animated_scatter_plot"]
-
-_FRAME_MS = 600
-_TRANS_MS = 300
-
-
-def _fmt_period(value: object) -> str:
-    """Format a period label, rendering integral floats (years) without a decimal point."""
-    if isinstance(value, float) and value.is_integer():
-        return str(int(value))
-    return str(value)
-
-
-def _padded_range(values: np.ndarray) -> list[float]:
-    """Return a min/max range with 5% padding (fixed across frames so the view holds still)."""
-    lo, hi = float(np.nanmin(values)), float(np.nanmax(values))
-    pad = (abs(hi) * 0.05 or 1.0) if hi == lo else (hi - lo) * 0.05
-    return [lo - pad, hi + pad]
 
 
 def explore_animated_scatter_plot(
@@ -50,6 +39,8 @@ def explore_animated_scatter_plot(
     entity: str | None = None,
     time: str | None = None,
     alpha: float = 0.8,
+    log_x: bool = False,
+    log_y: bool = False,
     title: str | None = None,
     subtitle: str | None = None,
 ) -> AnimatedScatterResult:
@@ -78,6 +69,9 @@ def explore_animated_scatter_plot(
         explicit value or a declared panel is required.
     alpha
         Bubble opacity (default ``0.8``).
+    log_x, log_y
+        Put the corresponding axis on a log scale (default ``False``). Handy for
+        heavy-tailed quantities such as GDP per capita — the canonical Gapminder x-axis.
     title
         Optional figure title.
 
@@ -127,8 +121,8 @@ def explore_animated_scatter_plot(
         raise ValueError("no complete observations to plot")
 
     periods = sorted(sub[time].unique())
-    x_range = _padded_range(sub[x].to_numpy(dtype=float))
-    y_range = _padded_range(sub[y].to_numpy(dtype=float))
+    x_range = global_range(sub[x], log=log_x)
+    y_range = global_range(sub[y], log=log_y)
 
     discrete = bool(color) and not pdt.is_numeric_dtype(sub[color])
     levels = sorted(sub[color].astype(str).unique()) if discrete else []
@@ -194,62 +188,25 @@ def explore_animated_scatter_plot(
             return out
         return [_scatter(part, y_label, _marker(part), False)]
 
-    frames = [go.Frame(data=_traces(p), name=_fmt_period(p)) for p in periods]
+    frames = [go.Frame(data=_traces(p), name=fmt_period(p)) for p in periods]
     fig = go.Figure(data=_traces(periods[0]), frames=frames)
 
-    play_args = {
-        "frame": {"duration": _FRAME_MS, "redraw": True},
-        "fromcurrent": True,
-        "transition": {"duration": _TRANS_MS},
-    }
-    pause_args = {"frame": {"duration": 0, "redraw": False}, "mode": "immediate"}
-    sliders = [
-        {
-            "active": 0,
-            "currentvalue": {"prefix": f"{time_label}: "},
-            "pad": {"t": 50},
-            "steps": [
-                {
-                    "method": "animate",
-                    "label": _fmt_period(p),
-                    "args": [
-                        [_fmt_period(p)],
-                        {
-                            "frame": {"duration": _FRAME_MS, "redraw": True},
-                            "mode": "immediate",
-                            "transition": {"duration": _TRANS_MS},
-                        },
-                    ],
-                }
-                for p in periods
-            ],
-        }
-    ]
-    updatemenus = [
-        {
-            "type": "buttons",
-            "showactive": False,
-            "x": 0.02,
-            "y": 1.15,
-            "xanchor": "left",
-            "yanchor": "top",
-            "buttons": [
-                {"label": "▶ Play", "method": "animate", "args": [None, play_args]},
-                {"label": "⏸ Pause", "method": "animate", "args": [[None], pause_args]},
-            ],
-        }
-    ]
-
+    xaxis = {"title": x_label, "range": x_range}
+    yaxis = {"title": y_label, "range": y_range}
+    if log_x:
+        xaxis["type"] = "log"
+    if log_y:
+        yaxis["type"] = "log"
     apply_default_layout(
         fig,
-        xaxis={"title": x_label, "range": x_range},
-        yaxis={"title": y_label, "range": y_range},
+        xaxis=xaxis,
+        yaxis=yaxis,
         title=title or f"{y_label} vs {x_label} over {time_label}",
         subtitle=subtitle,
     )
     fig.update_layout(
-        sliders=sliders,
-        updatemenus=updatemenus,
+        sliders=time_slider([fmt_period(p) for p in periods], time_label=time_label),
+        updatemenus=play_pause_updatemenus(),
         showlegend=discrete,
     )
     return AnimatedScatterResult(df=sub, fig=fig)
