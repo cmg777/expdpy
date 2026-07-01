@@ -14,6 +14,9 @@ from pandas.api import types as pdt
 
 from expdpy._animate import global_range, retheme_px_animation
 from expdpy._common import (
+    entity_display_series as _entity_display_series,
+)
+from expdpy._common import (
     se as _se,
 )
 from expdpy._common import (
@@ -26,7 +29,7 @@ from expdpy._common import (
     xaxis as _xaxis,
 )
 from expdpy._labels import resolve_label
-from expdpy._panel import resolve_panel
+from expdpy._panel import resolve_entity_name, resolve_panel
 from expdpy._theme import active_colorway, apply_default_layout, color_for
 from expdpy._types import (
     BoxPlotResult,
@@ -414,7 +417,7 @@ def _grouped_distribution(
 ) -> tuple[go.Figure, pd.DataFrame]:
     """Build a box/strip distribution-by-group figure, animated over ``time`` when resolvable."""
     df = ensure_dataframe(df)
-    _entity, time = resolve_panel(df, entity, time)
+    entity, time = resolve_panel(df, entity, time)
     time_cols = [time] if time else []
     require_columns(df, [by_var, var, *time_cols], where=f"explore_{kind}_plot")
     if not pdt.is_numeric_dtype(df[var]):
@@ -424,11 +427,18 @@ def _grouped_distribution(
     var_label = resolve_label(df, var)
     time_label = resolve_label(df, time) if time else None
 
-    sub = drop_missing(
-        df[[by_var, var, *time_cols]],
-        [by_var, var, *time_cols],
-        func=f"explore_{kind}_plot",
+    # A strip point is one observation, so name its unit in the hover box. Carry the entity
+    # (and its name column) through the slice; resolve the name column before slicing drops attrs.
+    entity_name = resolve_entity_name(df) if entity else None
+    hover_entity = kind == "strip" and entity is not None and entity in df.columns
+    entity_cols = (
+        [entity, *([entity_name] if entity_name and entity_name in df.columns else [])]
+        if hover_entity
+        else []
     )
+
+    keep = list(dict.fromkeys([by_var, var, *time_cols, *entity_cols]))
+    sub = drop_missing(df[keep], [by_var, var, *time_cols], func=f"explore_{kind}_plot")
     if sub.empty:
         raise ValueError(
             f"explore_{kind}_plot: no complete observations of by_var and var"
@@ -482,6 +492,13 @@ def _grouped_distribution(
         px_kwargs.update(x=by_var, y=var, range_y=value_range)
         if log:
             px_kwargs["log_y"] = True
+
+    if hover_entity:
+        assert entity is not None  # guaranteed by hover_entity
+        # Name each point's unit ("Name (id)" when an entity_name is declared, else the id).
+        disp_col = f"{entity} (unit)"
+        sub[disp_col] = _entity_display_series(sub, entity, entity_name)
+        px_kwargs["hover_name"] = disp_col
 
     maker = px.box if kind == "box" else px.strip
     fig = maker(sub, **px_kwargs)

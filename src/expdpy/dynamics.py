@@ -13,7 +13,7 @@ from great_tables import GT
 from pandas.api import types as pdt
 from scipy.stats import gaussian_kde
 
-from expdpy._animate import fmt_period, play_pause_updatemenus, time_slider
+from expdpy._animate import fmt_period, play_controls, time_slider
 from expdpy._common import default_alpha as _default_alpha
 from expdpy._common import entity_display_map as _entity_display_map
 from expdpy._common import try_convert_ts_id as _try_convert_ts_id
@@ -245,7 +245,7 @@ def _animated(
     else:
         fig.update_yaxes(title=var_label)
     fig.update_layout(
-        updatemenus=play_pause_updatemenus(),
+        updatemenus=play_controls(),
         sliders=time_slider([fmt_period(p) for p in periods], time_label=time_label),
     )
     apply_default_layout(fig)

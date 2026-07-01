@@ -125,6 +125,24 @@ def slider(
     )
 
 
+def float_slider(
+    label: str,
+    min_value: float,
+    max_value: float,
+    key: str,
+    *,
+    default: float,
+    step: float = 0.1,
+    help: str | None = None,
+) -> float:
+    """Render a float ``st.slider`` that respects a stored ``session_state`` value."""
+    if key in st.session_state:
+        return st.slider(label, min_value, max_value, step=step, key=key, help=help)
+    return st.slider(
+        label, min_value, max_value, value=float(default), step=step, key=key, help=help
+    )
+
+
 def checkbox(
     label: str,
     key: str,

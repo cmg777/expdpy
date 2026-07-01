@@ -134,12 +134,20 @@ def _render_missing(active: Active) -> None:
     render.render_plotly(lambda: comp.missing(df, time))
 
 
-def _show_panel_result(make: Callable[[], Any], *, interpret: bool = True) -> None:
+def _show_panel_result(
+    make: Callable[[], Any],
+    *,
+    interpret: bool = True,
+    code: str | None = None,
+    name: str = "expdpy_chart",
+) -> None:
     """Render a panel result's figure (safely), interpretation tucked in an expander.
 
     Surfaces the exception message instead of crashing the page on bad input, and keeps the
     plain-language ``.interpret()`` behind a collapsed expander so the default view is just
-    the tool and its result (the app is a tool, not a tutorial).
+    the tool and its result (the app is a tool, not a tutorial). When ``code`` is given, an
+    "⬇ Export & reproduce" expander offers an interactive-HTML download and the copy-paste
+    snippet that reproduces the view.
     """
     try:
         res = make()
@@ -152,6 +160,8 @@ def _show_panel_result(make: Callable[[], Any], *, interpret: bool = True) -> No
     if interpret and hasattr(res, "interpret"):
         with st.expander("Plain-language reading"):
             st.markdown(res.interpret())
+    if code:
+        render._export_block(name=name, fig=res.fig, code=code)
 
 
 # --------------------------------------------------------------------------------- pages ---
@@ -167,6 +177,13 @@ def page_overview() -> None:
     )
     with st.expander("Preview the analysis sample", expanded=False):
         st.dataframe(active.sample.head(100), width="stretch", hide_index=True)
+
+    if _is_panel(active):
+        st.info(
+            "🎬 **Animated views** for this panel: **By group** has box & strip plots that "
+            "move year by year, and **Composition** draws an animated treemap / sunburst. "
+            "Each has a ▶ button in the bottom-left corner."
+        )
 
     panel = _is_panel(active)
     entity = active.entities[0] if panel else None
@@ -335,16 +352,34 @@ def page_by_group() -> None:
             code=render.code_for("by_group_trend_graph", active.time),
         )
     if _factors(active) and _numeric(active):
+        panel = _is_panel(active)
         st.subheader("Distribution by group (box)")
-        box_by = w.selectbox(
-            "Group by", _factors(active), key="bgbox_byvar", default=_d_cov(active)
+        st.caption(
+            "On a panel, tick *Animate* and press ▶ (bottom-left) — pause by dragging the slider."
         )
-        box_var = w.selectbox(
-            "Variable", _numeric(active), key="bgbox_var", default=_d_outcome(active)
-        )
+        c1, c2 = st.columns(2)
+        with c1:
+            box_by = w.selectbox(
+                "Group by", _factors(active), key="box_byvar", default=_d_cov(active)
+            )
+            box_pts = w.selectbox(
+                "Points",
+                ["outliers", "all", "suspectedoutliers", "none"],
+                key="box_points",
+                relabel=False,
+            )
+        with c2:
+            box_var = w.selectbox(
+                "Variable", _numeric(active), key="box_var", default=_d_outcome(active)
+            )
+            box_horiz = w.checkbox(
+                "Groups on y-axis", key="box_group_on_y", default=True
+            )
+        box_order = w.checkbox("Order by mean", key="box_order", default=False)
+        box_log = w.checkbox("Log value axis", key="box_log", default=False)
         box_anim = (
-            w.checkbox("Animate over time", key="bgbox_anim", default=False)
-            if _is_panel(active)
+            w.checkbox("Animate over time", key="box_anim", default=False)
+            if panel
             else False
         )
         _show_panel_result(
@@ -353,19 +388,50 @@ def page_by_group() -> None:
                 box_by,
                 box_var,
                 time=active.time if box_anim else None,
-            )
+                order_by_mean=box_order,
+                group_on_y=box_horiz,
+                log=box_log,
+                points=(False if box_pts == "none" else box_pts),
+            ),
+            code=render.code_for("box_plot", active.time),
+            name="box_plot",
         )
 
         st.subheader("Distribution by group (strip)")
-        strip_by = w.selectbox(
-            "Group by", _factors(active), key="bgstrip_byvar", default=_d_cov(active)
+        st.caption(
+            "Every observation as a point; hover a point to see its unit's name."
         )
-        strip_var = w.selectbox(
-            "Variable", _numeric(active), key="bgstrip_var", default=_d_outcome(active)
+        c1, c2 = st.columns(2)
+        with c1:
+            strip_by = w.selectbox(
+                "Group by", _factors(active), key="strip_byvar", default=_d_cov(active)
+            )
+            strip_horiz = w.checkbox(
+                "Groups on y-axis", key="strip_group_on_y", default=True
+            )
+        with c2:
+            strip_var = w.selectbox(
+                "Variable",
+                _numeric(active),
+                key="strip_var",
+                default=_d_outcome(active),
+            )
+            strip_log = w.checkbox("Log value axis", key="strip_log", default=False)
+        strip_order = w.checkbox("Order by mean", key="strip_order", default=False)
+        strip_alpha = w.float_slider(
+            "Point opacity", 0.1, 1.0, key="strip_alpha", default=0.6, step=0.1
+        )
+        strip_max = w.slider(
+            "Max points",
+            200,
+            5000,
+            key="strip_max_units",
+            default=2000,
+            help="Large samples are thinned to this many points for a responsive animation.",
         )
         strip_anim = (
-            w.checkbox("Animate over time", key="bgstrip_anim", default=False)
-            if _is_panel(active)
+            w.checkbox("Animate over time", key="strip_anim", default=False)
+            if panel
             else False
         )
         _show_panel_result(
@@ -374,7 +440,14 @@ def page_by_group() -> None:
                 strip_by,
                 strip_var,
                 time=active.time if strip_anim else None,
-            )
+                order_by_mean=strip_order,
+                group_on_y=strip_horiz,
+                log=strip_log,
+                alpha=float(strip_alpha),
+                max_units=int(strip_max),
+            ),
+            code=render.code_for("strip_plot", active.time),
+            name="strip_plot",
         )
 
 
@@ -981,6 +1054,10 @@ def page_composition() -> None:
         )
         return
 
+    st.caption(
+        "Sizes each tile/wedge by a value and (optionally) colors it by another; on a panel, "
+        "press ▶ (bottom-left) to watch the composition shift — pause by dragging the slider."
+    )
     path = w.multiselect(
         "Hierarchy (root → leaf)",
         factors,
@@ -988,17 +1065,28 @@ def page_composition() -> None:
         default=factors[:2],
         help="Leave empty to use the panel entity as a single level.",
     )
-    size = w.selectbox(
-        "Size by", nums, key="comp_size", none=True, default=_d_outcome(active)
-    )
-    color = w.selectbox("Color by", nums, key="comp_color", none=True)
+    c1, c2 = st.columns(2)
+    with c1:
+        size = w.selectbox(
+            "Size by", nums, key="comp_size", none=True, default=_d_outcome(active)
+        )
+        chart = w.selectbox(
+            "Chart", ["treemap", "sunburst"], key="comp_kind", relabel=False
+        )
+    with c2:
+        color = w.selectbox("Color by", nums, key="comp_color", none=True)
+        max_units = w.slider(
+            "Max leaf units",
+            10,
+            500,
+            key="comp_max_units",
+            default=200,
+            help="Large hierarchies are sampled to this many leaves for legibility.",
+        )
     animate = (
         w.checkbox("Animate over time", key="comp_anim", default=True)
         if _is_panel(active)
         else False
-    )
-    chart = w.selectbox(
-        "Chart", ["treemap", "sunburst"], key="comp_kind", relabel=False
     )
     fn = explore_treemap_plot if chart == "treemap" else explore_sunburst_plot
     _show_panel_result(
@@ -1008,8 +1096,11 @@ def page_composition() -> None:
             size=None if size == "None" else size,
             color=None if color == "None" else color,
             time=active.time if animate else None,
+            max_units=int(max_units),
         ),
         interpret=False,
+        code=render.code_for(f"{chart}_plot", active.time),
+        name=f"{chart}_plot",
     )
 
 
@@ -1365,6 +1456,7 @@ _PAGE_SPECS: list[PageSpec] = [
         page_by_group,
         ["by_group_bar_graph", "by_group_violin_graph", "by_group_trend_graph"],
     ),
+    ("Composition", "🧩", "composition", page_composition, _can_compose),
     (
         "Relationships",
         "🔗",
@@ -1372,7 +1464,6 @@ _PAGE_SPECS: list[PageSpec] = [
         page_correlations,
         ["corrplot", "scatter_plot"],
     ),
-    ("Composition", "🧩", "composition", page_composition, _can_compose),
     ("Dynamics", "🔁", "dynamics", page_dynamics, _is_panel),
     # Analyze (in the docs case-study order: fit -> read it -> choose the estimator ->
     # the flagship curve -> a related convergence question -> a causal design)

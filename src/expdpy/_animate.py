@@ -5,7 +5,7 @@ histogram/violin, the animated treemap/sunburst) and the ``plotly.express`` ones
 box/strip plots) — draws its controls from here, so they all get the same "▶ Play" / "⏸ Pause"
 buttons, the same frame speed, and the same time-labelled slider.
 
-The hand-built figures assemble their own ``go.Frame`` list and call :func:`play_pause_updatemenus`
+The hand-built figures assemble their own ``go.Frame`` list and call :func:`play_controls`
 + :func:`time_slider`; the ``plotly.express`` figures let px build the frames and then call
 :func:`retheme_px_animation`, which swaps px's terse auto-controls for the expdpy ones.
 
@@ -30,7 +30,7 @@ __all__ = [
     "global_range",
     "global_color_range",
     "category_orders",
-    "play_pause_updatemenus",
+    "play_controls",
     "time_slider",
     "retheme_px_animation",
 ]
@@ -91,27 +91,30 @@ def category_orders(*specs: tuple[str, pd.Series]) -> dict[str, list[str]]:
     return {col: sorted_levels(series) for col, series in specs}
 
 
-def play_pause_updatemenus(
-    *, frame_ms: int = FRAME_MS, trans_ms: int = TRANS_MS
-) -> list[dict]:
-    """Return the shared "▶ Play" / "⏸ Pause" buttons block (top-left, above the plot)."""
+def play_controls(*, frame_ms: int = FRAME_MS, trans_ms: int = TRANS_MS) -> list[dict]:
+    """Return the shared single ▶ play button, tucked in the bottom-left, left of the slider.
+
+    Plotly ``updatemenus`` buttons are stateless — a genuine one-button play↔pause toggle needs
+    JavaScript that static / notebook / Streamlit-rendered figures don't have. So this is a
+    play-only control placed unobtrusively at the bottom-left (matching Plotly Express's default
+    geometry, with the time slider to its right); to pause, grab the slider.
+    """
     play_args = {
         "frame": {"duration": frame_ms, "redraw": True},
         "fromcurrent": True,
         "transition": {"duration": trans_ms},
     }
-    pause_args = {"frame": {"duration": 0, "redraw": False}, "mode": "immediate"}
     return [
         {
             "type": "buttons",
             "showactive": False,
-            "x": 0.02,
-            "y": 1.15,
-            "xanchor": "left",
+            "x": 0.1,
+            "y": 0,
+            "xanchor": "right",
             "yanchor": "top",
+            "pad": {"r": 10, "t": 70},
             "buttons": [
-                {"label": "▶ Play", "method": "animate", "args": [None, play_args]},
-                {"label": "⏸ Pause", "method": "animate", "args": [[None], pause_args]},
+                {"label": "▶", "method": "animate", "args": [None, play_args]},
             ],
         }
     ]
@@ -133,8 +136,13 @@ def time_slider(
     return [
         {
             "active": active,
+            "x": 0.1,
+            "y": 0,
+            "xanchor": "left",
+            "yanchor": "top",
+            "len": 0.9,
             "currentvalue": {"prefix": f"{time_label}: "},
-            "pad": {"t": 50},
+            "pad": {"b": 10, "t": 50},
             "steps": [
                 {
                     "method": "animate",
@@ -167,8 +175,8 @@ def retheme_px_animation(
     """Re-theme a ``plotly.express`` animated figure to expdpy standards, in place.
 
     Applies :func:`expdpy._theme.apply_default_layout`, then — when the figure is animated —
-    swaps px's terse auto-controls (a ``▶`` / ``■`` menu at ``x=0.1,y=0`` and a ``"col="`` slider)
-    for the shared "▶ Play" / "⏸ Pause" buttons and the time-labelled :func:`time_slider`. The
+    swaps px's terse auto-controls (a ``▶`` / ``■`` menu and a ``"col="`` slider) for the shared
+    single ▶ :func:`play_controls` button and the time-labelled :func:`time_slider`. The
     replacement reuses px's own frame names (read off its slider steps) so the steps stay wired to
     the right frames regardless of how px stringified the period values.
 
@@ -182,10 +190,10 @@ def retheme_px_animation(
         labels = [str(step.label) for step in fig.layout.sliders[0].steps]
     else:  # pragma: no cover - px always builds a slider for an animation
         labels = [str(frame.name) for frame in fig.frames]
-    fig.update_layout(
-        updatemenus=play_pause_updatemenus(frame_ms=frame_ms, trans_ms=trans_ms),
-        sliders=time_slider(
-            labels, time_label=time_label, frame_ms=frame_ms, trans_ms=trans_ms
-        ),
+    # Direct assignment REPLACES px's auto controls; update_layout would merge element-wise
+    # (leaving px's second ■ button behind), so assign the tuples outright.
+    fig.layout.updatemenus = play_controls(frame_ms=frame_ms, trans_ms=trans_ms)
+    fig.layout.sliders = time_slider(
+        labels, time_label=time_label, frame_ms=frame_ms, trans_ms=trans_ms
     )
     return fig

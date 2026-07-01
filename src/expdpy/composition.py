@@ -24,7 +24,7 @@ from pandas.api import types as pdt
 from expdpy._animate import (
     fmt_period,
     global_color_range,
-    play_pause_updatemenus,
+    play_controls,
     time_slider,
 )
 from expdpy._common import entity_display_series as _entity_display_series
@@ -165,7 +165,7 @@ def _composition_figure(
             fig.layout.coloraxis = maker(sub, **px_kwargs).layout.coloraxis
         apply_default_layout(fig, title=fig_title, subtitle=subtitle)
         fig.update_layout(
-            updatemenus=play_pause_updatemenus(),
+            updatemenus=play_controls(),
             sliders=time_slider(
                 [fmt_period(p) for p in periods], time_label=time_label or ""
             ),

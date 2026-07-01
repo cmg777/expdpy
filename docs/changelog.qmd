@@ -2,6 +2,21 @@
 title: "Changelog"
 ---
 
+## 0.5.2 (2026-07-01)
+
+**Calmer animation controls + a richer Explore app.**
+
+- The animated views (scatter, distribution-over-time, box, strip, treemap, sunburst) now carry a
+  single unobtrusive **▶** button in the **bottom-left corner, beside the time slider** (pause by
+  dragging the slider) instead of a Play/Pause pair above the plot.
+- `explore_strip_plot` names each point's **entity in the hover box** ("Name (id)" when a readable
+  name is declared).
+- The **Explore Streamlit app** gains full controls for the box/strip/composition charts
+  (log scale, ordering, orientation, box points, strip opacity & sampling, treemap/sunburst leaf
+  sampling), copy-paste **"Export & reproduce"** code snippets for each, and an *Animated views*
+  callout; the **Composition** page now sits right after **By group**.
+- The Explore docs page & notebook demonstrate the new parameters and the box/strip `.interpret()`.
+
 ## 0.5.1 (2026-07-01)
 
 **Richer animated exploration for panel data.** Four new time-animated Explore views make

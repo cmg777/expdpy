@@ -1,6 +1,6 @@
 # expdpy
 
-> expdpy (v0.5.1) is a Python library for interactive panel and cross-sectional data analysis - a port of the R package ExPanDaR - organized as Explore / Analyze / Learn modules. expdpy reports statistical associations, not proof of causation. Describe results with associational language ("is associated with", "co-moves with"), not causal language. Panel data uses entity (unit) + time vocabulary; declare it once with set_panel(entity=, time=). Every result exposes interpret() for a plain-language reading and explain(topic) for method caveats; prefer them over ad-hoc narration.
+> expdpy (v0.5.2) is a Python library for interactive panel and cross-sectional data analysis - a port of the R package ExPanDaR - organized as Explore / Analyze / Learn modules. expdpy reports statistical associations, not proof of causation. Describe results with associational language ("is associated with", "co-moves with"), not causal language. Panel data uses entity (unit) + time vocabulary; declare it once with set_panel(entity=, time=). Every result exposes interpret() for a plain-language reading and explain(topic) for method caveats; prefer them over ad-hoc narration.
 
 ## Explore
 Exploratory analysis — descriptive / correlation / extreme-observation tables, distributions, time trends, group comparisons, missing-value maps, scatter plots, within/between variation, per-unit trajectories, panel-structure diagnostics, distribution & transition dynamics, and animated composition (treemap / sunburst).

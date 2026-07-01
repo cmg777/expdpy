@@ -225,18 +225,30 @@ ex.explore_violin_plot_by_group(df, "continent", "gini_regional").fig
 ```
 
 `explore_box_plot` gives the same comparison as boxes — and because we have a panel, passing
-`time=` turns it into an animation: press **▶ Play** to watch each continent's distribution move
-year by year (the value axis stays pinned so the motion is comparable).
+`time=` turns it into an animation: press the **▶** button (bottom-left, beside the year slider) to
+watch each continent's distribution move year by year, and drag the slider to pause on a year. The
+value axis stays pinned so the motion is comparable. Extra arguments tune the view — here we order
+the continents by their mean and drop the whisker points:
 
 ```{python}
-ex.explore_box_plot(df, "continent", "gini_regional", time="year").fig
+ex.explore_box_plot(
+    df, "continent", "gini_regional", time="year", order_by_mean=True, points=False
+).fig
+```
+
+Every `explore_*` distribution result reads itself back in plain language — `.interpret()` narrates
+how the pooled median and the between-group gap shifted:
+
+```{python}
+print(ex.explore_box_plot(df, "continent", "gini_regional", time="year").interpret())
 ```
 
 `explore_strip_plot` shows every region as a point instead of a summary — useful when a group has
-only a handful of members. It animates over time the same way.
+only a handful of members. **Hover a point** and its unit's name appears in the info box. It
+animates over time the same way (large panels are thinned to `max_units` points to stay smooth):
 
 ```{python}
-ex.explore_strip_plot(df, "continent", "gini_regional", time="year").fig
+ex.explore_strip_plot(df, "continent", "gini_regional", time="year", alpha=0.5).fig
 ```
 
 `explore_trend_plot_by_group` puts time back in: one trend line per continent, revealing whether the
@@ -251,7 +263,8 @@ ex.explore_trend_plot_by_group(df, group_var="continent", var="gini_regional").f
 Group comparisons ask *how big* each group is on average; composition views ask *what share* of a
 total each part holds. `explore_treemap_plot` nests countries within continents, sizes each tile by
 population and colors it by inequality, and — with `time=` — animates the whole picture across the
-years.
+years (same **▶** control, bottom-left). The color scale is held fixed across frames so the shifts
+are comparable.
 
 ```{python}
 ex.explore_treemap_plot(

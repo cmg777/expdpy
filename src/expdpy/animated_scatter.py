@@ -16,7 +16,7 @@ from pandas.api import types as pdt
 from expdpy._animate import (
     fmt_period,
     global_range,
-    play_pause_updatemenus,
+    play_controls,
     time_slider,
 )
 from expdpy._common import entity_display_map as _entity_display_map
@@ -206,7 +206,7 @@ def explore_animated_scatter_plot(
     )
     fig.update_layout(
         sliders=time_slider([fmt_period(p) for p in periods], time_label=time_label),
-        updatemenus=play_pause_updatemenus(),
+        updatemenus=play_controls(),
         showlegend=discrete,
     )
     return AnimatedScatterResult(df=sub, fig=fig)

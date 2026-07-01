@@ -153,6 +153,68 @@ def _emit_fwl_plot(cfg: dict) -> str | None:
     )
 
 
+def _emit_box_plot(cfg: dict, time: str | None) -> str | None:
+    by, var = cfg.get("box_byvar"), cfg.get("box_var")
+    if by in (None, "None") or var in (None, "None"):
+        return None
+    parts = [f"ex.explore_box_plot(df, {_q(by)}, {_q(var)}"]
+    if cfg.get("box_anim") and time:
+        parts.append(f"time={_q(time)}")
+    if cfg.get("box_order"):
+        parts.append("order_by_mean=True")
+    if not cfg.get("box_group_on_y", True):
+        parts.append("group_on_y=False")
+    if cfg.get("box_log"):
+        parts.append("log=True")
+    pts = cfg.get("box_points", "outliers")
+    if pts == "none":
+        parts.append("points=False")
+    elif pts and pts != "outliers":
+        parts.append(f"points={_q(pts)}")
+    return ", ".join(parts) + ").fig"
+
+
+def _emit_strip_plot(cfg: dict, time: str | None) -> str | None:
+    by, var = cfg.get("strip_byvar"), cfg.get("strip_var")
+    if by in (None, "None") or var in (None, "None"):
+        return None
+    parts = [f"ex.explore_strip_plot(df, {_q(by)}, {_q(var)}"]
+    if cfg.get("strip_anim") and time:
+        parts.append(f"time={_q(time)}")
+    if cfg.get("strip_order"):
+        parts.append("order_by_mean=True")
+    if not cfg.get("strip_group_on_y", True):
+        parts.append("group_on_y=False")
+    if cfg.get("strip_log"):
+        parts.append("log=True")
+    alpha = float(cfg.get("strip_alpha", 0.6))
+    if abs(alpha - 0.6) > 1e-9:
+        parts.append(f"alpha={alpha:g}")
+    mu = cfg.get("strip_max_units", 2000)
+    if mu is not None and int(mu) != 2000:
+        parts.append(f"max_units={int(mu)}")
+    return ", ".join(parts) + ").fig"
+
+
+def _emit_composition(cfg: dict, time: str | None, kind: str) -> str:
+    fn = "explore_treemap_plot" if kind == "treemap" else "explore_sunburst_plot"
+    path = [p for p in (cfg.get("comp_path") or []) if p not in (None, "None")]
+    size, color = cfg.get("comp_size"), cfg.get("comp_color")
+    parts = [f"ex.{fn}(df"]
+    if path:
+        parts.append(f"path={_q(path)}")
+    if size not in (None, "None"):
+        parts.append(f"size={_q(size)}")
+    if color not in (None, "None"):
+        parts.append(f"color={_q(color)}")
+    if cfg.get("comp_anim") and time:
+        parts.append(f"time={_q(time)}")
+    mu = cfg.get("comp_max_units", 200)
+    if mu is not None and int(mu) != 200:
+        parts.append(f"max_units={int(mu)}")
+    return ", ".join(parts) + ").fig"
+
+
 _EMITTERS = {
     "descriptive_table": lambda c, t: _emit_descriptive(c),
     "histogram": lambda c, t: _emit_histogram(c),
@@ -166,6 +228,10 @@ _EMITTERS = {
     "quantile_trend_graph": lambda c, t: _emit_quantile_trend(c, t),
     "corrplot": lambda c, t: _emit_corr(c),
     "scatter_plot": lambda c, t: _emit_scatter(c),
+    "box_plot": lambda c, t: _emit_box_plot(c, t),
+    "strip_plot": lambda c, t: _emit_strip_plot(c, t),
+    "treemap_plot": lambda c, t: _emit_composition(c, t, "treemap"),
+    "sunburst_plot": lambda c, t: _emit_composition(c, t, "sunburst"),
     "regression": lambda c, t: _emit_regression(c),
     "fwl_plot": lambda c, t: _emit_fwl_plot(c),
 }

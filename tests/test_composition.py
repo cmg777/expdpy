@@ -44,8 +44,11 @@ def test_composition_builds_animation(gap, fn, rtype):
     # Frames are ordered ascending in time (px would otherwise use first-appearance order).
     labels = [s.label for s in steps]
     assert labels == sorted(labels, key=int)
-    # Shared expdpy controls.
-    assert res.fig.layout.updatemenus[0].buttons[0].label == "▶ Play"
+    # Shared expdpy controls: a single ▶ play button, bottom-left, left of the slider.
+    menu = res.fig.layout.updatemenus[0]
+    assert len(menu.buttons) == 1
+    assert menu.buttons[0].label == "▶"
+    assert (menu.x, menu.y) == (0.1, 0) and menu.xanchor == "right"
     assert res.fig.layout.sliders[0].currentvalue.prefix.endswith(": ")
     # Continuous color → a colorbar with a range pinned across frames.
     assert res.fig.layout.coloraxis.cmin is not None
@@ -103,7 +106,9 @@ def test_box_builds_animation(sample_df):
     # One box trace per group (color=by_var), and the value axis is pinned.
     assert len(res.fig.data) == sample_df["grp"].nunique()
     assert res.fig.layout.xaxis.range is not None
-    assert res.fig.layout.updatemenus[0].buttons[0].label == "▶ Play"
+    # A single ▶ play button (Plotly can't do a stateful toggle), bottom-left.
+    assert len(res.fig.layout.updatemenus[0].buttons) == 1
+    assert res.fig.layout.updatemenus[0].buttons[0].label == "▶"
     # df is stored [time, by_var, var] for the interpreter.
     assert list(res.df.columns) == ["year", "grp", "x1"]
 
@@ -164,3 +169,41 @@ def test_box_interpret_is_associational(sample_df):
 def test_box_requires_numeric_var(sample_df):
     with pytest.raises(ValueError, match="numeric"):
         ex.explore_box_plot(sample_df, "grp", "grp")
+
+
+def test_strip_hover_names_the_entity(gap):
+    # Strip shows individual points, so each point's info box names its unit.
+    res = ex.explore_strip_plot(
+        gap, "continent", "lifeExp", time="year", max_units=None
+    )
+    names: set[str] = set()
+    for tr in res.fig.data:
+        if tr.hovertext is not None:
+            names.update(map(str, tr.hovertext))
+    assert "Norway" in names  # a gapminder country surfaces in the hover box
+    # Box aggregates, so it carries no per-point entity hover.
+    box = ex.explore_box_plot(gap, "continent", "lifeExp", time="year")
+    assert all(tr.hovertext is None for tr in box.fig.data)
+
+
+def test_new_chart_code_snippets():
+    # The Streamlit "reproduce" snippets for the new charts (pure functions; no Streamlit).
+    from expdpy.streamlit_app._export_nb import component_code
+    from expdpy.streamlit_app._state import DEFAULT_CONFIG
+
+    box = dict(DEFAULT_CONFIG, box_byvar="continent", box_var="gini", box_anim=True)
+    assert component_code("box_plot", box, "year") == (
+        "ex.explore_box_plot(df, 'continent', 'gini', time='year').fig"
+    )
+    strip = dict(DEFAULT_CONFIG, strip_byvar="continent", strip_var="gini")
+    assert "explore_strip_plot" in component_code("strip_plot", strip, "year")
+    comp = dict(
+        DEFAULT_CONFIG,
+        comp_path=["continent", "country"],
+        comp_size="pop",
+        comp_anim=True,
+    )
+    assert "explore_treemap_plot" in component_code("treemap_plot", comp, "year")
+    assert "explore_sunburst_plot" in component_code("sunburst_plot", comp, "year")
+    # An incomplete selection yields no snippet.
+    assert component_code("box_plot", dict(DEFAULT_CONFIG), "year") is None
